@@ -13,7 +13,7 @@ Rules:
 - Shared versions live in the pnpm catalog (`pnpm-workspace.yaml`). Packages reference them with `catalog:`.
 - Lint and format config lives only in the root `vite.config.ts`.
 - `#/…` imports are package-local and always include the file extension (`#/lib/utils.ts`).
-- The code has no comments. Names, types and this file carry the meaning.
+- First-party code has no comments. Names, types and this file carry the meaning. Vendored COSS files and generated files stay as shipped.
 
 ## Backend (`packages/backend/convex`)
 
@@ -43,3 +43,30 @@ api.users.viewer;
 ```
 
 `@meetings/backend` exports `api.api` as `api`, plus the `Doc` and `Id` types. It never exports `internal`.
+
+## Web app (`apps/web/src`)
+
+Layers depend downward only: `routes` → `layouts` → `features` → `components` / `lib`.
+
+| Path                 | Contains                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `start.ts`           | Global request middleware (security headers, CSRF for server functions) and client-only rendering (`defaultSsr: false`) |
+| `providers/`         | App-wide providers (`ConvexWithAuthProvider` wires Convex and Convex Auth)                                              |
+| `routes/`            | Route config, search-param validation, auth gates, and handing URL state to layouts and features                        |
+| `layouts/`           | Page frames that compose features, such as `app-shell/` (sidebar and header for signed-in pages)                        |
+| `features/<domain>/` | UI plus Convex calls for one domain: `auth`, `meetings`, `tasks`                                                        |
+| `components/`        | Domain-free building blocks with no Convex calls: `EmptyState`, `FormError`, `LoadingScreen`                            |
+| `lib/`               | Pure helpers                                                                                                            |
+
+Rules:
+
+- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/?schedule=true&inviteFor=…`, `/sign-in?with=password&mode=signup`.
+- Changing URL state:
+  - Declarative navigation is a `<Link>` anywhere: features, layouts or routes.
+  - Imperative navigation (`navigate`) belongs to routes. Features receive it as callbacks (`onClose`, `onInvite`).
+- Server data comes from Convex `useQuery` / `useMutation`.
+- Form state comes from TanStack Form (`useForm`). Server errors come back through `validators.onSubmitAsync`.
+- No `useEffect`. Scroll, layout and visibility use CSS or declarative components (`<Authenticated>`, `<Navigate>`). For example, the invite chat stays scrolled to the newest message because its scroll container is `flex-col-reverse`.
+- Allowed `useState`, until the data lives in Convex:
+  - `features/meetings/invite-panel.tsx`: the local chat messages and composer draft.
+  - COSS components' own internal state in `packages/ui`.

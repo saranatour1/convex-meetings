@@ -1,11 +1,7 @@
+import type { ReactNode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
-import { api } from "@meetings/backend";
-
+import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
 import appCss from "../styles.css?url";
-
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
 export const Route = createRootRoute({
   head: () => ({
@@ -22,20 +18,13 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <ConvexAuthProvider
-      client={convex}
-      api={{
-        refreshSession: api.auth.refreshSession,
-        signOut: api.auth.signOut,
-        isAuthenticated: api.auth.isAuthenticated,
-      }}
-    >
+    <ConvexWithAuthProvider>
       <Outlet />
-    </ConvexAuthProvider>
+    </ConvexWithAuthProvider>
   );
 }
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
