@@ -1,56 +1,18 @@
-# sv
+# convex-meetings
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+TanStack Start + Convex + Convex Auth v2 + COSS UI (shadcn registry), deployed to Cloudflare Workers.
 
-## Creating a project
+## Develop
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
+```bash
+pnpm install
+pnpm dev:backend   # convex dev
+pnpm dev           # http://localhost:3000
 ```
 
-To recreate this project with the same configuration:
+`.env.local` needs `VITE_CONVEX_URL` (written by `npx convex dev`).
 
-```sh
-# recreate this project
-pnpm dlx sv@1.4.0 create --template minimal --types ts --add tailwindcss="plugins:none" --install pnpm .
-```
-
-## Adding features
-
-Add features to your project with `sv add`:
-
-```sh
-npx sv add
-```
-
-For example, to add Tailwind CSS:
-
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Sign-in methods: passkey (default for development), Google, GitHub, username/password.
+Google/GitHub need `AUTH_{GOOGLE,GITHUB}_CLIENT_{ID,SECRET}` on the Convex deployment and the
+callback `<CONVEX_SITE_URL>/oauth/<provider>/callback` registered with the provider.
+`SITE_URL` on the deployment must match the app origin (passkeys are bound to it).
