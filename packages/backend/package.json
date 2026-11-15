@@ -3,19 +3,24 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./api": "./convex/_generated/api.js",
-    "./dataModel": "./convex/_generated/dataModel.d.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "convex dev"
+    "dev": "convex dev",
+    "test": "vp test run"
   },
   "dependencies": {
     "@convex-dev/auth": "catalog:",
     "@convex-dev/workpool": "^0.4.16",
-    "convex": "catalog:"
+    "convex": "catalog:",
+    "convex-helpers": "^0.1.135"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "convex-test": "^0.0.71",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

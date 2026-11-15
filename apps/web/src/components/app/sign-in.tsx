@@ -7,7 +7,7 @@ import {
 } from "@convex-dev/auth/methods/username-password/react";
 import { useOauth, useSignInWithGoogle } from "@convex-dev/auth/methods/google/react";
 import { useSignInWithGithub } from "@convex-dev/auth/methods/github/react";
-import { api } from "@meetings/backend/api";
+import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
   Card,

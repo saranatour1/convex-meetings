@@ -10,6 +10,7 @@ import workpool from "@convex-dev/workpool/convex.config.js";
 
 const app = defineApp({
   env: {
+    SITE_URL: v.string(),
     AUTH_GOOGLE_CLIENT_ID: v.string(),
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
@@ -20,7 +21,6 @@ app.use(auth);
 app.use(authPassword);
 app.use(authUsername);
 app.use(authPasskey);
-// OAuth callbacks are served at <PUBLIC_CONVEX_SITE_URL>/oauth/<provider>/callback.
 app.use(authGoogle, {
   httpPrefix: "/oauth/google",
   env: {
