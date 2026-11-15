@@ -1,14 +1,11 @@
 import { defineTable } from "convex/server";
 import { zid, zodToConvexFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
-
-const MAX_RANGES_PER_WEEK = 21;
-
-const zTimeOfDay = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+import { zIsoWeekday, zTimeOfDay, zTimeZone } from "../lib/time";
 
 const zAvailableRange = z
   .object({
-    weekday: z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
+    weekday: zIsoWeekday,
     start: zTimeOfDay,
     end: zTimeOfDay,
   })
@@ -16,8 +13,8 @@ const zAvailableRange = z
 
 export const zSchedule = z.object({
   userId: zid("users"),
-  timeZone: z.string(),
-  weeklyHours: z.array(zAvailableRange).max(MAX_RANGES_PER_WEEK),
+  timeZone: zTimeZone,
+  weeklyHours: z.array(zAvailableRange),
 });
 
 export const schedules = defineTable(zodToConvexFields(zSchedule.shape)).index("by_user", [

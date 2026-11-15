@@ -4,24 +4,11 @@ import { z } from "zod";
 
 export const zMeeting = z.object({
   orgId: zid("organizations"),
-  hostId: zid("users"),
-  title: z.string().trim().min(1).max(200),
-  startsAt: z.number(),
-  durationMinutes: z.literal([15, 30, 45, 60]),
-});
-
-export const zAttendee = z.object({
-  meetingId: zid("meetings"),
   userId: zid("users"),
-  response: z.enum(["pending", "accepted", "declined"]),
-  startsAt: z.number(),
+  title: z.string().trim().min(1).max(200),
 });
 
 export const meetings = defineTable(zodToConvexFields(zMeeting.shape)).index(
-  "by_org_and_startsAt",
-  ["orgId", "startsAt"],
+  "by_org_and_user_and_title",
+  ["orgId", "userId", "title"],
 );
-
-export const attendees = defineTable(zodToConvexFields(zAttendee.shape))
-  .index("by_meeting_and_user", ["meetingId", "userId"])
-  .index("by_user_and_startsAt", ["userId", "startsAt"]);

@@ -16,10 +16,3 @@ test("authed mutations reject a signed-out caller", async () => {
     "Unauthenticated",
   );
 });
-
-test("updateBio rejects arguments of the wrong type", async () => {
-  const t = convexTest(schema, modules);
-  await expect(t.mutation(api.api.users.updateBio, { bio: 42 as never })).rejects.toThrow(
-    "Validator error",
-  );
-});

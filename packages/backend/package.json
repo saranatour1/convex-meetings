@@ -14,10 +14,12 @@
     "@convex-dev/workpool": "^0.4.16",
     "convex": "catalog:",
     "convex-helpers": "^0.1.135",
+    "luxon": "^3.7.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
+    "@types/luxon": "^3.7.6",
     "@types/node": "catalog:",
     "convex-test": "^0.0.71",
     "typescript": "catalog:",
