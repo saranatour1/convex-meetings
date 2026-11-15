@@ -53,21 +53,15 @@ export const createGithubUser = internalMutation({
 
 export const storeAvatar = internalAction({
   args: { userId: v.id("users"), url: v.string() },
-  returns: v.null(),
   handler: async (ctx, { userId, url }) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Avatar fetch failed: ${response.status}`);
     const imageId = await ctx.storage.store(await response.blob());
     await ctx.runMutation(internal.internal.users.replaceImage, { userId, imageId });
-    return null;
   },
 });
 
 export const replaceImage = internalMutation({
   args: { userId: v.id("users"), imageId: v.id("_storage") },
-  returns: v.null(),
-  handler: async (ctx, { userId, imageId }) => {
-    await Users.replaceImage(ctx, userId, imageId);
-    return null;
-  },
+  handler: (ctx, { userId, imageId }) => Users.replaceImage(ctx, userId, imageId),
 });

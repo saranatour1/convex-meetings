@@ -1,14 +1,12 @@
 import type { WithoutSystemFields } from "convex/server";
-import { ConvexError, type Infer } from "convex/values";
+import type { z } from "zod";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { avatarWorkpool } from "../lib/workpools";
-import type { vUsernameAuthMethod } from "../tables/users";
+import type { zUsernameAuthMethod } from "../tables/users";
 
 type NewUser = WithoutSystemFields<Doc<"users">>;
-
-const BIO_MAX_LENGTH = 280;
 
 export async function insertUser(ctx: MutationCtx, user: NewUser, avatarUrl?: string) {
   const userId = await ctx.db.insert("users", user);
@@ -21,7 +19,7 @@ export async function insertUser(ctx: MutationCtx, user: NewUser, avatarUrl?: st
   return userId;
 }
 
-export function insertUsernameUser(ctx: MutationCtx, method: Infer<typeof vUsernameAuthMethod>) {
+export function insertUsernameUser(ctx: MutationCtx, method: z.infer<typeof zUsernameAuthMethod>) {
   return insertUser(ctx, { method, isVerified: false });
 }
 
@@ -49,9 +47,5 @@ export async function replaceImage(ctx: MutationCtx, userId: Id<"users">, imageI
 }
 
 export async function setBio(ctx: MutationCtx, userId: Id<"users">, bio: string) {
-  const trimmed = bio.trim();
-  if (trimmed.length > BIO_MAX_LENGTH) {
-    throw new ConvexError(`Keep your bio to ${BIO_MAX_LENGTH} characters or fewer.`);
-  }
-  await ctx.db.patch("users", userId, { bio: trimmed || undefined });
+  await ctx.db.patch("users", userId, { bio: bio || undefined });
 }

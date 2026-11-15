@@ -17,17 +17,38 @@ Rules:
 
 ## Backend (`packages/backend/convex`)
 
-| Folder      | Contains                                                                          | Generated path                  |
-| ----------- | --------------------------------------------------------------------------------- | ------------------------------- |
-| `api/`      | Public functions only: argument and return validators, then a call into `models/` | `api.api.<file>.<fn>`           |
-| `internal/` | Internal functions only: Convex Auth callbacks, workpool jobs                     | `internal.internal.<file>.<fn>` |
-| `models/`   | Plain TypeScript business logic that takes `ctx`. All reads and writes live here. | none                            |
-| `tables/`   | Table definitions and shared validators. `schema.ts` composes them.               | none                            |
-| `lib/`      | Building blocks: `authedMutation` middleware, workpool instances                  | none                            |
+| Folder      | Contains                                                                                                             | Generated path                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `api/`      | Public functions only: Zod `args`, then a call into `models/`                                                        | `api.api.<file>.<fn>`           |
+| `internal/` | Internal functions only: Convex Auth callbacks, workpool jobs                                                        | `internal.internal.<file>.<fn>` |
+| `models/`   | Plain TypeScript business logic that takes `ctx`. All reads and writes live here.                                    | none                            |
+| `tables/`   | One Zod schema per table plus `defineTable(zodToConvexFields(...))`, one file per domain. `schema.ts` composes them. | none                            |
+| `lib/`      | Building blocks: function middleware, shared Zod validators, workpool instances                                      | none                            |
+
+### Data model
+
+| Table                    | Belongs to       | Purpose                                                                                                                                                                    |
+| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`                  | –                | Identity and profile only. Kept lean: nothing org- or team-specific.                                                                                                       |
+| `organizations`          | –                | The tenant boundary                                                                                                                                                        |
+| `members`                | organization     | `orgId` + `userId` + role. A row means "in this org".                                                                                                                      |
+| `invites`                | organization     | Reusable join link (`token`) until `expiresAt`. Revoking deletes it.                                                                                                       |
+| `groups`, `groupMembers` | organization     | Teams inside an org                                                                                                                                                        |
+| `meetings`               | organization     | Title, start, duration, host                                                                                                                                               |
+| `attendees`              | meeting          | The meeting invite (`pending` / `accepted` / `declined`). The host is an attendee too. `startsAt` is copied from the meeting so "my upcoming meetings" is one index range. |
+| `schedules`              | user             | Weekly availability                                                                                                                                                        |
+| `messages`               | meeting or group | Chat. `chatId` is the meeting or group the conversation belongs to.                                                                                                        |
+| `tasks`                  | organization     | To-do items for an assignee                                                                                                                                                |
 
 Rules:
 
-- Functions that need a signed-in user use `authedMutation` from `lib/functions.ts`. It injects `ctx.userId` and throws `ConvexError("Unauthenticated")` otherwise.
+- Tables and public `args` are validated with Zod, via `convex-helpers/server/zod4`. `tables/` exports one Zod schema per table, and field rules are reached through `.shape` (for example `zMeeting.shape.durationMinutes`). Convex `v` validators appear only where a library requires them: middleware arguments and the Convex Auth callbacks.
+- Public queries and mutations have no `returns`. Internal functions declare `returns` only where a library needs it (the Convex Auth `createUser` callbacks).
+- List queries paginate: `paginationOpts: zPaginationOpts` from `lib/validators.ts`, `.paginate()` on the server, `usePaginatedQuery` on the client. Single-document reads stay plain.
+- Function builders in `lib/functions.ts`:
+  - `authedQuery` / `authedMutation` inject `ctx.userId`, or throw `ConvexError("Unauthenticated")`.
+  - `orgQuery` / `orgMutation` take `orgId`, inject `ctx.member`, and throw `ConvexError("Not a member")` for anyone outside the org.
+  - Role checks use `requireRole` from `models/members.ts`.
 - `ctx.run*`, the scheduler and workpools only target `internal.internal.*`.
 - Environment variables are declared in `convex.config.ts` and read through the typed `env` from `_generated/server`.
 - Tests sit next to the code (`*.test.ts`). Convex never deploys files with two dots in the name. Tests use `convex-test` and run with `pnpm test`.
