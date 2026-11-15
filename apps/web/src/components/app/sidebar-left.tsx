@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { api } from "@meetings/backend/api";
+import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Checkbox } from "@meetings/ui/components/checkbox";
 import {
