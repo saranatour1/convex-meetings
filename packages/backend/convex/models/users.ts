@@ -2,13 +2,15 @@ import type { WithoutSystemFields } from "convex/server";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { parseOrThrow } from "../lib/validate";
 import { avatarWorkpool } from "../lib/workpools";
+import { zUser } from "../tables/users";
 
 type NewUser = WithoutSystemFields<Doc<"users">>;
 type UsernameMethod = Extract<Doc<"users">["method"], "usernamePasskey" | "usernamePassword">;
 
 export const insertUser = async (ctx: MutationCtx, user: NewUser, avatarUrl?: string) => {
-  const userId = await ctx.db.insert("users", user);
+  const userId = await ctx.db.insert("users", parseOrThrow(zUser, user));
   if (avatarUrl) {
     await avatarWorkpool.enqueueAction(ctx, internal.internal.users.storeAvatar, {
       userId,
@@ -49,5 +51,6 @@ export const replaceImage = async (
 };
 
 export const setBio = async (ctx: MutationCtx, userId: Id<"users">, bio: string) => {
-  await ctx.db.patch("users", userId, { bio: bio || undefined });
+  const parsed = parseOrThrow(zUser.shape.bio.unwrap(), bio);
+  await ctx.db.patch("users", userId, { bio: parsed || undefined });
 };
