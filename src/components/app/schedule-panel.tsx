@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { format } from 'date-fns'
-import { CalendarClockIcon, CalendarPlusIcon, UsersIcon } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarGroup } from '#/components/ui/avatar'
-import { Badge } from '#/components/ui/badge'
-import { Button } from '#/components/ui/button'
-import { Calendar } from '#/components/ui/calendar'
+import { useState } from "react";
+import { format } from "date-fns";
+import { CalendarClockIcon, CalendarPlusIcon, UsersIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarGroup } from "#/components/ui/avatar";
+import { Badge } from "#/components/ui/badge";
+import { Button } from "#/components/ui/button";
+import { Calendar } from "#/components/ui/calendar";
 import {
   Card,
   CardDescription,
@@ -12,25 +12,43 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from '#/components/ui/card'
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '#/components/ui/empty'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { Toggle } from '#/components/ui/toggle'
-import { ToggleGroup } from '#/components/ui/toggle-group'
+} from "#/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "#/components/ui/empty";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
+import { Toggle } from "#/components/ui/toggle";
+import { ToggleGroup } from "#/components/ui/toggle-group";
 
 // ponytail: fixed slots and no meetings table yet, swap for Convex queries when scheduling is real.
-const slots = ['09:00', '09:30', '10:00', '10:30', '11:00', '13:00', '13:30', '14:00', '15:30', '16:00']
-const upcoming: { title: string; when: string; people: string[]; live: boolean }[] = []
+const slots = [
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "13:00",
+  "13:30",
+  "14:00",
+  "15:30",
+  "16:00",
+];
+const upcoming: { title: string; when: string; people: string[]; live: boolean }[] = [];
 
 export function SchedulePanel({
   scheduling,
   onScheduling,
   onInvite,
 }: {
-  scheduling: boolean
-  onScheduling: (open: boolean) => void
-  onInvite: (meetingTitle: string) => void
+  scheduling: boolean;
+  onScheduling: (open: boolean) => void;
+  onInvite: (meetingTitle: string) => void;
 }) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 lg:p-6">
@@ -45,7 +63,9 @@ export function SchedulePanel({
                 <CalendarPlusIcon />
               </EmptyMedia>
               <EmptyTitle className="text-base">No upcoming meetings</EmptyTitle>
-              <EmptyDescription>Meetings you schedule or get invited to will show up here.</EmptyDescription>
+              <EmptyDescription>
+                Meetings you schedule or get invited to will show up here.
+              </EmptyDescription>
             </EmptyHeader>
             {!scheduling && (
               <EmptyContent>
@@ -83,16 +103,22 @@ export function SchedulePanel({
         ))}
       </section>
     </main>
-  )
+  );
 }
 
 /** The scheduling form; mounted only while scheduling, so each open starts blank. */
-function ScheduleCard({ onCancel, onInvite }: { onCancel: () => void; onInvite: (meetingTitle: string) => void }) {
-  const today = new Date()
-  const [date, setDate] = useState<Date>(today)
-  const [time, setTime] = useState<string | null>(null)
-  const [duration, setDuration] = useState('30')
-  const [title, setTitle] = useState('')
+function ScheduleCard({
+  onCancel,
+  onInvite,
+}: {
+  onCancel: () => void;
+  onInvite: (meetingTitle: string) => void;
+}) {
+  const today = new Date();
+  const [date, setDate] = useState<Date>(today);
+  const [time, setTime] = useState<string | null>(null);
+  const [duration, setDuration] = useState("30");
+  const [title, setTitle] = useState("");
 
   return (
     <Card>
@@ -121,13 +147,13 @@ function ScheduleCard({ onCancel, onInvite }: { onCancel: () => void; onInvite: 
             disabled={[{ before: today }]}
             onSelect={(d) => {
               if (d) {
-                setDate(d)
-                setTime(null)
+                setDate(d);
+                setTime(null);
               }
             }}
           />
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <p className="font-medium text-sm">{format(date, 'EEEE, MMM d')}</p>
+            <p className="font-medium text-sm">{format(date, "EEEE, MMM d")}</p>
             <ToggleGroup
               className="grid w-full grid-cols-3 gap-1.5 @xl:grid-cols-2"
               value={time ? [time] : []}
@@ -142,7 +168,7 @@ function ScheduleCard({ onCancel, onInvite }: { onCancel: () => void; onInvite: 
             <div className="flex flex-col gap-2">
               <Label>Duration</Label>
               <ToggleGroup value={[duration]} onValueChange={(v) => v[0] && setDuration(v[0])}>
-                {['15', '30', '45', '60'].map((m) => (
+                {["15", "30", "45", "60"].map((m) => (
                   <Toggle key={m} value={m} size="sm" variant="outline">
                     {m}m
                   </Toggle>
@@ -165,5 +191,5 @@ function ScheduleCard({ onCancel, onInvite }: { onCancel: () => void; onInvite: 
         </div>
       </CardFooter>
     </Card>
-  )
+  );
 }

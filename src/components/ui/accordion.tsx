@@ -5,9 +5,7 @@ import { ChevronDownIcon } from "lucide-react";
 import type React from "react";
 import { cn } from "#/lib/utils.ts";
 
-export function Accordion(
-  props: AccordionPrimitive.Root.Props,
-): React.ReactElement {
+export function Accordion(props: AccordionPrimitive.Root.Props): React.ReactElement {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
