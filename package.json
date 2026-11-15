@@ -6,10 +6,10 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "generate-routes": "vite build",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "vp dev --port 3000",
+    "generate-routes": "vp build",
+    "build": "vp build",
+    "preview": "vp preview",
     "deploy": "pnpm run build && wrangler deploy",
     "dev:backend": "convex dev"
   },
@@ -41,15 +41,8 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "wrangler": "^4.70.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss",
-      "sharp",
-      "workerd"
-    ]
   }
 }
