@@ -15,8 +15,13 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - uses: voidzero-dev/setup-vp@v1.22.0
         with:
           node-version: "24"
@@ -24,3 +29,18 @@ jobs:
       - run: vp check
       - run: vp run test
       - run: vp run build
+      - name: Detect schema changes
+        id: schema
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --quiet "origin/${{ github.base_ref }}" -- packages/backend/SCHEMA.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Post schema diagram
+        if: steps.schema.outputs.changed == 'true'
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: schema-diagram
+          path: packages/backend/SCHEMA.md

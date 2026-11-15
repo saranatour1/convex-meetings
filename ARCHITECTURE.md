@@ -13,6 +13,7 @@ Rules:
 - Shared versions live in the pnpm catalog (`pnpm-workspace.yaml`). Packages reference them with `catalog:`.
 - Lint and format config lives only in the root `vite.config.ts`.
 - `#/…` imports are package-local and always include the file extension (`#/lib/utils.ts`).
+- Functions are arrow functions assigned to `const`, enforced by the `func-style` lint rule. Vendored COSS files are exempt. Route components are defined above `export const Route` because `const` isn't hoisted.
 - First-party code has no comments. Names, types and this file carry the meaning. Vendored COSS files and generated files stay as shipped.
 
 ## Backend (`packages/backend/convex`)
@@ -27,28 +28,34 @@ Rules:
 
 ### Data model
 
-| Table                    | Belongs to       | Purpose                                                                                                                                                                    |
-| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`                  | –                | Identity and profile only. Kept lean: nothing org- or team-specific.                                                                                                       |
-| `organizations`          | –                | The tenant boundary                                                                                                                                                        |
-| `members`                | organization     | `orgId` + `userId` + role. A row means "in this org".                                                                                                                      |
-| `invites`                | organization     | Reusable join link (`token`) until `expiresAt`. Revoking deletes it.                                                                                                       |
-| `groups`, `groupMembers` | organization     | Teams inside an org                                                                                                                                                        |
-| `meetings`               | organization     | Title, start, duration, host                                                                                                                                               |
-| `attendees`              | meeting          | The meeting invite (`pending` / `accepted` / `declined`). The host is an attendee too. `startsAt` is copied from the meeting so "my upcoming meetings" is one index range. |
-| `schedules`              | user             | Weekly availability                                                                                                                                                        |
-| `messages`               | meeting or group | Chat. `chatId` is the meeting or group the conversation belongs to.                                                                                                        |
-| `tasks`                  | organization     | To-do items for an assignee                                                                                                                                                |
+[`packages/backend/SCHEMA.md`](packages/backend/SCHEMA.md) has the generated diagram of every table, relationship and index. CI posts it on any PR that changes it.
+
+| Table                    | Belongs to   | Purpose                                                                                                                        |
+| ------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `users`                  | –            | Identity and profile only. Nothing org- or team-specific.                                                                      |
+| `organizations`          | –            | The tenant boundary                                                                                                            |
+| `members`                | organization | `orgId` + `userId`. A row means "in this org".                                                                                 |
+| `roles`                  | organization | Named roles an org defines. `permissions` maps each fixed permission (such as `inviteMembers`, `createMeetings`) to on or off. |
+| `memberRoles`            | member       | Assigns roles to a member. A member holds every permission any of their roles grants.                                          |
+| `tokens`                 | –            | Secret values that expire. Links in old emails stop working once their token expires.                                          |
+| `invites`                | organization | Org invite: which role a newcomer gets, who invited them, and the token in the link                                            |
+| `groups`, `groupMembers` | organization | Teams inside an org                                                                                                            |
+| `meetings`               | organization | Who created it and its title                                                                                                   |
+| `meetingTimes`           | meeting      | When it happens: `date` (epoch day), `start` / `end` (`HH:mm`), `timeZone`. Luxon turns these into instants per person.        |
+| `meetingMembers`         | meeting      | Who is invited (`pending` / `accepted` / `declined`)                                                                           |
+| `messages`               | meeting      | The meeting's chat. Each message is written by a meeting member.                                                               |
+| `schedules`              | user         | Weekly availability, ISO weekdays (1 = Monday)                                                                                 |
 
 Rules:
 
-- Tables and public `args` are validated with Zod, via `convex-helpers/server/zod4`. `tables/` exports one Zod schema per table, and field rules are reached through `.shape` (for example `zMeeting.shape.durationMinutes`). Convex `v` validators appear only where a library requires them: middleware arguments and the Convex Auth callbacks.
+- One table per file in `tables/`, each exporting its Zod schema and table. Field rules are reached through `.shape` (for example `zUser.shape.bio`).
+- Tables and public `args` are validated with Zod, via `convex-helpers/server/zod4`. Time values use the Luxon-backed validators in `lib/time.ts`. Convex `v` validators appear only where a library requires them: middleware arguments and the Convex Auth callbacks.
 - Public queries and mutations have no `returns`. Internal functions declare `returns` only where a library needs it (the Convex Auth `createUser` callbacks).
-- List queries paginate: `paginationOpts: zPaginationOpts` from `lib/validators.ts`, `.paginate()` on the server, `usePaginatedQuery` on the client. Single-document reads stay plain.
+- List queries paginate with Convex's `paginationOptsValidator`, `.paginate()` on the server, and `usePaginatedQuery` on the client. Single-document reads stay plain.
 - Function builders in `lib/functions.ts`:
   - `authedQuery` / `authedMutation` inject `ctx.userId`, or throw `ConvexError("Unauthenticated")`.
-  - `orgQuery` / `orgMutation` take `orgId`, inject `ctx.member`, and throw `ConvexError("Not a member")` for anyone outside the org.
-  - Role checks use `requireRole` from `models/members.ts`.
+  - `orgQuery` / `orgMutation` take `orgId` and inject `ctx.userId`, `ctx.member` and `ctx.requirePermission(permission)`. They throw `ConvexError("Not a member")` for anyone outside the org.
+  - `OrgQueryCtx` / `OrgMutationCtx` are the context types for model functions that run inside them.
 - `ctx.run*`, the scheduler and workpools only target `internal.internal.*`.
 - Environment variables are declared in `convex.config.ts` and read through the typed `env` from `_generated/server`.
 - Tests sit next to the code (`*.test.ts`). Convex never deploys files with two dots in the name. Tests use `convex-test` and run with `pnpm test`.
