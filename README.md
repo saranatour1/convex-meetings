@@ -4,11 +4,11 @@ TanStack Start + Convex + Convex Auth v2 + COSS UI, built with Vite+ and deploye
 
 ## Workspace
 
-| Path | Package | What |
-| --- | --- | --- |
-| `apps/web` | `@meetings/web` | TanStack Start app |
-| `packages/backend` | `@meetings/backend` | Convex functions and schema |
-| `packages/ui` | `@meetings/ui` | COSS UI components, hooks and theme |
+| Path               | Package             | What                                |
+| ------------------ | ------------------- | ----------------------------------- |
+| `apps/web`         | `@meetings/web`     | TanStack Start app                  |
+| `packages/backend` | `@meetings/backend` | Convex functions and schema         |
+| `packages/ui`      | `@meetings/ui`      | COSS UI components, hooks and theme |
 
 ## Develop
 

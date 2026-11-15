@@ -7,7 +7,7 @@
     "build": "vp run --filter @meetings/web build",
     "deploy": "vp run --filter @meetings/web deploy",
     "check": "vp check",
-    "test": "vp run --filter './apps/*' --filter './packages/*' test"
+    "test": "pnpm -r --if-present test"
   },
   "devDependencies": {
     "@types/node": "catalog:",
