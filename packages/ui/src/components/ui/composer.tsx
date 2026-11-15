@@ -471,5 +471,5 @@ export {
   getComposerText,
   useComposerContext,
   useComposerFilter,
-} from "#/lib/composer-editor";
+} from "#/lib/composer-editor.ts";
 export type { ComposerPopupProps, ComposerTokenVariant };

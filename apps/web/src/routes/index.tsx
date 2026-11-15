@@ -2,14 +2,14 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { LinkIcon, PlusIcon, VideoIcon } from "lucide-react";
-import { SchedulePanel } from "#/components/app/schedule-panel";
-import { SidebarLeft } from "#/components/app/sidebar-left";
-import { SidebarRight } from "#/components/app/sidebar-right";
-import { SignIn } from "#/components/app/sign-in";
-import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
-import { Separator } from "#/components/ui/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "#/components/ui/sidebar";
+import { SchedulePanel } from "#/components/app/schedule-panel.tsx";
+import { SidebarLeft } from "#/components/app/sidebar-left.tsx";
+import { SidebarRight } from "#/components/app/sidebar-right.tsx";
+import { SignIn } from "#/components/app/sign-in.tsx";
+import { Button } from "@meetings/ui/components/button";
+import { Input } from "@meetings/ui/components/input";
+import { Separator } from "@meetings/ui/components/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@meetings/ui/components/sidebar";
 
 // Auth tokens live in localStorage (Convex Auth SPA mode), so render on the client only.
 export const Route = createFileRoute("/")({ ssr: false, component: Home });

@@ -7,8 +7,8 @@ import {
 } from "@convex-dev/auth/methods/username-password/react";
 import { useOauth, useSignInWithGoogle } from "@convex-dev/auth/methods/google/react";
 import { useSignInWithGithub } from "@convex-dev/auth/methods/github/react";
-import { api } from "../../../convex/_generated/api";
-import { Button } from "#/components/ui/button";
+import { api } from "@meetings/backend/api";
+import { Button } from "@meetings/ui/components/button";
 import {
   Card,
   CardDescription,
@@ -16,10 +16,10 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
-import { Separator } from "#/components/ui/separator";
+} from "@meetings/ui/components/card";
+import { Input } from "@meetings/ui/components/input";
+import { Label } from "@meetings/ui/components/label";
+import { Separator } from "@meetings/ui/components/separator";
 
 const messages: Record<string, string> = {
   USER_NOT_FOUND: "No account with that username.",
