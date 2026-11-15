@@ -1,33 +1,35 @@
-import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
-import { useConvexAuth } from 'convex/react'
-import { LinkIcon, PlusIcon, VideoIcon } from 'lucide-react'
-import { SchedulePanel } from '#/components/app/schedule-panel'
-import { SidebarLeft } from '#/components/app/sidebar-left'
-import { SidebarRight } from '#/components/app/sidebar-right'
-import { SignIn } from '#/components/app/sign-in'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Separator } from '#/components/ui/separator'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '#/components/ui/sidebar'
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useConvexAuth } from "convex/react";
+import { LinkIcon, PlusIcon, VideoIcon } from "lucide-react";
+import { SchedulePanel } from "#/components/app/schedule-panel";
+import { SidebarLeft } from "#/components/app/sidebar-left";
+import { SidebarRight } from "#/components/app/sidebar-right";
+import { SignIn } from "#/components/app/sign-in";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { Separator } from "#/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "#/components/ui/sidebar";
 
 // Auth tokens live in localStorage (Convex Auth SPA mode), so render on the client only.
-export const Route = createFileRoute('/')({ ssr: false, component: Home })
+export const Route = createFileRoute("/")({ ssr: false, component: Home });
 
 function Home() {
-  const { isLoading, isAuthenticated } = useConvexAuth()
+  const { isLoading, isAuthenticated } = useConvexAuth();
   // The meeting being invited to; the right sidebar only exists while this is set.
-  const [inviteFor, setInviteFor] = useState<string | null>(null)
-  const [scheduling, setScheduling] = useState(false)
+  const [inviteFor, setInviteFor] = useState<string | null>(null);
+  const [scheduling, setScheduling] = useState(false);
   const setSchedulingAndInvite = (open: boolean) => {
-    setScheduling(open)
-    if (!open) setInviteFor(null) // invites belong to the meeting being scheduled
-  }
+    setScheduling(open);
+    if (!open) setInviteFor(null); // invites belong to the meeting being scheduled
+  };
 
   if (isLoading) {
-    return <div className="grid h-dvh place-items-center text-muted-foreground text-sm">Loading…</div>
+    return (
+      <div className="grid h-dvh place-items-center text-muted-foreground text-sm">Loading…</div>
+    );
   }
-  if (!isAuthenticated) return <SignIn />
+  if (!isAuthenticated) return <SignIn />;
 
   return (
     <SidebarProvider>
@@ -53,9 +55,15 @@ function Home() {
             </Button>
           </div>
         </header>
-        <SchedulePanel scheduling={scheduling} onScheduling={setSchedulingAndInvite} onInvite={setInviteFor} />
+        <SchedulePanel
+          scheduling={scheduling}
+          onScheduling={setSchedulingAndInvite}
+          onInvite={setInviteFor}
+        />
       </SidebarInset>
-      {inviteFor !== null && <SidebarRight meeting={inviteFor} onClose={() => setInviteFor(null)} />}
+      {inviteFor !== null && (
+        <SidebarRight meeting={inviteFor} onClose={() => setInviteFor(null)} />
+      )}
     </SidebarProvider>
-  )
+  );
 }

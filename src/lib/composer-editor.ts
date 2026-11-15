@@ -29,10 +29,7 @@ import {
   useComposerEditor,
 } from "#/hooks/use-composer-editor.ts";
 
-type ComposerEditorOptions = Omit<
-  UseComposerEditorOptions,
-  "value" | "onValueChange"
-> & {
+type ComposerEditorOptions = Omit<UseComposerEditorOptions, "value" | "onValueChange"> & {
   value?: ComposerValue;
   defaultValue?: ComposerValue;
   onValueChange?: UseComposerEditorOptions["onValueChange"];
@@ -61,19 +58,9 @@ function useComposerContext(): Pick<
   | "reset"
 > {
   const context = useComposerEditorContext();
-  if (!context)
-    throw new Error("useComposerContext must be used within Composer.");
-  const {
-    value,
-    isEmpty,
-    canSubmit,
-    disabled,
-    readOnly,
-    status,
-    submit,
-    insertTrigger,
-    reset,
-  } = context;
+  if (!context) throw new Error("useComposerContext must be used within Composer.");
+  const { value, isEmpty, canSubmit, disabled, readOnly, status, submit, insertTrigger, reset } =
+    context;
   return {
     value,
     isEmpty,
@@ -87,9 +74,7 @@ function useComposerContext(): Pick<
   };
 }
 
-function useComposerAnchorContext():
-  | RefObject<HTMLFormElement | null>
-  | undefined {
+function useComposerAnchorContext(): RefObject<HTMLFormElement | null> | undefined {
   return useComposerEditorContext()?.rootRef;
 }
 
@@ -180,30 +165,23 @@ function ComposerSuggestions({
 }): ReactElement {
   const listId = useId();
   const [highlightedValue, setHighlightedValue] = useState<string>();
-  const [registered, setRegistered] = useState<
-    ReadonlyMap<string, RegisteredItem>
-  >(() => new Map());
-  const [listElement, registerList] = useState<HTMLElement | null>(null);
-  const registerItem = useCallback(
-    (id: string, item: RegisteredItem | null) => {
-      setRegistered((previous) => {
-        const next = new Map(previous);
-        if (item) next.set(id, item);
-        else next.delete(id);
-        return next;
-      });
-    },
-    [],
+  const [registered, setRegistered] = useState<ReadonlyMap<string, RegisteredItem>>(
+    () => new Map(),
   );
+  const [listElement, registerList] = useState<HTMLElement | null>(null);
+  const registerItem = useCallback((id: string, item: RegisteredItem | null) => {
+    setRegistered((previous) => {
+      const next = new Map(previous);
+      if (item) next.set(id, item);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
   const enabledItems = items.filter(
-    (item) =>
-      !item.disabled &&
-      registered.has(item.id) &&
-      !registered.get(item.id)?.disabled,
+    (item) => !item.disabled && registered.has(item.id) && !registered.get(item.id)?.disabled,
   );
   const highlightedId =
-    enabledItems.find((item) => item.id === highlightedValue)?.id ??
-    enabledItems[0]?.id;
+    enabledItems.find((item) => item.id === highlightedValue)?.id ?? enabledItems[0]?.id;
 
   function selectItem(value: ComposerItemValue): void {
     const item = enabledItems.find((item) => item.id === value.id);
@@ -226,20 +204,14 @@ function ComposerSuggestions({
       event.stopPropagation();
       onOpenChange(false);
       setHighlightedValue(undefined);
-    } else if (
-      event.key === "Tab" ||
-      (event.key === "Enter" && event.shiftKey)
-    ) {
+    } else if (event.key === "Tab" || (event.key === "Enter" && event.shiftKey)) {
       onOpenChange(false);
     } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (!enabledItems.length) return;
       const direction = event.key === "ArrowDown" ? 1 : -1;
       const index = enabledItems.findIndex((item) => item.id === highlightedId);
-      const item =
-        enabledItems[
-          (index + direction + enabledItems.length) % enabledItems.length
-        ];
+      const item = enabledItems[(index + direction + enabledItems.length) % enabledItems.length];
       if (!item) return;
       setHighlightedValue(item.id);
       registered.get(item.id)?.element.scrollIntoView({ block: "nearest" });
@@ -308,17 +280,13 @@ function ComposerSuggestions({
   );
 }
 
-function useComposerItem(
-  value: ComposerItemValue | undefined,
-  disabled: boolean,
-) {
+function useComposerItem(value: ComposerItemValue | undefined, disabled: boolean) {
   const suggestions = useComposerSuggestionsContext();
   const registerItem = suggestions?.registerItem;
   const id = value?.id;
   const ref = useCallback(
     (element: HTMLElement | null) => {
-      if (id !== undefined)
-        registerItem?.(id, element ? { element, disabled } : null);
+      if (id !== undefined) registerItem?.(id, element ? { element, disabled } : null);
     },
     [id, disabled, registerItem],
   );
@@ -350,10 +318,7 @@ function useComposerItem(
   };
 }
 
-function focusComposerInput(
-  event: MouseEvent<HTMLFormElement>,
-  preventDefault: boolean,
-): void {
+function focusComposerInput(event: MouseEvent<HTMLFormElement>, preventDefault: boolean): void {
   if (event.defaultPrevented || !(event.target instanceof Element)) return;
   const interactive = event.target.closest(
     "button, a, input, select, textarea, label, summary, [data-slot='composer-input'], [contenteditable], [role='button'], [role='combobox'], [role='menuitem'], [tabindex]:not([tabindex='-1'])",
@@ -364,9 +329,7 @@ function focusComposerInput(
     event.currentTarget.contains(interactive)
   )
     return;
-  const input = event.currentTarget.querySelector<HTMLElement>(
-    '[data-slot="composer-input"]',
-  );
+  const input = event.currentTarget.querySelector<HTMLElement>('[data-slot="composer-input"]');
   if (!input || input.matches(":disabled, [aria-disabled='true']")) return;
   if (preventDefault) event.preventDefault();
   input.focus();
@@ -423,11 +386,8 @@ function useComposerInputLayout() {
       }
       const style = getComputedStyle(input);
       const lineHeight =
-        Number.parseFloat(style.lineHeight) ||
-        Number.parseFloat(style.fontSize) * 1.2;
-      const padding =
-        Number.parseFloat(style.paddingTop) +
-        Number.parseFloat(style.paddingBottom);
+        Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.2;
+      const padding = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
       for (const [property, value] of [
         ["--composer-line-height", `${lineHeight}px`],
         ["--composer-input-padding", `${padding}px`],
@@ -440,9 +400,7 @@ function useComposerInputLayout() {
         frame?.removeAttribute("data-multiline");
         return;
       }
-      const minRows = Number.parseFloat(
-        style.getPropertyValue("--composer-min-rows"),
-      );
+      const minRows = Number.parseFloat(style.getPropertyValue("--composer-min-rows"));
       if (minRows > 1) {
         frame.toggleAttribute("data-multiline", true);
         return;
@@ -460,10 +418,7 @@ function useComposerInputLayout() {
       } else {
         input.style.removeProperty("min-height");
       }
-      frame.toggleAttribute(
-        "data-multiline",
-        contentHeight > lineHeight * 1.5 + padding,
-      );
+      frame.toggleAttribute("data-multiline", contentHeight > lineHeight * 1.5 + padding);
     }
     scheduleMeasureRef.current = scheduleMeasure;
     measure();

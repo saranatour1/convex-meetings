@@ -1,10 +1,23 @@
-import { CalendarDaysIcon, HouseIcon, InboxIcon, ListTodoIcon, LogOutIcon, VideoIcon } from 'lucide-react'
-import { useQuery } from 'convex/react'
-import { useAuthActions } from '@convex-dev/auth/react'
-import { api } from '../../../convex/_generated/api'
-import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
-import { Checkbox } from '#/components/ui/checkbox'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '#/components/ui/empty'
+import {
+  CalendarDaysIcon,
+  HouseIcon,
+  InboxIcon,
+  ListTodoIcon,
+  LogOutIcon,
+  VideoIcon,
+} from "lucide-react";
+import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { api } from "../../../convex/_generated/api";
+import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
+import { Checkbox } from "#/components/ui/checkbox";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "#/components/ui/empty";
 import {
   Sidebar,
   SidebarContent,
@@ -18,28 +31,28 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from '#/components/ui/sidebar'
-import { cn } from '#/lib/utils'
+} from "#/components/ui/sidebar";
+import { cn } from "#/lib/utils";
 
 const nav = [
-  { title: 'Home', icon: HouseIcon, active: true },
-  { title: 'Meetings', icon: VideoIcon },
-  { title: 'Calendar', icon: CalendarDaysIcon },
-  { title: 'Inbox', icon: InboxIcon },
-]
+  { title: "Home", icon: HouseIcon, active: true },
+  { title: "Meetings", icon: VideoIcon },
+  { title: "Calendar", icon: CalendarDaysIcon },
+  { title: "Inbox", icon: InboxIcon },
+];
 
 export function SidebarLeft() {
-  const { signOut } = useAuthActions()
-  const viewer = useQuery(api.users.viewer)
-  const initials = (viewer?.name ?? '?')
+  const { signOut } = useAuthActions();
+  const viewer = useQuery(api.users.viewer);
+  const initials = (viewer?.name ?? "?")
     .split(/\s+/)
     .map((w) => w[0])
-    .join('')
+    .join("")
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase();
 
   // ponytail: no tasks table yet, swap for useQuery(api.tasks.list) when it exists.
-  const tasks: { id: string; title: string; done: boolean }[] = []
+  const tasks: { id: string; title: string; done: boolean }[] = [];
 
   return (
     <Sidebar collapsible="icon">
@@ -86,18 +99,23 @@ export function SidebarLeft() {
                 </EmptyHeader>
               </Empty>
             ) : (
-            <SidebarMenu>
-              {tasks.map((task) => (
-                <SidebarMenuItem key={task.id}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg p-2 text-sm hover:bg-sidebar-accent">
-                    <Checkbox checked={task.done} />
-                    <span className={cn('truncate', task.done && 'text-muted-foreground line-through')}>
-                      {task.title}
-                    </span>
-                  </label>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+              <SidebarMenu>
+                {tasks.map((task) => (
+                  <SidebarMenuItem key={task.id}>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg p-2 text-sm hover:bg-sidebar-accent">
+                      <Checkbox checked={task.done} />
+                      <span
+                        className={cn(
+                          "truncate",
+                          task.done && "text-muted-foreground line-through",
+                        )}
+                      >
+                        {task.title}
+                      </span>
+                    </label>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
             )}
           </SidebarGroupContent>
         </SidebarGroup>
@@ -112,14 +130,18 @@ export function SidebarLeft() {
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate font-medium">{viewer?.name ?? '…'}</span>
+                <span className="truncate font-medium">{viewer?.name ?? "…"}</span>
                 <span className="truncate text-muted-foreground text-xs">
                   {viewer?.method}
-                  {viewer?.isVerified ? ' · verified' : ''}
+                  {viewer?.isVerified ? " · verified" : ""}
                 </span>
               </span>
             </SidebarMenuButton>
-            <SidebarMenuAction aria-label="Sign out" className="top-3" onClick={() => void signOut()}>
+            <SidebarMenuAction
+              aria-label="Sign out"
+              className="top-3"
+              onClick={() => void signOut()}
+            >
               <LogOutIcon />
             </SidebarMenuAction>
           </SidebarMenuItem>
@@ -127,5 +149,5 @@ export function SidebarLeft() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
