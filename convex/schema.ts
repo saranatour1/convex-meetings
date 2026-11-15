@@ -20,4 +20,10 @@ export default defineSchema({
     // Whether the provider vouched for the email. Always false for username methods.
     isVerified: v.boolean(),
   }),
+  meetings: defineTable({
+    hostId: v.id("users"),
+    title: v.string(),
+    startsAt: v.number(), // ms since epoch
+    durationMinutes: v.number(),
+  }).index("by_host_and_startsAt", ["hostId", "startsAt"]),
 });

@@ -15,9 +15,11 @@ const config = defineConfig({
   },
   resolve: { tsconfigPaths: true },
   plugins: lazyPlugins(() => [
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
+    // The Workers runtime and Start's server build don't apply to unit tests.
+    ...(process.env.VITEST
+      ? []
+      : [cloudflare({ viteEnvironment: { name: "ssr" } }), tanstackStart()]),
     tailwindcss(),
-    tanstackStart(),
     viteReact(),
   ]),
 });
