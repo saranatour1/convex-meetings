@@ -16,6 +16,7 @@
     "@meetings/backend": "workspace:*",
     "@meetings/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.5",
     "convex": "catalog:",
