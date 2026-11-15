@@ -5,15 +5,7 @@ import { SignInCard } from "#/features/auth/sign-in-card.tsx";
 
 type SignInSearch = { with?: "password"; mode?: "signup" };
 
-export const Route = createFileRoute("/sign-in")({
-  validateSearch: (search: Record<string, unknown>): SignInSearch => ({
-    with: search.with === "password" ? "password" : undefined,
-    mode: search.mode === "signup" ? "signup" : undefined,
-  }),
-  component: SignInPage,
-});
-
-function SignInPage() {
+const SignInPage = () => {
   const search = Route.useSearch();
 
   return (
@@ -31,4 +23,12 @@ function SignInPage() {
       </Unauthenticated>
     </>
   );
-}
+};
+
+export const Route = createFileRoute("/sign-in")({
+  validateSearch: (search: Record<string, unknown>): SignInSearch => ({
+    with: search.with === "password" ? "password" : undefined,
+    mode: search.mode === "signup" ? "signup" : undefined,
+  }),
+  component: SignInPage,
+});

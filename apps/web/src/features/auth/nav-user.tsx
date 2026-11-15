@@ -11,7 +11,7 @@ import {
 } from "@meetings/ui/components/sidebar";
 import { getInitials } from "#/lib/initials.ts";
 
-export function NavUser() {
+export const NavUser = () => {
   const { signOut } = useAuthActions();
   const viewer = useQuery(api.users.viewer);
 
@@ -39,4 +39,4 @@ export function NavUser() {
       </SidebarMenuItem>
     </SidebarMenu>
   );
-}
+};

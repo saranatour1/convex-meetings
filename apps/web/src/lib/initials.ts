@@ -1,4 +1,4 @@
-export function getInitials(name: string) {
+export const getInitials = (name: string) => {
   return name
     .split(/\s+/)
     .filter(Boolean)
@@ -6,4 +6,4 @@ export function getInitials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
+};

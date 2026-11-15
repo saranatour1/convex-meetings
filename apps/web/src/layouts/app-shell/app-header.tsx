@@ -5,7 +5,7 @@ import { Input } from "@meetings/ui/components/input";
 import { Separator } from "@meetings/ui/components/separator";
 import { SidebarTrigger } from "@meetings/ui/components/sidebar";
 
-export function AppHeader() {
+export const AppHeader = () => {
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
       <SidebarTrigger />
@@ -31,4 +31,4 @@ export function AppHeader() {
       </div>
     </header>
   );
-}
+};

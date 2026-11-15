@@ -8,7 +8,7 @@ import { Label } from "@meetings/ui/components/label";
 import { describeAuthError } from "./auth-errors.ts";
 import { FormError } from "#/components/form-error.tsx";
 
-export function PasskeyForm() {
+export const PasskeyForm = () => {
   const passkey = useSignInWithUsernamePasskey(api.auth);
   const form = useForm({
     defaultValues: { username: "" },
@@ -57,4 +57,4 @@ export function PasskeyForm() {
       </form.Subscribe>
     </form>
   );
-}
+};

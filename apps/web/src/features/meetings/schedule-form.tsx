@@ -35,7 +35,7 @@ type ScheduleFormProps = {
   onClose: () => void;
 };
 
-export function ScheduleForm({ onInvite, onClose }: ScheduleFormProps) {
+export const ScheduleForm = ({ onInvite, onClose }: ScheduleFormProps) => {
   const today = new Date();
   const form = useForm({
     defaultValues: { title: "", date: today, time: "", durationMinutes: 30 },
@@ -135,4 +135,4 @@ export function ScheduleForm({ onInvite, onClose }: ScheduleFormProps) {
       </CardFooter>
     </Card>
   );
-}
+};

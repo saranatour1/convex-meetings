@@ -1,7 +1,7 @@
 import { ListTodoIcon } from "lucide-react";
 import { EmptyState } from "#/components/empty-state.tsx";
 
-export function Tasks() {
+export const Tasks = () => {
   return (
     <EmptyState
       compact
@@ -11,4 +11,4 @@ export function Tasks() {
       description="Action items from your meetings will land here."
     />
   );
-}
+};

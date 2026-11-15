@@ -3,6 +3,28 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
 import appCss from "../styles.css?url";
 
+const RootComponent = () => {
+  return (
+    <ConvexWithAuthProvider>
+      <Outlet />
+    </ConvexWithAuthProvider>
+  );
+};
+
+const RootDocument = ({ children }: { children: ReactNode }) => {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+};
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -15,25 +37,3 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
   component: RootComponent,
 });
-
-function RootComponent() {
-  return (
-    <ConvexWithAuthProvider>
-      <Outlet />
-    </ConvexWithAuthProvider>
-  );
-}
-
-function RootDocument({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}

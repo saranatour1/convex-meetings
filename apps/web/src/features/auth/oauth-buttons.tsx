@@ -6,7 +6,7 @@ import { FormError } from "#/components/form-error.tsx";
 import { describeAuthError } from "./auth-errors.ts";
 import { GithubIcon, GoogleIcon } from "./provider-icons.tsx";
 
-export function OAuthButtons() {
+export const OAuthButtons = () => {
   const google = useSignInWithGoogle(api.auth);
   const github = useSignInWithGithub(api.auth);
   const { flowError } = useOauth();
@@ -24,4 +24,4 @@ export function OAuthButtons() {
       </Button>
     </>
   );
-}
+};

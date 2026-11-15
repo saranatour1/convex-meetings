@@ -3,9 +3,7 @@ import { Button } from "@meetings/ui/components/button";
 import { ScheduleForm } from "#/features/meetings/schedule-form.tsx";
 import { UpcomingMeetings } from "#/features/meetings/upcoming-meetings.tsx";
 
-export const Route = createFileRoute("/_app/")({ component: Home });
-
-function Home() {
+const Home = () => {
   const { schedule } = Route.useSearch();
   const navigate = Route.useNavigate();
 
@@ -38,4 +36,6 @@ function Home() {
       />
     </main>
   );
-}
+};
+
+export const Route = createFileRoute("/_app/")({ component: Home });

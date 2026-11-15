@@ -22,7 +22,7 @@ const PLANNED_NAV_ITEMS = [
   { title: "Inbox", icon: InboxIcon },
 ];
 
-export function AppSidebar() {
+export const AppSidebar = () => {
   const matchRoute = useMatchRoute();
 
   return (
@@ -78,4 +78,4 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
-}
+};
