@@ -7,8 +7,14 @@ export default defineConfig({
     rules: {
       "vite-plus/prefer-vite-plus-imports": "error",
       "func-style": ["error", "expression"],
+      "typescript/no-floating-promises": "error",
     },
-    overrides: [{ files: ["packages/ui/src/**"], rules: { "func-style": "off" } }],
+    overrides: [
+      {
+        files: ["packages/ui/src/**"],
+        rules: { "func-style": "off", "typescript/no-floating-promises": "off" },
+      },
+    ],
     options: { typeAware: true, typeCheck: true },
   },
 });
