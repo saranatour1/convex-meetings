@@ -6,6 +6,33 @@ settings:
 
 catalogs:
   default:
+    '@convex-dev/auth':
+      specifier: ^2.0.0
+      version: 2.0.0
+    '@types/node':
+      specifier: ^22.20.5
+      version: 22.20.5
+    '@types/react':
+      specifier: ^19.3.0
+      version: 19.3.0
+    '@types/react-dom':
+      specifier: ^19.3.0
+      version: 19.3.0
+    convex:
+      specifier: ^1.50.0
+      version: 1.50.0
+    lucide-react:
+      specifier: ^0.577.0
+      version: 0.577.0
+    react:
+      specifier: ^19.3.1
+      version: 19.3.1
+    react-dom:
+      specifier: ^19.3.1
+      version: 19.3.1
+    typescript:
+      specifier: ^6.0.3
+      version: 6.0.3
     vite:
       specifier: npm:@voidzero-dev/vite-plus-core@1.6.0
       version: 1.6.0
@@ -19,16 +46,111 @@ overrides:
 importers:
 
   .:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.5
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite:
+        specifier: 'catalog:'
+        version: '@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)'
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.6.0(@types/node@22.20.5)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
+
+  apps/web:
     dependencies:
-      '@base-ui/react':
-        specifier: ^1.9.0
-        version: 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@convex-dev/auth':
-        specifier: ^2.0.0
+        specifier: 'catalog:'
+        version: 2.0.0(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      '@meetings/backend':
+        specifier: workspace:*
+        version: link:../../packages/backend
+      '@meetings/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@tailwindcss/vite':
+        specifier: ^4.3.5
+        version: 4.3.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))
+      '@tanstack/react-router':
+        specifier: 1.170.46
+        version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-start':
+        specifier: 1.169.5
+        version: 1.169.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.19)(supports-color@10.2.2)
+      convex:
+        specifier: 'catalog:'
+        version: 1.50.0(react@19.3.1)
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 0.577.0(react@19.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      tailwindcss:
+        specifier: ^4.3.5
+        version: 4.3.5
+    devDependencies:
+      '@cloudflare/vite-plugin':
+        specifier: ^1.69.1
+        version: 1.69.1(@types/node@22.20.5)(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))(workerd@1.20261113.1)(wrangler@4.162.0(@types/node@22.20.5))
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.5
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: ^6.3.0
+        version: 6.3.0(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite:
+        specifier: 'catalog:'
+        version: '@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)'
+      vite-plus:
+        specifier: 'catalog:'
+        version: 1.6.0(@types/node@22.20.5)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
+      wrangler:
+        specifier: ^4.162.0
+        version: 4.162.0(@types/node@22.20.5)
+
+  packages/backend:
+    dependencies:
+      '@convex-dev/auth':
+        specifier: 'catalog:'
         version: 2.0.0(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@convex-dev/workpool':
         specifier: ^0.4.16
         version: 0.4.16(convex-helpers@0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex:
+        specifier: 'catalog:'
+        version: 1.50.0(react@19.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.5
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/ui:
+    dependencies:
+      '@base-ui/react':
+        specifier: ^1.9.0
+        version: 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@daypicker/react':
         specifier: ^10.0.2
         version: 10.0.2(@types/react@19.3.0)(react@19.3.1)
@@ -38,73 +160,37 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
-      '@tailwindcss/vite':
-        specifier: ^4.1.18
-        version: 4.3.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))
-      '@tanstack/react-router':
-        specifier: 1.170.46
-        version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/react-start':
-        specifier: 1.169.5
-        version: 1.169.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.19)(supports-color@10.2.2)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      convex:
-        specifier: ^1.50.0
-        version: 1.50.0(react@19.3.1)
-      date-fns:
-        specifier: ^4.4.0
-        version: 4.4.0
       lucide-react:
-        specifier: ^0.577.0
+        specifier: 'catalog:'
         version: 0.577.0(react@19.3.1)
-      react:
-        specifier: ^19.2.0
-        version: 19.3.1
-      react-dom:
-        specifier: ^19.2.0
-        version: 19.3.1(react@19.3.1)
       tailwind-merge:
-        specifier: ^3.0.2
+        specifier: ^3.7.0
         version: 3.7.0
-      tailwindcss:
-        specifier: ^4.1.18
-        version: 4.3.5
       tw-animate-css:
-        specifier: ^1.3.6
+        specifier: ^1.4.0
         version: 1.4.0
     devDependencies:
-      '@cloudflare/vite-plugin':
-        specifier: ^1.26.0
-        version: 1.69.1(@types/node@22.20.5)(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))(workerd@1.20261113.1)(wrangler@4.162.0(@types/node@22.20.5))
-      '@types/node':
-        specifier: ^22.10.2
-        version: 22.20.5
       '@types/react':
-        specifier: ^19.2.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.2.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: ^6.0.1
-        version: 6.3.0(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
       typescript:
-        specifier: ^6.0.2
+        specifier: 'catalog:'
         version: 6.0.3
-      vite:
-        specifier: 'catalog:'
-        version: '@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)'
-      vite-plus:
-        specifier: 'catalog:'
-        version: 1.6.0(@types/node@22.20.5)(@vitest/ui@5.1.0)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
-      wrangler:
-        specifier: ^4.70.0
-        version: 4.162.0(@types/node@22.20.5)
 
 packages:
 

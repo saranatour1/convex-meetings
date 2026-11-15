@@ -1,0 +1,21 @@
+{
+  "name": "@meetings/backend",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./api": "./convex/_generated/api.js",
+    "./dataModel": "./convex/_generated/dataModel.d.ts"
+  },
+  "scripts": {
+    "dev": "convex dev"
+  },
+  "dependencies": {
+    "@convex-dev/auth": "catalog:",
+    "@convex-dev/workpool": "^0.4.16",
+    "convex": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

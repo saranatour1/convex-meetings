@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { CalendarClockIcon, CalendarPlusIcon, UsersIcon } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarGroup } from "#/components/ui/avatar";
-import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
-import { Calendar } from "#/components/ui/calendar";
+import { Avatar, AvatarFallback, AvatarGroup } from "@meetings/ui/components/avatar";
+import { Badge } from "@meetings/ui/components/badge";
+import { Button } from "@meetings/ui/components/button";
+import { Calendar } from "@meetings/ui/components/calendar";
 import {
   Card,
   CardDescription,
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardPanel,
   CardTitle,
-} from "#/components/ui/card";
+} from "@meetings/ui/components/card";
 import {
   Empty,
   EmptyContent,
@@ -20,11 +20,11 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "#/components/ui/empty";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
-import { Toggle } from "#/components/ui/toggle";
-import { ToggleGroup } from "#/components/ui/toggle-group";
+} from "@meetings/ui/components/empty";
+import { Input } from "@meetings/ui/components/input";
+import { Label } from "@meetings/ui/components/label";
+import { Toggle } from "@meetings/ui/components/toggle";
+import { ToggleGroup } from "@meetings/ui/components/toggle-group";
 
 // ponytail: fixed slots and no meetings table yet, swap for Convex queries when scheduling is real.
 const slots = [

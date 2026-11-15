@@ -8,16 +8,16 @@ import {
 } from "lucide-react";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { api } from "../../../convex/_generated/api";
-import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
-import { Checkbox } from "#/components/ui/checkbox";
+import { api } from "@meetings/backend/api";
+import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
+import { Checkbox } from "@meetings/ui/components/checkbox";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "#/components/ui/empty";
+} from "@meetings/ui/components/empty";
 import {
   Sidebar,
   SidebarContent,
@@ -31,8 +31,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "#/components/ui/sidebar";
-import { cn } from "#/lib/utils";
+} from "@meetings/ui/components/sidebar";
+import { cn } from "@meetings/ui/lib/utils";
 
 const nav = [
   { title: "Home", icon: HouseIcon, active: true },

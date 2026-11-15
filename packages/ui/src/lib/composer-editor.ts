@@ -454,7 +454,7 @@ export {
   type ComposerValue,
   getComposerText,
   useComposerFilter,
-} from "#/hooks/use-composer-editor";
+} from "#/hooks/use-composer-editor.ts";
 export type { ComposerEditorOptions };
 export {
   ComposerEditorProvider,

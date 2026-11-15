@@ -1,7 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev"], "port": 3000 },
-    { "name": "convex", "runtimeExecutable": "npx", "runtimeArgs": ["convex", "dev"] }
+    { "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["--filter", "@meetings/web", "dev"], "port": 3000 },
+    { "name": "convex", "runtimeExecutable": "pnpm", "runtimeArgs": ["--filter", "@meetings/backend", "dev"] }
   ]
 }

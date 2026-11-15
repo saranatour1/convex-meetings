@@ -1,7 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@meetings/backend/api";
 
 import appCss from "../styles.css?url";
 

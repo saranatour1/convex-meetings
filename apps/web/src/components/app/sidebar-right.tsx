@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpIcon, MessagesSquareIcon, XIcon } from "lucide-react";
-import { Avatar, AvatarFallback } from "#/components/ui/avatar";
-import { Button } from "#/components/ui/button";
+import { Avatar, AvatarFallback } from "@meetings/ui/components/avatar";
+import { Button } from "@meetings/ui/components/button";
 import {
   Composer,
   ComposerActionGroup,
@@ -10,16 +10,21 @@ import {
   ComposerSubmit,
   type ComposerValue,
   getComposerText,
-} from "#/components/ui/composer";
+} from "@meetings/ui/components/composer";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "#/components/ui/empty";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "#/components/ui/sidebar";
-import { cn } from "#/lib/utils";
+} from "@meetings/ui/components/empty";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+} from "@meetings/ui/components/sidebar";
+import { cn } from "@meetings/ui/lib/utils";
 
 /** Chat with the people invited to a meeting. Only shown during the invite flow. */
 export function SidebarRight({ meeting, onClose }: { meeting: string; onClose: () => void }) {
