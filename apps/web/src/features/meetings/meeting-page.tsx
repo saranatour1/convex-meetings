@@ -17,6 +17,7 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
+import type { CallSide } from "./call/call-ui.ts";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -31,8 +32,10 @@ type MeetingPageProps = {
   onCancelled: () => void;
   inCall: boolean;
   onInCallChange: (inCall: boolean) => void;
-  chatOpen: boolean;
-  onChatOpenChange: (open: boolean) => void;
+  side?: CallSide;
+  onSideChange: (side: CallSide | undefined) => void;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
 };
 
 export const MeetingPage = ({
@@ -40,8 +43,10 @@ export const MeetingPage = ({
   onCancelled,
   inCall,
   onInCallChange,
-  chatOpen,
-  onChatOpenChange,
+  side,
+  onSideChange,
+  expanded,
+  onExpandedChange,
 }: MeetingPageProps) => {
   const meeting = useQuery(api.meetings.get, { code });
   const respond = useMutation(api.meetings.respond);
@@ -88,8 +93,10 @@ export const MeetingPage = ({
               kind={meeting.kind}
               inCall={inCall}
               onInCallChange={onInCallChange}
-              chatOpen={chatOpen}
-              onChatOpenChange={onChatOpenChange}
+              side={side}
+              onSideChange={onSideChange}
+              expanded={expanded}
+              onExpandedChange={onExpandedChange}
               chat={<MeetingChat meetingId={meetingId} />}
             />
           </Suspense>

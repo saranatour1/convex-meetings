@@ -6,10 +6,49 @@ import {
   RtkParticipantTile,
   RtkSpeakerSelector,
 } from "@cloudflare/realtimekit-react-ui";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
-import { MediaControls } from "./media-controls.tsx";
+
+const LobbyToggles = ({ kind }: { kind: MeetingKind }) => {
+  const { meeting } = useRealtimeKitMeeting();
+  const audioOn = useRealtimeKitSelector((m) => m.self.audioEnabled);
+  const videoOn = useRealtimeKitSelector((m) => m.self.videoEnabled);
+  const canAudio = useRealtimeKitSelector((m) => m.self.permissions.canProduceAudio === "ALLOWED");
+  const canVideo = useRealtimeKitSelector((m) => m.self.permissions.canProduceVideo === "ALLOWED");
+
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      {canAudio && (
+        <Button
+          variant={audioOn ? "outline" : "destructive-outline"}
+          className="rounded-full"
+          aria-pressed={audioOn}
+          onClick={() => void (audioOn ? meeting.self.disableAudio() : meeting.self.enableAudio())}
+        >
+          {audioOn ? <MicIcon /> : <MicOffIcon />}
+          {audioOn ? "Mic on" : "Mic off"}
+        </Button>
+      )}
+      {canVideo && kind !== "audioRoom" && (
+        <Button
+          variant={videoOn ? "outline" : "destructive-outline"}
+          className="rounded-full"
+          aria-pressed={videoOn}
+          onClick={() => void (videoOn ? meeting.self.disableVideo() : meeting.self.enableVideo())}
+        >
+          {videoOn ? <VideoIcon /> : <VideoOffIcon />}
+          {videoOn ? "Camera on" : "Camera off"}
+        </Button>
+      )}
+      {!canAudio && (
+        <span className="text-muted-foreground text-sm">
+          You'll join listening. Ask to speak once you're in.
+        </span>
+      )}
+    </div>
+  );
+};
 
 type CallLobbyProps = { title: string; kind: MeetingKind; onBack: () => void };
 
@@ -28,19 +67,19 @@ export const CallLobby = ({ title, kind, onBack }: CallLobbyProps) => {
       </header>
       <div className="grid min-h-0 flex-1 place-items-center overflow-y-auto p-4 md:p-8">
         <div className="grid w-full max-w-5xl items-center gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-10">
-          <div className="relative grid aspect-video place-items-center overflow-hidden rounded-xl bg-muted">
-            {kind === "audioRoom" ? (
-              <RtkAvatar participant={meeting.self} size="lg" />
-            ) : (
-              <RtkParticipantTile
-                meeting={meeting}
-                participant={meeting.self}
-                className="size-full rounded-none"
-              />
-            )}
-            <div className="absolute inset-x-0 bottom-3 flex justify-center">
-              <MediaControls kind={kind} />
+          <div className="flex flex-col gap-3">
+            <div className="grid aspect-video place-items-center overflow-hidden rounded-xl bg-muted">
+              {kind === "audioRoom" ? (
+                <RtkAvatar participant={meeting.self} size="lg" />
+              ) : (
+                <RtkParticipantTile
+                  meeting={meeting}
+                  participant={meeting.self}
+                  className="size-full rounded-none"
+                />
+              )}
             </div>
+            <LobbyToggles kind={kind} />
           </div>
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">

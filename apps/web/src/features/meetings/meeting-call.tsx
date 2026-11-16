@@ -16,6 +16,7 @@ import { CallEnded } from "./call/call-ended.tsx";
 import { CallLobby } from "./call/call-lobby.tsx";
 import { CallRoom } from "./call/call-room.tsx";
 import { applyCallTheme } from "./call/call-theme.ts";
+import { type CallSide, whiteboardPlugin } from "./call/call-ui.ts";
 import { kindOf, type MeetingKind } from "./meeting-kinds.ts";
 
 type MeetingCallProps = {
@@ -24,8 +25,10 @@ type MeetingCallProps = {
   kind: MeetingKind;
   inCall: boolean;
   onInCallChange: (inCall: boolean) => void;
-  chatOpen: boolean;
-  onChatOpenChange: (open: boolean) => void;
+  side?: CallSide;
+  onSideChange: (side: CallSide | undefined) => void;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
   chat: ReactNode;
 };
 
@@ -53,7 +56,7 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
       onSubmitAsync: async () => {
         try {
           const { token } = await join({ meetingId });
-          await initMeeting({ authToken: token });
+          await initMeeting({ authToken: token, defaults: { plugins: [whiteboardPlugin(token)] } });
           onInCallChange(true);
           return undefined;
         } catch (error) {
