@@ -9,7 +9,7 @@ import {
   recordRealtimeEvent,
   setRtkParticipant,
   type RealtimeEvent,
-} from "../models/meetings";
+} from "../models/callSessions";
 
 export const WEBHOOK_PATH = "/realtime/webhook";
 
