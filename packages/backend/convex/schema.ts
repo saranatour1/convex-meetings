@@ -5,6 +5,7 @@ import { groups } from "./tables/groups";
 import { invites } from "./tables/invites";
 import { joinLinks } from "./tables/joinLinks";
 import { annotationSnapshots, strokes } from "./tables/annotations";
+import { meetingGuests } from "./tables/meetingGuests";
 import { meetingMembers } from "./tables/meetingMembers";
 import { meetingSessions } from "./tables/meetingSessions";
 import { meetings } from "./tables/meetings";
@@ -36,6 +37,7 @@ export default defineSchema({
   meetings,
   meetingTimes,
   meetingMembers,
+  meetingGuests,
   meetingSessions,
   messages,
   strokes,

@@ -8,6 +8,9 @@ export const zMeetingCode = z
 
 export const zMeetingKind = z.enum(["groupCall", "webinar", "classroom", "audioRoom"]);
 
+export const zMeetingAccess = z.enum(["invited", "org", "link"]);
+export const zMeetingInviters = z.enum(["hosts", "everyone"]);
+
 export const zMeeting = z.object({
   orgId: zid("organizations"),
   userId: zid("users"),
@@ -17,6 +20,8 @@ export const zMeeting = z.object({
   recap: z.boolean(),
   record: z.boolean().optional(),
   protected: z.boolean().optional(),
+  access: zMeetingAccess.optional(),
+  inviters: zMeetingInviters.optional(),
   rtkMeetingId: z.string().optional(),
 });
 

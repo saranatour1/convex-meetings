@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { CameraIcon, EraserIcon, PencilIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
@@ -6,6 +6,7 @@ import { Button } from "@meetings/ui/components/button";
 import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
 import { describeError } from "#/lib/errors.ts";
+import { useGuestPass } from "../guest-pass.ts";
 
 export const PEN_COLORS = ["red", "yellow", "green", "blue", "white"] as const;
 export type PenColor = (typeof PEN_COLORS)[number];
@@ -20,8 +21,6 @@ const INK: Record<PenColor, string> = {
 
 const MAX_COORDS = 1000;
 const MIN_STEP = 0.003;
-
-const route = getRouteApi("/_app/meetings/$code");
 
 const showError = (error: unknown) =>
   toastManager.add({ title: describeError(error), type: "error" });
@@ -83,15 +82,21 @@ export const AnnotationLayer = ({
   canClear,
   canSnapshot,
 }: AnnotationLayerProps) => {
-  const { draw: pen } = route.useSearch();
-  const navigate = route.useNavigate();
-  const strokes = useQuery(api.annotations.strokes, { meetingId, shareId }) ?? [];
+  const pen = PEN_COLORS.find((color) => color === useSearch({ strict: false }).draw);
+  const navigate = useNavigate();
+  const pass = useGuestPass();
+  const strokes = useQuery(api.annotations.strokes, { meetingId, shareId, ...pass }) ?? [];
   const add = useMutation(api.annotations.draw);
   const clear = useMutation(api.annotations.clear);
   const uploadUrl = useMutation(api.annotations.snapshotUploadUrl);
   const save = useMutation(api.annotations.saveSnapshotImage);
   const setPen = (draw: PenColor | undefined) =>
-    void navigate({ search: (prev) => ({ ...prev, draw }), replace: true, resetScroll: false });
+    void navigate({
+      to: ".",
+      search: (prev: Record<string, unknown>) => ({ ...prev, draw }),
+      replace: true,
+      resetScroll: false,
+    });
   const settings = track?.getSettings();
   const ratio = settings?.width && settings.height ? settings.width / settings.height : 16 / 9;
 
@@ -99,14 +104,14 @@ export const AnnotationLayer = ({
     if (!track) return;
     try {
       const image = await drawSnapshot(track, strokes as Stroke[]);
-      const url = await uploadUrl({ meetingId });
+      const url = await uploadUrl({ meetingId, ...pass });
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "image/png" },
         body: image,
       });
       const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
-      await save({ meetingId, storageId });
+      await save({ meetingId, storageId, ...pass });
       toastManager.add({ title: "Saved to this call's recap", type: "success" });
     } catch (error) {
       showError(error);
@@ -157,7 +162,9 @@ export const AnnotationLayer = ({
               svg.removeEventListener("pointercancel", up);
               live?.setAttribute("points", "");
               const finished = points.length === 2 ? [...points, ...points] : points;
-              void add({ meetingId, shareId, color: pen, points: finished }).catch(showError);
+              void add({ meetingId, shareId, color: pen, points: finished, ...pass }).catch(
+                showError,
+              );
             };
             svg.addEventListener("pointermove", move);
             svg.addEventListener("pointerup", up);
@@ -219,7 +226,7 @@ export const AnnotationLayer = ({
             className="rounded-full"
             aria-label="Clear drawing"
             title="Clear drawing"
-            onClick={() => void clear({ meetingId, shareId }).catch(showError)}
+            onClick={() => void clear({ meetingId, shareId, ...pass }).catch(showError)}
           >
             <EraserIcon />
           </Button>

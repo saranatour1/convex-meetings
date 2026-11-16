@@ -1,11 +1,11 @@
 import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
 import { enforceRateLimit } from "../lib/rateLimits";
-import { authedMutation, authedQuery, zPaginationOpts } from "../lib/functions";
+import { meetingMutation, meetingQuery, zPaginationOpts } from "../lib/functions";
 import { listMessages, requireMeetingMember, sendMessage } from "../models/meetings";
 import { zMessage } from "../tables/messages";
 
-export const list = authedQuery({
+export const list = meetingQuery({
   args: { meetingId: zid("meetings"), paginationOpts: zPaginationOpts },
   handler: async (ctx, { meetingId, paginationOpts }) => {
     await requireMeetingMember(ctx, meetingId, ctx.userId);
@@ -13,7 +13,7 @@ export const list = authedQuery({
   },
 });
 
-export const send = authedMutation({
+export const send = meetingMutation({
   args: { meetingId: zid("meetings"), body: zMessage.shape.body },
   handler: async (ctx, { meetingId, body }) => {
     const { member } = await requireMeetingMember(ctx, meetingId, ctx.userId);

@@ -1,15 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 import { useMutation, useQuery } from "convex/react";
-import {
-  CheckIcon,
-  FileTextIcon,
-  ShieldIcon,
-  UserCheckIcon,
-  UserXIcon,
-  VideoIcon,
-  XIcon,
-} from "lucide-react";
+import { CheckIcon, FileTextIcon, UserCheckIcon, UserXIcon, VideoIcon, XIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
@@ -21,16 +13,14 @@ import {
   CardPanel,
   CardTitle,
 } from "@meetings/ui/components/card";
-import { Label } from "@meetings/ui/components/label";
-import { Switch } from "@meetings/ui/components/switch";
 import { toastManager } from "@meetings/ui/components/toast";
-import { EmptyState } from "#/components/empty-state.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
+import { InviteToMeeting, MeetingDoor, MeetingSettingsCard } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -68,19 +58,10 @@ export const MeetingPage = ({
   const viewer = useQuery(api.users.viewer);
   const respond = useMutation(api.meetings.respond);
   const cancel = useMutation(api.meetings.cancel);
-  const setProtected = useMutation(api.meetings.setProtected);
   const remove = useMutation(api.calls.remove);
   const letIn = useMutation(api.calls.letIn);
   if (meeting === undefined) return <LoadingScreen />;
-  if (meeting === null) {
-    return (
-      <EmptyState
-        icon={<VideoIcon />}
-        title="No meeting with that code"
-        description="Check the code or link, or ask whoever invited you to send it again."
-      />
-    );
-  }
+  if (meeting === null) return <MeetingDoor code={code} />;
   const meetingId = meeting._id;
 
   const zone = browserTimeZone();
@@ -149,26 +130,7 @@ export const MeetingPage = ({
               </>
             )}
           </div>
-          {meeting.me.canControl && (
-            <Label className="justify-between gap-3 font-normal">
-              <span className="flex flex-col gap-0.5">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <ShieldIcon className="size-4" />
-                  Protected meeting
-                </span>
-                <span className="text-muted-foreground text-xs">
-                  Marks every screen with the viewer's name and email, turns recording off and keeps
-                  downloads to hosts. It can't stop screenshots.
-                </span>
-              </span>
-              <Switch
-                checked={meeting.protected}
-                onCheckedChange={(on) =>
-                  void setProtected({ meetingId, protected: on }).catch(showError)
-                }
-              />
-            </Label>
-          )}
+          {meeting.me.canInvite && <InviteToMeeting meetingId={meetingId} />}
           <ul className="flex flex-col gap-2">
             {meeting.people.map((person) => (
               <li key={person._id} className="flex items-center gap-3">
@@ -180,6 +142,11 @@ export const MeetingPage = ({
                 <span className="text-muted-foreground text-xs">
                   {person.role === "host" ? "Host" : RESPONSE_LABEL[person.response]}
                 </span>
+                {person.isGuest && (
+                  <Badge variant="outline" size="sm">
+                    Guest
+                  </Badge>
+                )}
                 {person.removed && (
                   <Badge variant="error" size="sm">
                     Removed
@@ -216,6 +183,16 @@ export const MeetingPage = ({
           </ul>
         </CardPanel>
       </Card>
+
+      {meeting.me.canControl && (
+        <MeetingSettingsCard
+          meetingId={meetingId}
+          code={meeting.code}
+          access={meeting.access}
+          inviters={meeting.inviters}
+          isProtected={meeting.protected}
+        />
+      )}
 
       {meeting.sessions.length > 0 && (
         <Card>

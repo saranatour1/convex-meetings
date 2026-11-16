@@ -200,7 +200,17 @@ export const listMyMeetings = async (
 };
 
 export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: Id<"meetings">) => {
-  const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
+  const [meeting, member, viewer] = await Promise.all([
+    ctx.db.get("meetings", meetingId),
+    ctx.db
+      .query("meetingMembers")
+      .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId).eq("userId", userId))
+      .unique(),
+    ctx.db.get("users", userId),
+  ]);
+  if (!meeting || !member) return null;
+  const isGuest = viewer?.method === "guest";
+  const canControl = !isGuest && (await canControlCall(ctx, meeting, member));
   const [time, members, sessions] = await Promise.all([
     timeOf(ctx, meetingId),
     ctx.db
@@ -223,6 +233,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
         role: m.role,
         response: m.response,
         removed: Boolean(m.removedAt),
+        isGuest: user?.method === "guest",
       };
     }),
   );
@@ -234,13 +245,17 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     kind: meeting.kind,
     recap: meeting.recap,
     protected: meeting.protected ?? false,
+    access: meeting.access ?? "invited",
+    inviters: meeting.inviters ?? "hosts",
     time,
     me: {
       _id: member._id,
       role: member.role,
       response: member.response,
       removed: Boolean(member.removedAt),
-      canControl: await canControlCall(ctx, meeting, member),
+      isGuest,
+      canControl,
+      canInvite: !isGuest && (canControl || (meeting.inviters ?? "hosts") === "everyone"),
     },
     people,
     sessions: sessions.map((s) => ({
@@ -308,13 +323,23 @@ export const cancelMeeting = async (
     .take(1000);
   for (const snapshot of snapshots) await ctx.storage.delete(snapshot.storageId);
   await deleteAll(ctx, snapshots);
+  const guests = await ctx.db
+    .query("meetingGuests")
+    .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
+    .take(1000);
+  for (const guest of guests) {
+    await ctx.db.delete("tokens", guest.tokenId);
+    await ctx.db.delete("users", guest.userId);
+    await ctx.db.delete("meetingGuests", guest._id);
+  }
   const members = await ctx.db
     .query("meetingMembers")
     .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
     .take(1000);
+  const guestIds = new Set(guests.map((guest) => guest.userId));
   await notify(
     ctx,
-    members.map((m) => m.userId),
+    members.map((m) => m.userId).filter((id) => !guestIds.has(id)),
     { kind: "meetingCancelled", title: meeting.title, actorId: userId },
   );
   await deleteAll(ctx, members);
