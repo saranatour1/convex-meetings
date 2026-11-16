@@ -6,6 +6,8 @@ export const zMeetingMember = z.object({
   meetingId: zid("meetings"),
   userId: zid("users"),
   response: z.enum(["pending", "accepted", "declined"]),
+  role: z.enum(["host", "participant"]),
+  rtkParticipantId: z.string().optional(),
 });
 
 export const meetingMembers = defineTable(zodToConvexFields(zMeetingMember.shape))

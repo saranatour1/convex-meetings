@@ -19,6 +19,8 @@ const app = defineApp({
     CLOUDFLARE_ACCOUNT_ID: v.optional(v.string()),
     CLOUDFLARE_API_TOKEN: v.optional(v.string()),
     EMAIL_FROM: v.optional(v.string()),
+    REALTIMEKIT_APP_ID: v.optional(v.string()),
+    REALTIMEKIT_API_TOKEN: v.optional(v.string()),
   },
 });
 app.use(auth);

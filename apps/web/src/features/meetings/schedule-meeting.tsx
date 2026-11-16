@@ -1,17 +1,26 @@
-import { usePaginatedQuery, useQuery } from "convex/react";
-import { api } from "@meetings/backend";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { api, type Id } from "@meetings/backend";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { useActiveOrg } from "#/features/orgs/active-org.tsx";
 import { memberToPerson } from "#/features/orgs/people.ts";
 import { browserTimeZone } from "#/lib/browser.ts";
+import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf } from "#/lib/schedule.ts";
 import { ScheduleForm, type ScheduleFormProps } from "./schedule-form.tsx";
 
-type ScheduleMeetingProps = Omit<ScheduleFormProps, "invitees" | "homeZone" | "alsoShow">;
+const DAY_MS = 86_400_000;
 
-export const ScheduleMeeting = (props: ScheduleMeetingProps) => {
+type ScheduleMeetingProps = Omit<
+  ScheduleFormProps,
+  "invitees" | "homeZone" | "alsoShow" | "onSchedule"
+> & { onScheduled: (code: string) => void };
+
+export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps) => {
   const { orgId } = useActiveOrg();
+  const create = useMutation(api.meetings.create);
+  const from = Math.floor(Date.now() / DAY_MS) * DAY_MS - DAY_MS;
+  const busy = useQuery(api.meetings.busy, { orgId, from, to: from + 62 * DAY_MS });
   const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
   const viewer = useQuery(api.users.viewer);
   const schedule = useQuery(api.schedules.getMine);
@@ -20,7 +29,10 @@ export const ScheduleMeeting = (props: ScheduleMeetingProps) => {
   }
 
   const now = Date.now();
-  const people = members.results.map((member) => memberToPerson(member, now));
+  const people = members.results.map((member) => ({
+    ...memberToPerson(member, now),
+    busy: busy?.[member.userId] ?? [],
+  }));
   const homeZone = schedule?.timeZone ?? browserTimeZone();
   const organizer = people.find((p) => p.id === viewer?._id) ?? {
     id: viewer?._id ?? "me",
@@ -36,6 +48,19 @@ export const ScheduleMeeting = (props: ScheduleMeetingProps) => {
   return (
     <ScheduleForm
       {...props}
+      onSchedule={async (meeting) => {
+        try {
+          const { code } = await create({
+            ...meeting,
+            orgId,
+            inviteeIds: meeting.inviteeIds as Id<"users">[],
+          });
+          onScheduled(code);
+          return undefined;
+        } catch (error) {
+          return describeError(error);
+        }
+      }}
       invitees={{ organizer, people: people.filter((p) => p.id !== organizer.id), teams: [] }}
       homeZone={homeZone}
       alsoShow={schedule?.alsoShow ?? []}

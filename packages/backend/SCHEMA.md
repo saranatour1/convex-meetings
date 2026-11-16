@@ -64,7 +64,11 @@ erDiagram
     id _id PK
     id orgId FK "organizations"
     id userId FK "users"
+    string code
     string title
+    enum kind
+    boolean recap
+    string rtkMeetingId "optional"
   }
   meetingTimes {
     id _id PK
@@ -73,12 +77,28 @@ erDiagram
     string start
     string end
     string timeZone
+    number startsAt
+    number endsAt
+    string rrule "optional"
   }
   meetingMembers {
     id _id PK
     id meetingId FK "meetings"
     id userId FK "users"
     enum response
+    enum role
+    string rtkParticipantId "optional"
+  }
+  meetingSessions {
+    id _id PK
+    id meetingId FK "meetings"
+    string rtkSessionId
+    number startedAt
+    number endedAt "optional"
+    array attendeeIds
+    string summary "optional"
+    string transcriptUrl "optional"
+    string recordingUrl "optional"
   }
   messages {
     id _id PK
@@ -113,6 +133,7 @@ erDiagram
   meetingTimes }o--|| meetings : meetingId
   meetingMembers }o--|| meetings : meetingId
   meetingMembers }o--|| users : userId
+  meetingSessions }o--|| meetings : meetingId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
   schedules }o--|| users : userId
@@ -136,9 +157,13 @@ erDiagram
 | groupMembers | by_group_and_user | groupId, userId |
 | groupMembers | by_org_and_user | orgId, userId |
 | meetings | by_org_and_user_and_title | orgId, userId, title |
+| meetings | by_rtk_meeting | rtkMeetingId |
+| meetings | by_code | code |
 | meetingTimes | by_meeting | meetingId |
 | meetingTimes | by_date | date |
 | meetingMembers | by_meeting_and_user | meetingId, userId |
 | meetingMembers | by_user | userId |
+| meetingSessions | by_meeting | meetingId |
+| meetingSessions | by_rtk_session | rtkSessionId |
 | messages | by_meeting | meetingId |
 | schedules | by_user | userId |

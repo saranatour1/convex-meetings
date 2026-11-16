@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { usePaginatedQuery } from "convex/react";
+import { api } from "@meetings/backend";
 import { Link } from "@tanstack/react-router";
 import { PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
-import { Kloq, KloqNav, KloqToolbar } from "@meetings/ui/kloq";
-import { sampleMeetings } from "#/features/calendar/sample-meetings.ts";
+import { Kloq, KloqNav, KloqToolbar, formatInstant, type CalEvent } from "@meetings/ui/kloq";
 import type { MeetingTime } from "#/features/meetings/find-a-time.tsx";
+import { kindOf } from "#/features/meetings/meeting-kinds.ts";
 import { ZonePicker } from "#/features/meetings/zone-picker.tsx";
 import { MINUTE, cityOf, formatOffset } from "#/lib/schedule.ts";
 
@@ -16,10 +18,26 @@ type MeetingsCalendarProps = {
 };
 
 export const MeetingsCalendar = ({ zone, zones, onZonesChange, onPlan }: MeetingsCalendarProps) => {
-  const events = useMemo(() => sampleMeetings(zone), [zone]);
+  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 200 });
+  const events = useMemo(
+    () =>
+      meetings.results
+        .filter((m) => m.response !== "declined")
+        .map((m): CalEvent => ({
+          id: m._id,
+          title: m.title,
+          color: kindOf(m.kind).color,
+          rrule: m.rrule ?? undefined,
+          start: formatInstant(new Date(m.startsAt), m.timeZone),
+          end: formatInstant(new Date(m.endsAt), m.timeZone),
+          timeZone: m.timeZone,
+        })),
+    [meetings.results],
+  );
 
   return (
     <Kloq
+      key={events.map((e) => e.id).join()}
       className="overflow-hidden rounded-2xl border"
       defaultEvents={events}
       persistence={false}
@@ -37,12 +55,6 @@ export const MeetingsCalendar = ({ zone, zones, onZonesChange, onPlan }: Meeting
     >
       <KloqToolbar>
         <KloqNav />
-        <span
-          className="rounded-full bg-warning/8 px-2.5 py-1 font-medium text-warning-foreground text-xs dark:bg-warning/16"
-          title="These meetings are examples until scheduling saves real ones"
-        >
-          Sample meetings
-        </span>
         <div className="flex flex-wrap items-center gap-2">
           {zones.map((z) => (
             <span

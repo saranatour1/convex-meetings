@@ -37,6 +37,8 @@ type Env = {
   readonly CLOUDFLARE_ACCOUNT_ID: string | undefined;
   readonly CLOUDFLARE_API_TOKEN: string | undefined;
   readonly EMAIL_FROM: string | undefined;
+  readonly REALTIMEKIT_API_TOKEN: string | undefined;
+  readonly REALTIMEKIT_APP_ID: string | undefined;
   readonly SITE_URL: string;
 };
 

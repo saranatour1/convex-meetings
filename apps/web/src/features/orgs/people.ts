@@ -28,7 +28,7 @@ export const memberToPerson = (member: Member, now: number): Person => {
         start: toMinutes(h.start),
         end: toMinutes(h.end),
       })) ?? [],
-    share: member.schedule ? "hours" : "none",
+    share: member.schedule ? "calendar" : "none",
     busy: [],
     verified: member.isVerified,
   };
