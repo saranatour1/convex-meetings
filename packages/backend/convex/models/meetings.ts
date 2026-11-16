@@ -3,7 +3,7 @@ import { ConvexError } from "convex/values";
 import { DateTime } from "luxon";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { lastOccurrenceEnd, occurrencesBetween } from "../lib/recurrence";
+import { lastOccurrenceEnd, occurrencesBetween, ruleEndingAt } from "../lib/recurrence";
 import { parseOrThrow } from "../lib/validate";
 import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
@@ -144,6 +144,39 @@ const timeOf = (ctx: QueryCtx, meetingId: Id<"meetings">) =>
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
     .first();
 
+const endedTime = (time: Doc<"meetingTimes">, now: number) => {
+  if (time.rrule) {
+    const rrule = ruleEndingAt(time.rrule, now);
+    return { rrule, repeatUntil: lastOccurrenceEnd(rrule, time) };
+  }
+  const minutes = Math.max(5, Math.ceil((now - time.startsAt) / 60_000));
+  if (now <= time.startsAt || time.startsAt + minutes * 60_000 >= time.endsAt) return null;
+  const trimmed = meetingTime(time.startsAt, minutes, time.timeZone);
+  return { ...trimmed, repeatUntil: trimmed.endsAt };
+};
+
+export const endEmptyMeeting = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
+  const meeting = await ctx.db.get("meetings", meetingId);
+  if (!meeting || meeting.endedAt) return null;
+  const someone = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
+    .first();
+  if (someone) return null;
+  const now = Date.now();
+  await ctx.db.patch("meetings", meetingId, parseOrThrow(zMeeting, { ...meeting, endedAt: now }));
+  const time = await timeOf(ctx, meetingId);
+  const changes = time && endedTime(time, now);
+  if (time && changes) {
+    await ctx.db.patch(
+      "meetingTimes",
+      time._id,
+      parseOrThrow(zMeetingTime, { ...time, ...changes }),
+    );
+  }
+  return meeting.rtkMeetingId ?? null;
+};
+
 export const listMyMeetings = async (
   ctx: QueryCtx,
   userId: Id<"users">,
@@ -175,6 +208,7 @@ export const listMyMeetings = async (
         endsAt: time.endsAt,
         timeZone: time.timeZone,
         rrule: time.rrule ?? null,
+        endedAt: meeting.endedAt ?? null,
         response: membership.response,
         role: membership.role,
         lastSession: lastSession
@@ -248,6 +282,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     protected: meeting.protected ?? false,
     access: meeting.access ?? "invited",
     inviters: meeting.inviters ?? "hosts",
+    endedAt: meeting.endedAt ?? null,
     time,
     me: {
       _id: member._id,

@@ -20,7 +20,7 @@ import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
-import { JoinCallCard, MeetingCall } from "./call-entry.tsx";
+import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
 import { InviteToMeeting, MeetingDoor, MeetingSettingsCard } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
@@ -80,7 +80,9 @@ export const MeetingPage = ({
           )}
         </CardHeader>
         <CardPanel className="flex flex-col gap-6">
-          {inCall ? (
+          {meeting.endedAt ? (
+            <MeetingEnded endedAt={meeting.endedAt} />
+          ) : inCall ? (
             <Suspense fallback={<Button disabled>Loading call…</Button>}>
               <MeetingCall
                 meetingId={meetingId}

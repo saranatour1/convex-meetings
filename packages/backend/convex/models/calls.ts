@@ -8,6 +8,19 @@ import { grantedPermissions } from "./roles";
 import { getViewer } from "./users";
 
 const LIVE_SESSIONS_READ = 50;
+export const EMPTY_CALL_GRACE_MS = 2 * 60 * 1000;
+
+export const endWhenEmpty = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
+  const someone = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
+    .first();
+  if (!someone) {
+    await ctx.scheduler.runAfter(EMPTY_CALL_GRACE_MS, internal.internal.realtime.endIfEmpty, {
+      meetingId,
+    });
+  }
+};
 
 const managesMeetings = async (ctx: QueryCtx, meeting: Doc<"meetings">, userId: Id<"users">) => {
   const orgMember = await findMember(ctx, meeting.orgId, userId);
@@ -185,4 +198,5 @@ export const forgetDevices = async (
     if (peerId !== undefined && peer.peerId !== peerId) continue;
     await ctx.db.delete("callPeers", peer._id);
   }
+  await endWhenEmpty(ctx, meetingId);
 };

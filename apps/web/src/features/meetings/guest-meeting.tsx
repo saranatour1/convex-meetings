@@ -18,7 +18,7 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
-import { JoinCallCard, MeetingCall } from "./call-entry.tsx";
+import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
 import type { CallSearch } from "./call/call-search.ts";
 import { GuestPassContext } from "./guest-pass.ts";
 import { MeetingChat } from "./meeting-chat.tsx";
@@ -89,6 +89,8 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
               <p className="text-muted-foreground text-sm">
                 The host removed you from this meeting.
               </p>
+            ) : meeting.endedAt ? (
+              <MeetingEnded endedAt={meeting.endedAt} />
             ) : search.call === true ? (
               <Suspense fallback={<Button disabled>Loading call…</Button>}>
                 <MeetingCall

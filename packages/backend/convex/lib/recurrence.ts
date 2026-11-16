@@ -171,6 +171,12 @@ const endOf = (rule: Rule | null, first: First) => {
   );
 };
 
+export const ruleEndingAt = (rule: string, until: number) =>
+  [
+    ...rule.split(";").filter((pair) => !/^\s*(UNTIL|COUNT)\s*=/i.test(pair)),
+    `UNTIL=${DateTime.fromMillis(until, { zone: "utc" }).toFormat("yyyyLLdd'T'HHmmss'Z'")}`,
+  ].join(";");
+
 export const lastOccurrenceEnd = (rule: string | undefined, first: First) =>
   endOf(parseRule(rule, first.timeZone), first);
 
