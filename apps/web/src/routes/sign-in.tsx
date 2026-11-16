@@ -3,7 +3,10 @@ import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { SignInCard } from "#/features/auth/sign-in-card.tsx";
 
-type SignInSearch = { with?: "password"; mode?: "signup" };
+type SignInSearch = { with?: "password"; mode?: "signup"; redirect?: string };
+
+const isLocalPath = (value: unknown): value is string =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 
 const SignInPage = () => {
   const search = Route.useSearch();
@@ -14,7 +17,7 @@ const SignInPage = () => {
         <LoadingScreen />
       </AuthLoading>
       <Authenticated>
-        <Navigate to="/" replace />
+        <Navigate to={(search.redirect ?? "/") as "/"} replace />
       </Authenticated>
       <Unauthenticated>
         <div className="grid min-h-dvh place-items-center bg-sidebar p-4">
@@ -29,6 +32,7 @@ export const Route = createFileRoute("/sign-in")({
   validateSearch: (search: Record<string, unknown>): SignInSearch => ({
     with: search.with === "password" ? "password" : undefined,
     mode: search.mode === "signup" ? "signup" : undefined,
+    redirect: isLocalPath(search.redirect) ? search.redirect : undefined,
   }),
   component: SignInPage,
 });

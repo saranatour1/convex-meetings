@@ -13,7 +13,11 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as InviteSecretRouteImport } from './routes/invite.$secret'
+import { Route as AppOrgsNewRouteImport } from './routes/_app/orgs.new'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -34,9 +38,29 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppScheduleRoute = AppScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const InviteSecretRoute = InviteSecretRouteImport.update({
+  id: '/invite/$secret',
+  path: '/invite/$secret',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppOrgsNewRoute = AppOrgsNewRouteImport.update({
+  id: '/orgs/new',
+  path: '/orgs/new',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -44,39 +68,72 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/sign-in': typeof SignInRoute
   '/calendar': typeof AppCalendarRoute
+  '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
+  '/settings': typeof AppSettingsRoute
+  '/invite/$secret': typeof InviteSecretRoute
+  '/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/calendar': typeof AppCalendarRoute
+  '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
+  '/settings': typeof AppSettingsRoute
+  '/invite/$secret': typeof InviteSecretRoute
   '/': typeof AppIndexRoute
+  '/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/members': typeof AppMembersRoute
   '/_app/schedule': typeof AppScheduleRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/invite/$secret': typeof InviteSecretRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/calendar' | '/schedule'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/calendar'
+    | '/members'
+    | '/schedule'
+    | '/settings'
+    | '/invite/$secret'
+    | '/orgs/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/calendar' | '/schedule' | '/'
+  to:
+    | '/sign-in'
+    | '/calendar'
+    | '/members'
+    | '/schedule'
+    | '/settings'
+    | '/invite/$secret'
+    | '/'
+    | '/orgs/new'
   id:
     | '__root__'
     | '/_app'
     | '/sign-in'
     | '/_app/calendar'
+    | '/_app/members'
     | '/_app/schedule'
+    | '/_app/settings'
+    | '/invite/$secret'
     | '/_app/'
+    | '/_app/orgs/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   SignInRoute: typeof SignInRoute
+  InviteSecretRoute: typeof InviteSecretRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/members': {
+      id: '/_app/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/schedule': {
       id: '/_app/schedule'
       path: '/schedule'
@@ -116,19 +180,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScheduleRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/invite/$secret': {
+      id: '/invite/$secret'
+      path: '/invite/$secret'
+      fullPath: '/invite/$secret'
+      preLoaderRoute: typeof InviteSecretRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/orgs/new': {
+      id: '/_app/orgs/new'
+      path: '/orgs/new'
+      fullPath: '/orgs/new'
+      preLoaderRoute: typeof AppOrgsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
+  AppMembersRoute: typeof AppMembersRoute
   AppScheduleRoute: typeof AppScheduleRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppOrgsNewRoute: typeof AppOrgsNewRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
+  AppMembersRoute: AppMembersRoute,
   AppScheduleRoute: AppScheduleRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppOrgsNewRoute: AppOrgsNewRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -136,6 +227,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
+  InviteSecretRoute: InviteSecretRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

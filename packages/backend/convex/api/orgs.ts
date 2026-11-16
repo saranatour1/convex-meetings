@@ -1,5 +1,6 @@
 import { authedMutation, authedQuery, orgQuery, zPaginationOpts } from "../lib/functions";
 import { createOrg, listOrgsForUser, listRoles } from "../models/orgs";
+import { grantedPermissions } from "../models/roles";
 import { zOrganization } from "../tables/organizations";
 
 export const create = authedMutation({
@@ -20,7 +21,10 @@ export const roles = orgQuery({
 export const get = orgQuery({
   args: {},
   handler: async (ctx, { orgId }) => {
-    const org = await ctx.db.get("organizations", orgId);
-    return org && { _id: org._id, name: org.name };
+    const [org, permissions] = await Promise.all([
+      ctx.db.get("organizations", orgId),
+      grantedPermissions(ctx, ctx.member._id),
+    ]);
+    return org && { _id: org._id, name: org.name, permissions: [...permissions] };
   },
 });

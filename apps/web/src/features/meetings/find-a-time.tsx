@@ -805,13 +805,10 @@ const ZoneCheck = ({ person, at, zone }: { person: Person; at: number; zone: str
             Is {name} in {person.city}?
           </PopoverTitle>
           <PopoverDescription>
-            The profile says <span className="font-mono">{person.timeZone}</span>, but recent
-            sign-ins came from {conflict.city}. If {name} is there, your {formatTime(at, zone)} is{" "}
-            {formatTime(at, conflict.timeZone)} for them, not {formatTime(at, person.timeZone)}.
+            The profile says <span className="font-mono">{person.timeZone}</span>, but {name}'s
+            browser last reported {conflict.city}. If {name} is there, your {formatTime(at, zone)}{" "}
+            is {formatTime(at, conflict.timeZone)} for them, not {formatTime(at, person.timeZone)}.
           </PopoverDescription>
-          <Button size="sm" variant="outline" className="self-start">
-            Ask {name}
-          </Button>
         </div>
       </PopoverPopup>
     </Popover>

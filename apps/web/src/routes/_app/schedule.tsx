@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { ScheduleDisplay } from "#/features/meetings/find-a-time.tsx";
-import { ScheduleForm } from "#/features/meetings/schedule-form.tsx";
+import { ScheduleMeeting } from "#/features/meetings/schedule-meeting.tsx";
 import { isTimeZone, parseZones } from "#/lib/schedule.ts";
 
 type ScheduleSearch = ScheduleDisplay & { start?: number; minutes?: number };
@@ -14,7 +14,7 @@ const SchedulePage = () => {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 lg:p-6">
-      <ScheduleForm
+      <ScheduleMeeting
         initialTime={{ start, minutes }}
         display={{ view, zone, zones, openTeam }}
         onDisplayChange={(display) =>

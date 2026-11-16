@@ -29,7 +29,6 @@ import {
   type MeetingTime,
   type ScheduleDisplay,
 } from "#/features/meetings/find-a-time.tsx";
-import { sampleInvitees } from "#/features/meetings/sample-invitees.ts";
 import {
   MINUTE,
   availability,
@@ -42,10 +41,15 @@ import {
   repeatDays,
   wallMinutes,
   wallToUtc,
+  type Person,
   type Share,
+  type Team,
 } from "#/lib/schedule.ts";
 
-type ScheduleFormProps = {
+export type ScheduleFormProps = {
+  invitees: { organizer: Person; people: Person[]; teams: Team[] };
+  homeZone: string;
+  alsoShow: string[];
   onInvite: (meetingTitle: string) => void;
   onClose: () => void;
   display: ScheduleDisplay;
@@ -54,13 +58,16 @@ type ScheduleFormProps = {
 };
 
 export const ScheduleForm = ({
+  invitees,
+  homeZone,
+  alsoShow,
   onInvite,
   onClose,
   display,
   onDisplayChange,
   initialTime,
 }: ScheduleFormProps) => {
-  const zone = display.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = display.zone ?? homeZone;
   const form = useForm({
     defaultValues: {
       title: "",
@@ -78,7 +85,6 @@ export const ScheduleForm = ({
   const { day, durationMinutes, start, removed, rrule } = values;
   const planMinutes = useDeferredValue(durationMinutes);
 
-  const invitees = useMemo(() => sampleInvitees(day, zone), [day, zone]);
   const { people, teams, everyone, plan } = useMemo(() => {
     const people = invitees.people.filter((p) => !removed.includes(p.id));
     const teams = invitees.teams.filter((t) => !removed.includes(t.id));
@@ -268,7 +274,7 @@ export const ScheduleForm = ({
             form.setFieldValue("start", next.start);
             form.setFieldValue("durationMinutes", next.minutes);
           }}
-          display={display}
+          display={{ ...display, zones: display.zones ?? alsoShow }}
           onDisplayChange={onDisplayChange}
         />
 

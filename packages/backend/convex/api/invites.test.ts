@@ -9,7 +9,7 @@ const cloudflareAccepts = () =>
   vi.stubGlobal(
     "fetch",
     vi.fn(async (_url: string, init: RequestInit) => {
-      const body = JSON.parse(String(init.body)) as { to: string; text: string };
+      const body = JSON.parse(init.body as string) as { to: string; text: string };
       sentEmails.push(body);
       return new Response(
         JSON.stringify({ success: true, result: { message_id: "<m@test>", delivered: [body.to] } }),

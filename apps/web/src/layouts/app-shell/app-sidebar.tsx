@@ -1,5 +1,12 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { CalendarDaysIcon, HouseIcon, InboxIcon, VideoIcon } from "lucide-react";
+import {
+  CalendarDaysIcon,
+  HouseIcon,
+  InboxIcon,
+  SettingsIcon,
+  UsersIcon,
+  VideoIcon,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,6 +19,14 @@ import {
   SidebarRail,
 } from "@meetings/ui/components/sidebar";
 import { NavUser } from "#/features/auth/nav-user.tsx";
+import { OrgSwitcher } from "#/features/orgs/org-switcher.tsx";
+
+const LINKS = [
+  { title: "Home", to: "/", icon: HouseIcon },
+  { title: "Calendar", to: "/calendar", icon: CalendarDaysIcon },
+  { title: "Members", to: "/members", icon: UsersIcon },
+  { title: "Settings", to: "/settings", icon: SettingsIcon },
+] as const;
 
 const PLANNED_NAV_ITEMS = [
   { title: "Meetings", icon: VideoIcon },
@@ -26,12 +41,7 @@ export const AppSidebar = () => {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg">
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-                <VideoIcon className="size-4" />
-              </span>
-              <span className="font-semibold">Meetings</span>
-            </SidebarMenuButton>
+            <OrgSwitcher />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -39,26 +49,18 @@ export const AppSidebar = () => {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={Boolean(matchRoute({ to: "/" }))}
-                tooltip="Home"
-                render={<Link to="/" />}
-              >
-                <HouseIcon />
-                <span>Home</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={Boolean(matchRoute({ to: "/calendar" }))}
-                tooltip="Calendar"
-                render={<Link to="/calendar" />}
-              >
-                <CalendarDaysIcon />
-                <span>Calendar</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {LINKS.map((link) => (
+              <SidebarMenuItem key={link.to}>
+                <SidebarMenuButton
+                  isActive={Boolean(matchRoute({ to: link.to }))}
+                  tooltip={link.title}
+                  render={<Link to={link.to} />}
+                >
+                  <link.icon />
+                  <span>{link.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
             {PLANNED_NAV_ITEMS.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton tooltip={item.title}>
