@@ -5,8 +5,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -14,7 +12,6 @@ import {
   SidebarRail,
 } from "@meetings/ui/components/sidebar";
 import { NavUser } from "#/features/auth/nav-user.tsx";
-import { Tasks } from "#/features/tasks/tasks.tsx";
 
 const PLANNED_NAV_ITEMS = [
   { title: "Meetings", icon: VideoIcon },
@@ -62,13 +59,6 @@ export const AppSidebar = () => {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>To do</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <Tasks />
-          </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
