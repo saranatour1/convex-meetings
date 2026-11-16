@@ -52,7 +52,6 @@ export const MeetingPage = ({
   onExpandedChange,
 }: MeetingPageProps) => {
   const meeting = useQuery(api.meetings.get, { code });
-  const viewer = useQuery(api.users.viewer);
   const respond = useMutation(api.meetings.respond);
   const cancel = useMutation(api.meetings.cancel);
   const remove = useMutation(api.calls.remove);
@@ -98,11 +97,7 @@ export const MeetingPage = ({
                 onExpandedChange={onExpandedChange}
                 canControl={meeting.me.canControl}
                 devicesInCall={meeting.me.devicesInCall}
-                watermark={
-                  meeting.protected && viewer
-                    ? [viewer.name, viewer.email].filter(Boolean).join(" · ")
-                    : null
-                }
+                isProtected={meeting.protected}
               />
             </Suspense>
           ) : (

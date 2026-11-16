@@ -31,7 +31,7 @@ type MeetingCallProps = {
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   canControl: boolean;
-  watermark: string | null;
+  isProtected: boolean;
   devicesInCall: number;
 };
 

@@ -242,7 +242,7 @@ export const ScheduleForm = ({
               {(field) => (
                 <Label
                   className="ms-2 gap-2"
-                  title="Watermarks screens with each viewer's name, turns recording off"
+                  title="Turns recording off and keeps downloads to hosts"
                 >
                   <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                   Protected

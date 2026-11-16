@@ -103,7 +103,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                   onExpandedChange={(expand) => onSearchChange({ expand: expand || undefined })}
                   canControl={false}
                   devicesInCall={meeting.me.devicesInCall}
-                  watermark={meeting.protected ? pass.name : null}
+                  isProtected={meeting.protected}
                 />
               </Suspense>
             ) : (
