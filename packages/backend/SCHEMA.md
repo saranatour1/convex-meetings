@@ -152,6 +152,13 @@ erDiagram
     string recordingKey "optional"
     number recordingSeconds "optional"
   }
+  callPeers {
+    id _id PK
+    id sessionId FK "meetingSessions"
+    id meetingId FK "meetings"
+    id memberId FK "meetingMembers"
+    string peerId
+  }
   messages {
     id _id PK
     id meetingId FK "meetings"
@@ -234,6 +241,9 @@ erDiagram
   meetingSessions }o--|| meetings : meetingId
   meetingSessions }o--o| organizations : orgId
   meetingSessions }o--o| _storage : transcriptId
+  callPeers }o--|| meetingSessions : sessionId
+  callPeers }o--|| meetings : meetingId
+  callPeers }o--|| meetingMembers : memberId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
   messageReactions }o--|| messages : messageId
@@ -286,6 +296,8 @@ erDiagram
 | meetingSessions | by_meeting_and_number | meetingId, number |
 | meetingSessions | by_rtk_session | rtkSessionId |
 | meetingSessions | by_org_and_ended | orgId, endedAt |
+| callPeers | by_session_and_peer | sessionId, peerId |
+| callPeers | by_meeting_and_member | meetingId, memberId |
 | messages | by_meeting | meetingId |
 | messageReactions | by_message_and_member | messageId, memberId |
 | messageReactions | by_meeting | meetingId |

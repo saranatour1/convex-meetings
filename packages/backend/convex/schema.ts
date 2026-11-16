@@ -1,5 +1,6 @@
 import { defineSchema } from "convex/server";
 import { auditEvents } from "./tables/auditEvents";
+import { callPeers } from "./tables/callPeers";
 import { groupMembers } from "./tables/groupMembers";
 import { groups } from "./tables/groups";
 import { invites } from "./tables/invites";
@@ -40,6 +41,7 @@ export default defineSchema({
   meetingMembers,
   meetingGuests,
   meetingSessions,
+  callPeers,
   messages,
   messageReactions,
   strokes,

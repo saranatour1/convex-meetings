@@ -241,3 +241,15 @@ test("one person on two devices stays present until both leave, and can switch h
   expect((await host.asUser.query(api.api.meetings.get, { code }))?.me.devicesInCall).toBe(0);
   expect(await host.asUser.query(api.api.calls.live, { orgId })).toEqual([]);
 });
+
+test("an ended call forgets who was in it, even if a join arrives late", async () => {
+  const { t, host, meetingId, hostMember, guestMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember, "laptop");
+  await event("meeting.participantJoined", guestMember, "phone");
+  expect(await t.run((ctx) => ctx.db.query("callPeers").collect())).toHaveLength(2);
+  await event("meeting.ended");
+  expect(await t.run((ctx) => ctx.db.query("callPeers").collect())).toEqual([]);
+  await event("meeting.participantJoined", guestMember, "tablet");
+  expect(await t.run((ctx) => ctx.db.query("callPeers").collect())).toEqual([]);
+});
