@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
-      calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      calls.push({ url, body: init?.body ? JSON.parse(init.body as string) : undefined });
       const data = url.endsWith("/meetings")
         ? { id: "rtk-meeting" }
         : { id: "participant", token: "token" };

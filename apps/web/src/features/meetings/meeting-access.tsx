@@ -1,0 +1,268 @@
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery } from "convex/react";
+import { CopyIcon, DoorOpenIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
+import { api, type Id } from "@meetings/backend";
+import { Button } from "@meetings/ui/components/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardPanel,
+  CardTitle,
+} from "@meetings/ui/components/card";
+import { Label } from "@meetings/ui/components/label";
+import { Radio, RadioGroup } from "@meetings/ui/components/radio-group";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "@meetings/ui/components/select";
+import { Switch } from "@meetings/ui/components/switch";
+import { Textarea } from "@meetings/ui/components/textarea";
+import { toastManager } from "@meetings/ui/components/toast";
+import { EmptyState } from "#/components/empty-state.tsx";
+import { FormError } from "#/components/form-error.tsx";
+import { LoadingScreen } from "#/components/loading-screen.tsx";
+import { describeError } from "#/lib/errors.ts";
+
+type Access = "invited" | "org" | "link";
+type Inviters = "hosts" | "everyone";
+
+const ACCESS: { value: Access; label: string; hint: string }[] = [
+  {
+    value: "invited",
+    label: "Only invited people",
+    hint: "People need an invite from this page or the calendar.",
+  },
+  {
+    value: "org",
+    label: "Anyone in the organization",
+    hint: "Members can open the link and walk in.",
+  },
+  {
+    value: "link",
+    label: "Anyone with the link",
+    hint: "Guests join from their browser with just a name, no account.",
+  },
+];
+
+const INVITERS: { value: Inviters; label: string }[] = [
+  { value: "hosts", label: "Only hosts" },
+  { value: "everyone", label: "Everyone in the meeting" },
+];
+
+const showError = (error: unknown) =>
+  toastManager.add({ title: describeError(error), type: "error" });
+
+const meetingLink = (code: string) => `${window.location.origin}/m/${code}`;
+
+type SettingsProps = {
+  meetingId: Id<"meetings">;
+  code: string;
+  access: Access;
+  inviters: Inviters;
+  isProtected: boolean;
+};
+
+export const MeetingSettingsCard = ({
+  meetingId,
+  code,
+  access,
+  inviters,
+  isProtected,
+}: SettingsProps) => {
+  const update = useMutation(api.meetings.updateSettings);
+  const save = (changes: Omit<Parameters<typeof update>[0], "meetingId">) =>
+    void update({ meetingId, ...changes }).catch(showError);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <CardTitle className="flex items-center gap-2">
+            <LockIcon className="size-4" />
+            Access
+          </CardTitle>
+          <CardDescription>Who can get in, and who can bring others.</CardDescription>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            void navigator.clipboard
+              .writeText(meetingLink(code))
+              .then(() => toastManager.add({ title: "Meeting link copied", type: "success" }))
+          }
+        >
+          <CopyIcon />
+          Copy link
+        </Button>
+      </CardHeader>
+      <CardPanel className="flex flex-col gap-4">
+        <div className="grid gap-6 sm:grid-cols-[1fr_14rem]">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 font-medium text-sm">Who can join</legend>
+            <RadioGroup
+              value={access}
+              onValueChange={(value) => save({ access: value as Access })}
+              className="gap-2"
+            >
+              {ACCESS.map((option) => (
+                <Label key={option.value} className="items-start gap-2 font-normal">
+                  <Radio value={option.value} className="mt-0.5" />
+                  <span className="flex flex-col">
+                    <span>{option.label}</span>
+                    <span className="text-muted-foreground text-xs">{option.hint}</span>
+                  </span>
+                </Label>
+              ))}
+            </RadioGroup>
+          </fieldset>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="meeting-inviters">Who can invite others</Label>
+            <Select
+              value={inviters}
+              onValueChange={(value) => value && save({ inviters: value as Inviters })}
+              items={INVITERS}
+            >
+              <SelectTrigger id="meeting-inviters">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectPopup>
+                {INVITERS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
+          </div>
+        </div>
+        <Label className="justify-between gap-3 font-normal">
+          <span className="flex flex-col gap-0.5">
+            <span className="flex items-center gap-1.5 font-medium">
+              <ShieldIcon className="size-4" />
+              Protected meeting
+            </span>
+            <span className="text-muted-foreground text-xs">
+              Marks every screen with the viewer's name and email, turns recording off and keeps
+              downloads to hosts. It can't stop screenshots.
+            </span>
+          </span>
+          <Switch checked={isProtected} onCheckedChange={(on) => save({ protected: on })} />
+        </Label>
+      </CardPanel>
+    </Card>
+  );
+};
+
+const splitEmails = (text: string) =>
+  [...new Set(text.split(/[\s,;]+/).map((email) => email.trim().toLowerCase()))].filter(Boolean);
+
+export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
+  const invite = useMutation(api.meetings.invite);
+  const form = useForm({
+    defaultValues: { emails: "" },
+    validators: {
+      onSubmitAsync: async ({ value, formApi }) => {
+        const emails = splitEmails(value.emails);
+        if (!emails.length) return "Add at least one email";
+        if (emails.length > 30) return "Invite up to 30 people at a time";
+        try {
+          const { added, guests, skipped } = await invite({ meetingId, emails });
+          formApi.reset();
+          const parts = [
+            added.length && `${added.length} from your organization`,
+            guests.length &&
+              `${guests.length} ${guests.length === 1 ? "guest" : "guests"} by email`,
+          ].filter(Boolean);
+          toastManager.add({
+            title: parts.length ? `Invited ${parts.join(" and ")}` : "Nobody new to invite",
+            description: skipped.length ? `Already invited: ${skipped.join(", ")}` : undefined,
+            type: "success",
+          });
+          return undefined;
+        } catch (error) {
+          return describeError(error);
+        }
+      },
+    },
+  });
+
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      <Label htmlFor="meeting-invite">Invite by email</Label>
+      <div className="flex flex-wrap items-start gap-2">
+        <form.Field name="emails">
+          {(field) => (
+            <Textarea
+              id="meeting-invite"
+              rows={1}
+              className="min-w-56 flex-1"
+              placeholder="colleague@acme.com, client@example.com"
+              value={field.state.value}
+              onChange={(event) => field.handleChange(event.target.value)}
+            />
+          )}
+        </form.Field>
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <Button type="submit" variant="outline" disabled={isSubmitting}>
+              <MailIcon />
+              Invite
+            </Button>
+          )}
+        </form.Subscribe>
+      </div>
+      <span className="text-muted-foreground text-xs">
+        People in your organization get an invite in their inbox. Anyone else gets a personal link
+        by email and joins as a guest, no account needed.
+      </span>
+      <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+        {(error) => <FormError error={error} />}
+      </form.Subscribe>
+    </form>
+  );
+};
+
+export const MeetingDoor = ({ code }: { code: string }) => {
+  const door = useQuery(api.meetings.door, { code });
+  const enter = useMutation(api.meetings.enter);
+  if (door === undefined) return <LoadingScreen />;
+  if (door === null) {
+    return (
+      <EmptyState
+        icon={<DoorOpenIcon />}
+        title="No meeting with that code"
+        description="Check the code or link, or ask whoever invited you to send it again."
+      />
+    );
+  }
+  return (
+    <EmptyState
+      icon={<DoorOpenIcon />}
+      title={door.title}
+      description={
+        door.canEnter
+          ? "You're not on the invite list, but this meeting is open to you."
+          : "Only invited people can join this meeting. Ask the host to invite you."
+      }
+      action={
+        door.canEnter && (
+          <Button onClick={() => void enter({ code }).catch(showError)}>
+            <DoorOpenIcon />
+            Join this meeting
+          </Button>
+        )
+      }
+    />
+  );
+};

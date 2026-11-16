@@ -11,6 +11,8 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { action, mutation, query, type ActionCtx, type QueryCtx } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { guestUserId } from "../models/guests";
 import { grantedPermissions, type Permission } from "../models/roles";
 
 const requireUserId = async (ctx: Pick<QueryCtx, "auth" | "runQuery">) => {
@@ -44,9 +46,31 @@ const orgMember = customCtxAndArgs({
   },
 });
 
+const meetingCaller = customCtxAndArgs({
+  args: { guest: v.optional(v.string()) },
+  input: async (ctx: QueryCtx, { guest }) => ({
+    ctx: { userId: guest ? await guestUserId(ctx, guest) : await requireUserId(ctx) },
+    args: {},
+  }),
+});
+
+const meetingCallerAction = customCtxAndArgs({
+  args: { guest: v.optional(v.string()) },
+  input: async (
+    ctx: ActionCtx,
+    { guest },
+  ): Promise<{ ctx: { userId: Id<"users"> }; args: Record<string, never> }> => {
+    const userId: Id<"users"> = guest
+      ? await ctx.runQuery(internal.internal.guests.userId, { secret: guest })
+      : await requireUserId(ctx as unknown as Pick<QueryCtx, "auth" | "runQuery">);
+    return { ctx: { userId }, args: {} };
+  },
+});
+
 export const zPaginationOpts = convexToZod(paginationOptsValidator);
 
 export const publicQuery = zCustomQuery(query, NoOp);
+export const publicMutation = zCustomMutation(mutation, NoOp);
 export const authedQuery = zCustomQuery(query, signedInUser);
 export const authedMutation = zCustomMutation(mutation, signedInUser);
 export const authedAction = zCustomAction(
@@ -55,6 +79,9 @@ export const authedAction = zCustomAction(
     userId: await requireUserId(ctx as unknown as Pick<QueryCtx, "auth" | "runQuery">),
   })),
 );
+export const meetingQuery = zCustomQuery(query, meetingCaller);
+export const meetingMutation = zCustomMutation(mutation, meetingCaller);
+export const meetingAction = zCustomAction(action, meetingCallerAction);
 export const orgQuery = zCustomQuery(query, orgMember);
 export const orgMutation = zCustomMutation(mutation, orgMember);
 

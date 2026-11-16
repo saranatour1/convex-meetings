@@ -4,9 +4,10 @@ import { DateTime } from "luxon";
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import {
-  authedAction,
   authedMutation,
   authedQuery,
+  meetingAction,
+  meetingQuery,
   orgMutation,
   orgQuery,
   zPaginationOpts,
@@ -30,8 +31,9 @@ import {
   type JoinDetails,
 } from "../models/meetings";
 import { requireCallControl } from "../models/calls";
+import { canEnter, enterAsMember, inviteToMeeting } from "../models/guests";
 import { getSettings } from "../models/settings";
-import { zMeeting } from "../tables/meetings";
+import { zMeeting, zMeetingAccess, zMeetingInviters } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 
 export const create = orgMutation({
@@ -62,11 +64,40 @@ export const mine = authedQuery({
   handler: (ctx, { paginationOpts }) => listMyMeetings(ctx, ctx.userId, paginationOpts),
 });
 
-export const get = authedQuery({
+export const get = meetingQuery({
   args: { code: z.string() },
   handler: async (ctx, { code }) => {
     const meeting = await findMeetingByCode(ctx, code);
     return meeting ? getMeeting(ctx, ctx.userId, meeting._id) : null;
+  },
+});
+
+export const door = authedQuery({
+  args: { code: z.string() },
+  handler: async (ctx, { code }) => {
+    const meeting = await findMeetingByCode(ctx, code);
+    if (!meeting) return null;
+    return {
+      title: meeting.title,
+      kind: meeting.kind,
+      canEnter: await canEnter(ctx, meeting, ctx.userId),
+    };
+  },
+});
+
+export const enter = authedMutation({
+  args: { code: z.string() },
+  handler: (ctx, { code }) => enterAsMember(ctx, ctx.userId, code),
+});
+
+export const invite = authedMutation({
+  args: {
+    meetingId: zid("meetings"),
+    emails: z.array(z.string().trim().toLowerCase().pipe(z.email())).min(1).max(30),
+  },
+  handler: async (ctx, { meetingId, emails }) => {
+    await enforceRateLimit(ctx, "meetingInvite", meetingId, emails.length);
+    return inviteToMeeting(ctx, ctx.userId, meetingId, emails);
   },
 });
 
@@ -90,7 +121,7 @@ export const busy = orgQuery({
   handler: (ctx, { orgId, from, to }) => busyForOrg(ctx, orgId, from, to),
 });
 
-export const join = authedAction({
+export const join = meetingAction({
   args: { meetingId: zid("meetings") },
   handler: async (ctx, { meetingId }): Promise<{ token: string }> => {
     await enforceRateLimit(ctx, "join", ctx.userId);
@@ -170,11 +201,20 @@ export const startNow = orgMutation({
   },
 });
 
-export const setProtected = authedMutation({
-  args: { meetingId: zid("meetings"), protected: z.boolean() },
-  handler: async (ctx, { meetingId, protected: on }) => {
+export const updateSettings = authedMutation({
+  args: {
+    meetingId: zid("meetings"),
+    protected: z.boolean().optional(),
+    access: zMeetingAccess.optional(),
+    inviters: zMeetingInviters.optional(),
+  },
+  handler: async (ctx, { meetingId, ...changes }) => {
     await requireCallControl(ctx, meetingId, ctx.userId);
-    await ctx.db.patch("meetings", meetingId, { protected: on || undefined });
+    await ctx.db.patch("meetings", meetingId, {
+      ...(changes.protected !== undefined && { protected: changes.protected || undefined }),
+      ...(changes.access && { access: changes.access }),
+      ...(changes.inviters && { inviters: changes.inviters }),
+    });
   },
 });
 

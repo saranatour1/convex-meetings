@@ -1,5 +1,5 @@
 import { zid } from "convex-helpers/server/zod4";
-import { authedMutation, authedQuery } from "../lib/functions";
+import { authedQuery, meetingMutation, meetingQuery } from "../lib/functions";
 import { enforceRateLimit } from "../lib/rateLimits";
 import {
   addStroke,
@@ -11,12 +11,12 @@ import {
 } from "../models/annotations";
 import { zStroke } from "../tables/annotations";
 
-export const strokes = authedQuery({
+export const strokes = meetingQuery({
   args: { meetingId: zid("meetings"), shareId: zStroke.shape.shareId },
   handler: (ctx, { meetingId, shareId }) => listStrokes(ctx, ctx.userId, meetingId, shareId),
 });
 
-export const draw = authedMutation({
+export const draw = meetingMutation({
   args: {
     meetingId: zid("meetings"),
     shareId: zStroke.shape.shareId,
@@ -29,12 +29,12 @@ export const draw = authedMutation({
   },
 });
 
-export const clear = authedMutation({
+export const clear = meetingMutation({
   args: { meetingId: zid("meetings"), shareId: zStroke.shape.shareId },
   handler: (ctx, { meetingId, shareId }) => clearShareStrokes(ctx, ctx.userId, meetingId, shareId),
 });
 
-export const snapshotUploadUrl = authedMutation({
+export const snapshotUploadUrl = meetingMutation({
   args: { meetingId: zid("meetings") },
   handler: async (ctx, { meetingId }) => {
     await requireSnapshotRights(ctx, ctx.userId, meetingId);
@@ -42,7 +42,7 @@ export const snapshotUploadUrl = authedMutation({
   },
 });
 
-export const saveSnapshotImage = authedMutation({
+export const saveSnapshotImage = meetingMutation({
   args: { meetingId: zid("meetings"), storageId: zid("_storage") },
   handler: (ctx, { meetingId, storageId }) => saveSnapshot(ctx, ctx.userId, meetingId, storageId),
 });

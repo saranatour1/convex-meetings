@@ -8,11 +8,17 @@ import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { formatTime } from "#/lib/schedule.ts";
+import { useGuestPass } from "./guest-pass.ts";
 
 type MeetingChatProps = { meetingId: Id<"meetings">; since?: number };
 
 export const MeetingChat = ({ meetingId, since }: MeetingChatProps) => {
-  const messages = usePaginatedQuery(api.messages.list, { meetingId }, { initialNumItems: 50 });
+  const pass = useGuestPass();
+  const messages = usePaginatedQuery(
+    api.messages.list,
+    { meetingId, ...pass },
+    { initialNumItems: 50 },
+  );
   const send = useMutation(api.messages.send);
   const zone = browserTimeZone();
   const form = useForm({
@@ -20,7 +26,7 @@ export const MeetingChat = ({ meetingId, since }: MeetingChatProps) => {
     validators: {
       onSubmitAsync: async ({ value, formApi }) => {
         try {
-          await send({ meetingId, body: value.body });
+          await send({ meetingId, body: value.body, ...pass });
           formApi.reset();
           return undefined;
         } catch (error) {

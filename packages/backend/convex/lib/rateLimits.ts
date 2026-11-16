@@ -9,6 +9,8 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   accept: { kind: "token bucket", rate: 20, period: HOUR, capacity: 5 },
   chat: { kind: "token bucket", rate: 30, period: MINUTE, capacity: 10 },
   join: { kind: "token bucket", rate: 20, period: MINUTE, capacity: 5 },
+  guestEnter: { kind: "token bucket", rate: 30, period: MINUTE, capacity: 10 },
+  meetingInvite: { kind: "token bucket", rate: 100, period: HOUR, capacity: 30 },
   stroke: { kind: "token bucket", rate: 600, period: MINUTE, capacity: 60 },
 });
 

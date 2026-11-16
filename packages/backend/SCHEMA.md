@@ -102,6 +102,8 @@ erDiagram
     boolean recap
     boolean record "optional"
     boolean protected "optional"
+    enum access "optional"
+    enum inviters "optional"
     string rtkMeetingId "optional"
   }
   meetingTimes {
@@ -123,6 +125,14 @@ erDiagram
     enum role
     string rtkParticipantId "optional"
     number removedAt "optional"
+  }
+  meetingGuests {
+    id _id PK
+    id meetingId FK "meetings"
+    id userId FK "users"
+    id tokenId FK "tokens"
+    id invitedBy FK "users, optional"
+    string emailError "optional"
   }
   meetingSessions {
     id _id PK
@@ -207,6 +217,10 @@ erDiagram
   meetingTimes }o--|| meetings : meetingId
   meetingMembers }o--|| meetings : meetingId
   meetingMembers }o--|| users : userId
+  meetingGuests }o--|| meetings : meetingId
+  meetingGuests }o--|| users : userId
+  meetingGuests }o--|| tokens : tokenId
+  meetingGuests }o--o| users : invitedBy
   meetingSessions }o--|| meetings : meetingId
   meetingSessions }o--o| organizations : orgId
   meetingSessions }o--o| _storage : transcriptId
@@ -253,6 +267,8 @@ erDiagram
 | meetingTimes | by_date | date |
 | meetingMembers | by_meeting_and_user | meetingId, userId |
 | meetingMembers | by_user | userId |
+| meetingGuests | by_token | tokenId |
+| meetingGuests | by_meeting | meetingId |
 | meetingSessions | by_meeting | meetingId |
 | meetingSessions | by_rtk_session | rtkSessionId |
 | meetingSessions | by_org_and_ended | orgId, endedAt |
