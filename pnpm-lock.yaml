@@ -238,6 +238,9 @@ importers:
       '@meetings/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@simplewebauthn/browser':
+        specifier: ^14.0.0
+        version: 14.0.0
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))

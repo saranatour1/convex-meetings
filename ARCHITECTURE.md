@@ -51,6 +51,7 @@ Rules:
 | `strokes`             | meeting      | A drawing on a screen share: presenter, colour and normalized points                                                           |
 | `annotationSnapshots` | meeting      | A saved PNG of a screen share with its drawing                                                                                 |
 | `schedules`           | user         | Weekly availability, ISO weekdays (1 = Monday)                                                                                 |
+| `verifiedSessions`    | –            | Sign-in sessions that passed the passkey step                                                                                  |
 
 Rules:
 
@@ -61,7 +62,8 @@ Rules:
 - List queries paginate with Convex's `paginationOptsValidator`, `.paginate()` on the server, and `usePaginatedQuery` on the client. Single-document reads stay plain.
 - Function builders in `lib/functions.ts`:
   - `publicQuery` takes Zod args and needs no sign-in (invite previews).
-  - `authedQuery` / `authedMutation` inject `ctx.userId`, or throw `ConvexError("Unauthenticated")`.
+  - `authedQuery` / `authedMutation` inject `ctx.userId`, or throw `ConvexError("Unauthenticated")`, or `ConvexError("Passkey required")` while the session hasn't passed the passkey step. `orgQuery`, `orgMutation` and the meeting builders (for signed-in callers) check the same.
+  - `signedInQuery` / `signedInMutation` inject `ctx.userId` and `ctx.sessionId` without the passkey check. Only the passkey step (`api/passkeys.ts`) uses them.
   - `orgQuery` / `orgMutation` take `orgId` and inject `ctx.userId`, `ctx.member` and `ctx.requirePermission(permission)`. They throw `ConvexError("Not a member")` for anyone outside the org.
   - `zPaginationOpts` is Convex's `paginationOptsValidator` converted to Zod, for the `paginationOpts` arg of list queries.
   - `OrgQueryCtx` / `OrgMutationCtx` are the context types for model functions that run inside them.
@@ -85,6 +87,7 @@ Rules:
 - Invites: the link carries a random secret; `tokens.value` stores only its SHA-256. Links expire after 7 days and work once. Accepting one marks the user verified with the invited address.
 - Joining an org: email invites (up to 50 at once, existing members skipped), invite links (`joinLinks`: a role, an expiry of 1, 7 or 30 days, an optional use limit; the secret is shown once and only its hash is kept), and domain join (`organizations.joinDomain`: people with a verified email at that domain see the org on the empty-org screen and on `/orgs/new` and join with a click; setting it needs your own verified email there, and public mail providers are refused).
 - Activity: `auditEvents` rows come from the `audit()` helper in `models/audit.ts`, called by every mutation that changes membership, roles, invites, links, domain join or the org name. Org settings shows them to `manageOrganization`.
+- Sign-up and passkeys: accounts are created with Google or GitHub only; the passkey and password sign-up mutations aren't exported. Every session must pass a passkey step before the builders above let it through: a `verifiedSessions` row for its session id (the access token's `sub`). Convex Auth 2.0 has no step-up primitive, and its `startAddPasskey` needs an existing passkey and a username, so `models/passkeys.ts` drives the passkey component directly: with no passkey yet, `passkeys.start` returns registration options and `finishEnroll` stores the first passkey; otherwise it returns an assertion bound to the user (purpose `meetings:verifySession`) and `finishVerify` checks it is that user's. Both mark the session. Signing in with only a passkey goes through `passkeys.finishSignIn`, which wraps the library's finish and marks the new session, so it needs no second prompt. On the web, `PasskeyGate` in the root route shows the step instead of the page.
 - Sessions: sign-in sessions live in the Convex Auth component. `users.sessions` lists the caller's, `users.signOutEverywhere` revokes them, and owners can sign a member out everywhere (`members.signOutEverywhere`). Revoking takes effect immediately because `getAuthUserId` checks the session.
 - Rate limits: `lib/rateLimits.ts` (`@convex-dev/rate-limiter`) caps invites and link creation per org, and accepting invites, links or domain joins per user. Call `enforceRateLimit` in the mutation before the work.
 - Tests sit next to the code (`*.test.ts`). Convex never deploys files with two dots in the name. Tests use `convex-test` and run with `pnpm test`.

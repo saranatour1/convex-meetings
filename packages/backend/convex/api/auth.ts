@@ -13,9 +13,7 @@ const auth = setupConvexAuth({ component: components.auth });
 export const { signOut, refreshSession, isAuthenticated } = auth;
 
 export const {
-  startSignInWithUsernamePasskey,
   startAutofillSignInWithUsernamePasskey,
-  finishSignUpWithUsernamePasskey,
   finishSignInWithUsernamePasskey,
   listPasskeys,
   renamePasskey,
@@ -32,11 +30,10 @@ export const {
   rpName: "Meetings",
 }).attachUserCallbacks({ createUser: userCallbacks.createPasskeyUser });
 
-export const { signUpWithUsernamePassword, signInWithUsernamePassword, changePassword } =
-  setupUsernamePassword(auth, {
-    component: components.authPassword,
-    usernameComponent: components.authUsername,
-  }).attachUserCallbacks({ createUser: userCallbacks.createPasswordUser });
+export const { signInWithUsernamePassword, changePassword } = setupUsernamePassword(auth, {
+  component: components.authPassword,
+  usernameComponent: components.authUsername,
+}).attachUserCallbacks({ createUser: userCallbacks.createPasswordUser });
 
 export const { startSignInWithGoogle, completeSignInWithGoogle } = setupGoogle(auth, {
   component: components.authGoogle,

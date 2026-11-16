@@ -1,4 +1,6 @@
 import { sessionIdentity, registerCore } from "@convex-dev/auth/test";
+import { registerPasskey } from "@convex-dev/auth/components/passkey/test";
+import { registerUsername } from "@convex-dev/auth/components/username/test";
 import { register as registerWorkpool } from "@convex-dev/workpool/test";
 import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test";
 import { register as registerEmail } from "@sarant/cloudflare-email-component/test";
@@ -15,6 +17,8 @@ export const testBackend = () => {
   vi.stubEnv("CONVEX_CLOUD_URL", "https://test.convex.cloud");
   const t = convexTest(schema, modules);
   registerCore(t);
+  registerPasskey(t);
+  registerUsername(t);
   registerWorkpool(t, "avatarWorkpool");
   registerWorkpool(t, "emailWorkpool");
   registerEmail(t);
@@ -24,13 +28,14 @@ export const testBackend = () => {
 
 type TestBackend = ReturnType<typeof testBackend>;
 
-export const signIn = async (t: TestBackend, name: string) => {
-  const { userId, tokens } = await t.run(async (ctx) => {
-    const userId = await ctx.db.insert("users", {
-      name,
-      method: "usernamePassword",
-      isVerified: false,
-    });
+type SessionOptions = { passkeyVerified?: boolean };
+
+export const newSession = async (
+  t: TestBackend,
+  userId: Id<"users">,
+  { passkeyVerified = true }: SessionOptions = {},
+) => {
+  const tokens = await t.run(async (ctx) => {
     const tokens = await ctx.runMutation(components.auth.public._internal_dangerous_signIn, {
       claims: { method: "test", profile: {} },
       componentPath: "test",
@@ -39,9 +44,19 @@ export const signIn = async (t: TestBackend, name: string) => {
       refreshInactivityTimeoutSeconds: 86400,
       sessionMaxLifetimeSeconds: 86400,
     });
-    return { userId, tokens };
+    if (passkeyVerified) {
+      await ctx.db.insert("verifiedSessions", { sessionId: sessionIdentity(tokens).subject });
+    }
+    return tokens;
   });
-  return { userId, asUser: t.withIdentity(sessionIdentity(tokens)) };
+  return t.withIdentity(sessionIdentity(tokens));
+};
+
+export const signIn = async (t: TestBackend, name: string, options: SessionOptions = {}) => {
+  const userId = await t.run((ctx) =>
+    ctx.db.insert("users", { name, method: "usernamePassword", isVerified: false }),
+  );
+  return { userId, asUser: await newSession(t, userId, options) };
 };
 
 export const signedInUser = async (name: string) => {

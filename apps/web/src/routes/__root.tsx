@@ -4,6 +4,7 @@ import { THEME_SCRIPT } from "#/lib/theme.ts";
 import { ToastProvider } from "@meetings/ui/components/toast";
 import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
 import { AnalyticsProvider } from "#/providers/analytics.tsx";
+import { PasskeyGate } from "#/features/auth/passkey-gate.tsx";
 import appCss from "../styles.css?url";
 
 const RootComponent = () => {
@@ -11,7 +12,9 @@ const RootComponent = () => {
     <ConvexWithAuthProvider>
       <AnalyticsProvider>
         <ToastProvider>
-          <Outlet />
+          <PasskeyGate>
+            <Outlet />
+          </PasskeyGate>
         </ToastProvider>
       </AnalyticsProvider>
     </ConvexWithAuthProvider>
