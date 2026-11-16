@@ -6,6 +6,9 @@ import { api, type Id } from "@meetings/backend";
 import { ChatConversation } from "@meetings/ui/chat/chat-conversation";
 import { ChatDatePill } from "@meetings/ui/chat/chat-date-pill";
 import { ChatMessage } from "@meetings/ui/chat/chat-message";
+import { ChatMessageActionToolbar } from "@meetings/ui/chat/chat-message-actions";
+import { ChatReactionChip } from "@meetings/ui/chat/chat-reaction-chip";
+import { ChatReactionPicker } from "@meetings/ui/chat/chat-reaction-picker";
 import { ChatEmptyState, ChatLoadingState } from "@meetings/ui/chat/chat-states";
 import { ChatUnreadDivider } from "@meetings/ui/chat/chat-unread-divider";
 import { useChatScroll } from "@meetings/ui/chat/hooks/use-chat-scroll";
@@ -36,6 +39,75 @@ const sameGroup = (a: ChatLine | undefined, b: ChatLine | undefined, zone: strin
   a.authorId === b.authorId &&
   Math.abs(b._creationTime - a._creationTime) < GROUP_MS &&
   dayOf(a._creationTime, zone) === dayOf(b._creationTime, zone);
+
+const REACTIONS = [
+  { emoji: "👍", label: "Thumbs up" },
+  { emoji: "❤️", label: "Love" },
+  { emoji: "😂", label: "Funny" },
+  { emoji: "🎉", label: "Celebrate" },
+  { emoji: "😮", label: "Surprised" },
+  { emoji: "👀", label: "Looking" },
+] as const;
+
+type ReactionEmoji = (typeof REACTIONS)[number]["emoji"];
+
+const reactionLabel = (emoji: string) =>
+  REACTIONS.find((reaction) => reaction.emoji === emoji)?.label ?? emoji;
+
+const useReact = () => {
+  const react = useMutation(api.messages.react);
+  const pass = useGuestPass();
+  return (messageId: ChatLine["_id"], emoji: string) =>
+    void react({ messageId, emoji: emoji as ReactionEmoji, ...pass }).catch((error: unknown) =>
+      toastManager.add({ title: describeError(error), type: "error" }),
+    );
+};
+
+const Reactions = ({ message }: { message: ChatLine }) => {
+  const react = useReact();
+  return message.reactions.map((reaction) => {
+    const others = reaction.count - reaction.names.length;
+    return (
+      <ChatReactionChip
+        key={reaction.emoji}
+        emoji={reaction.emoji}
+        count={reaction.count}
+        selected={reaction.mine}
+        label={`${reactionLabel(reaction.emoji)}, ${reaction.count}. ${reaction.mine ? "Remove your reaction" : "Add your reaction"}`}
+        onClick={() => react(message._id, reaction.emoji)}
+        reactorLabel={`Reacted with ${reactionLabel(reaction.emoji)}`}
+        reactorContent={
+          <span className="text-xs">
+            {reaction.names.join(", ")}
+            {others > 0 && ` and ${others} more`}
+          </span>
+        }
+      />
+    );
+  });
+};
+
+const ReactionActions = ({ message }: { message: ChatLine }) => {
+  const react = useReact();
+  return (
+    <ChatMessageActionToolbar
+      side={message.mine ? "outgoing" : "incoming"}
+      toolbarLabel="Message actions"
+      reactionPicker={(toolbar) => (
+        <ChatReactionPicker
+          inToolbar
+          options={REACTIONS}
+          selectedEmojis={message.reactions.filter((r) => r.mine).map((r) => r.emoji)}
+          triggerLabel="Add a reaction"
+          triggerTooltip="React"
+          popupLabel="Reactions"
+          popupAnchor={toolbar}
+          onSelect={(emoji) => react(message._id, emoji)}
+        />
+      )}
+    />
+  );
+};
 
 type ChatLinesProps = { messages: ChatLine[]; since?: number };
 
@@ -79,6 +151,8 @@ export const ChatLines = ({ messages, since }: ChatLinesProps) => {
                 </Avatar>
               }
               footer={lastInGroup ? formatTime(message._creationTime, zone) : undefined}
+              actions={<ReactionActions message={message} />}
+              reactions={message.reactions.length ? <Reactions message={message} /> : undefined}
             >
               {message.body}
             </ChatMessage>

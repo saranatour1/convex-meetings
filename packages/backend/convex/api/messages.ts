@@ -2,7 +2,13 @@ import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
 import { enforceRateLimit } from "../lib/rateLimits";
 import { meetingMutation, meetingQuery, zPaginationOpts } from "../lib/functions";
-import { listMessages, requireMeetingMember, sendMessage } from "../models/meetings";
+import {
+  listMessages,
+  requireMeetingMember,
+  sendMessage,
+  toggleReaction,
+} from "../models/meetings";
+import { zReactionEmoji } from "../tables/messageReactions";
 import { zMessage } from "../tables/messages";
 
 export const list = meetingQuery({
@@ -20,5 +26,13 @@ export const send = meetingMutation({
     if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
     await enforceRateLimit(ctx, "chat", ctx.userId);
     return sendMessage(ctx, meetingId, member._id, body);
+  },
+});
+
+export const react = meetingMutation({
+  args: { messageId: zid("messages"), emoji: zReactionEmoji },
+  handler: async (ctx, { messageId, emoji }) => {
+    await enforceRateLimit(ctx, "reaction", ctx.userId);
+    return toggleReaction(ctx, ctx.userId, messageId, emoji);
   },
 });

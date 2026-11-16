@@ -7,6 +7,7 @@ import { parseOrThrow } from "../lib/validate";
 import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
+import { zMessageReaction } from "../tables/messageReactions";
 import { zMessage } from "../tables/messages";
 import { clearStrokes } from "./annotations";
 import { canControlCall } from "./calls";
@@ -306,7 +307,12 @@ const deleteAll = async (
   ctx: MutationCtx,
   docs: {
     _id: Id<
-      "meetingTimes" | "meetingMembers" | "messages" | "meetingSessions" | "annotationSnapshots"
+      | "meetingTimes"
+      | "meetingMembers"
+      | "messages"
+      | "messageReactions"
+      | "meetingSessions"
+      | "annotationSnapshots"
     >;
   }[],
 ) => {
@@ -320,13 +326,14 @@ export const cancelMeeting = async (
 ) => {
   const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
   if (member.role !== "host") throw new ConvexError("Only the host can cancel this meeting");
-  const byMeeting = (table: "meetingTimes" | "messages" | "meetingSessions") =>
+  const byMeeting = (table: "meetingTimes" | "messages" | "messageReactions" | "meetingSessions") =>
     ctx.db
       .query(table)
       .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
       .take(1000);
   await deleteAll(ctx, await byMeeting("meetingTimes"));
   await deleteAll(ctx, await byMeeting("messages"));
+  await deleteAll(ctx, await byMeeting("messageReactions"));
   await deleteAll(ctx, await byMeeting("meetingSessions"));
   await clearStrokes(ctx, meetingId);
   const snapshots = await ctx.db
@@ -388,10 +395,36 @@ export const busyForOrg = async (
   return Object.fromEntries(entries);
 };
 
+const REACTIONS_READ = 200;
+const REACTOR_NAMES = 10;
+
+const reactionsOf = async (ctx: QueryCtx, messageId: Id<"messages">, userId: Id<"users">) => {
+  const rows = await ctx.db
+    .query("messageReactions")
+    .withIndex("by_message_and_member", (q) => q.eq("messageId", messageId))
+    .take(REACTIONS_READ);
+  const groups = new Map<
+    string,
+    { emoji: string; count: number; mine: boolean; names: string[] }
+  >();
+  for (const row of rows) {
+    const member = await ctx.db.get("meetingMembers", row.memberId);
+    const group = groups.get(row.emoji) ?? { emoji: row.emoji, count: 0, mine: false, names: [] };
+    group.count += 1;
+    if (member?.userId === userId) group.mine = true;
+    if (member && group.names.length < REACTOR_NAMES) {
+      group.names.push((await getViewer(ctx, member.userId))?.name ?? "Someone");
+    }
+    groups.set(row.emoji, group);
+  }
+  return [...groups.values()];
+};
+
 const describeMessage = async (ctx: QueryCtx, message: Doc<"messages">, userId: Id<"users">) => {
   const author = await ctx.db.get("meetingMembers", message.meetingMemberId);
   const user = author && (await getViewer(ctx, author.userId));
   return {
+    reactions: await reactionsOf(ctx, message._id, userId),
     _id: message._id,
     _creationTime: message._creationTime,
     body: message.body,
@@ -439,6 +472,39 @@ export const listSessionMessages = async (
     ...result,
     page: await Promise.all(result.page.map((m) => describeMessage(ctx, m, userId))),
   };
+};
+
+export const toggleReaction = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  messageId: Id<"messages">,
+  emoji: (typeof zMessageReaction._output)["emoji"],
+) => {
+  const message = await ctx.db.get("messages", messageId);
+  if (!message) throw new ConvexError("This message was deleted");
+  const { member } = await requireMeetingMember(ctx, message.meetingId, userId);
+  if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
+  const mine = await ctx.db
+    .query("messageReactions")
+    .withIndex("by_message_and_member", (q) =>
+      q.eq("messageId", messageId).eq("memberId", member._id),
+    )
+    .take(REACTIONS_READ);
+  const existing = mine.find((row) => row.emoji === emoji);
+  if (existing) {
+    await ctx.db.delete("messageReactions", existing._id);
+    return false;
+  }
+  await ctx.db.insert(
+    "messageReactions",
+    parseOrThrow(zMessageReaction, {
+      messageId,
+      meetingId: message.meetingId,
+      memberId: member._id,
+      emoji,
+    }),
+  );
+  return true;
 };
 
 export const sendMessage = (
