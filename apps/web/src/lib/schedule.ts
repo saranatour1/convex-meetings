@@ -1,6 +1,9 @@
+import { DateTime, IANAZone } from "luxon";
+
 export type Day = string;
 export type Interval = { start: number; end: number };
 export type Share = "calendar" | "hours" | "none";
+export type WorkHours = { weekday: number; start: number; end: number };
 
 export type Person = {
   id: string;
@@ -9,10 +12,10 @@ export type Person = {
   city: string;
   timeZone: string;
   zoneConflict?: { timeZone: string; city: string };
-  workStart: number;
-  workEnd: number;
+  hours: WorkHours[];
   share: Share;
   busy: Interval[];
+  verified?: boolean;
   optional?: boolean;
 };
 
@@ -32,110 +35,58 @@ export type ClockShift = {
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
 const STRETCH_LIMIT = 90 * MINUTE;
+const LOCALE = "en-US";
 
-const formatters = new Map<string, Intl.DateTimeFormat>();
+const at = (ms: number, timeZone: string) =>
+  DateTime.fromMillis(ms, { zone: timeZone, locale: LOCALE });
 
-function formatter(timeZone: string, options: Intl.DateTimeFormatOptions, locale = "en-US") {
-  const key = `${locale}|${timeZone}|${JSON.stringify(options)}`;
-  let f = formatters.get(key);
-  if (!f) {
-    f = new Intl.DateTimeFormat(locale, { ...options, timeZone });
-    formatters.set(key, f);
-  }
-  return f;
-}
+const calendarDay = (day: Day, timeZone = "utc") =>
+  DateTime.fromISO(day, { zone: timeZone, locale: LOCALE });
 
-function wallClock(ms: number, timeZone: string) {
-  const parts = formatter(timeZone, {
-    hourCycle: "h23",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-  }).formatToParts(ms);
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((p) => p.type === type)?.value);
-  return {
-    year: get("year"),
-    month: get("month"),
-    day: get("day"),
-    hour: get("hour"),
-    minute: get("minute"),
-    second: get("second"),
-  };
-}
+export const isoWeekday = (day: Day) => calendarDay(day).weekday;
 
-export function wallMinutes(ms: number, timeZone: string): number {
-  const w = wallClock(ms, timeZone);
-  return w.hour * 60 + w.minute;
-}
+export const wallMinutes = (ms: number, timeZone: string) => {
+  const time = at(ms, timeZone);
+  return time.hour * 60 + time.minute;
+};
 
-export function offsetMinutes(ms: number, timeZone: string): number {
-  const w = wallClock(ms, timeZone);
-  const asUtc = Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second);
-  return Math.round((asUtc - ms) / MINUTE);
-}
+export const offsetMinutes = (ms: number, timeZone: string) => at(ms, timeZone).offset;
 
-export function wallToUtc(day: Day, minutes: number, timeZone: string): number {
-  const [y, m, d] = day.split("-").map(Number);
-  const guess = Date.UTC(y, m - 1, d, 0, minutes);
-  const first = guess - offsetMinutes(guess, timeZone) * MINUTE;
-  return guess - offsetMinutes(first, timeZone) * MINUTE;
-}
+export const wallToUtc = (day: Day, minutes: number, timeZone: string) =>
+  calendarDay(day, timeZone)
+    .plus({ days: Math.floor(minutes / 1440) })
+    .set({ hour: Math.floor((minutes % 1440) / 60), minute: minutes % 60 })
+    .toMillis();
 
-export function dayOf(ms: number, timeZone: string): Day {
-  const w = wallClock(ms, timeZone);
-  return `${w.year}-${String(w.month).padStart(2, "0")}-${String(w.day).padStart(2, "0")}`;
-}
+export const dayOf = (ms: number, timeZone: string): Day => at(ms, timeZone).toISODate() ?? "";
 
-export function addDays(day: Day, n: number): Day {
-  const [y, m, d] = day.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-}
+export const addDays = (day: Day, n: number): Day =>
+  calendarDay(day).plus({ days: n }).toISODate() ?? day;
 
-export function isWeekend(day: Day): boolean {
-  const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
-  return weekday === 0 || weekday === 6;
-}
+export const isWeekend = (day: Day) => isoWeekday(day) >= 6;
 
-export function nextWorkday(day: Day): Day {
-  return isWeekend(day) ? nextWorkday(addDays(day, 1)) : day;
-}
+export const nextWorkday = (day: Day): Day => (isWeekend(day) ? nextWorkday(addDays(day, 1)) : day);
 
-export function isTimeZone(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
-}
+export const isTimeZone = (value: unknown): value is string =>
+  typeof value === "string" && IANAZone.isValidZone(value);
 
-export function parseZones(value: unknown): string[] | undefined {
+export const parseZones = (value: unknown) => {
   const zones = (Array.isArray(value) ? value : [value]).filter(isTimeZone);
   return zones.length ? [...new Set(zones)] : undefined;
-}
+};
 
-export function mondayOf(day: Day): Day {
-  return addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
-}
+export const mondayOf = (day: Day): Day => calendarDay(day).startOf("week").toISODate() ?? day;
 
-export const formatTime = (ms: number, timeZone: string) =>
-  formatter(timeZone, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }, "en-GB").format(ms);
+export const formatTime = (ms: number, timeZone: string) => at(ms, timeZone).toFormat("HH:mm");
 
-export const formatWeekday = (ms: number, timeZone: string) =>
-  formatter(timeZone, { weekday: "short" }).format(ms);
+export const formatWeekday = (ms: number, timeZone: string) => at(ms, timeZone).toFormat("ccc");
 
-export const formatDate = (ms: number, timeZone: string) =>
-  formatter(timeZone, { weekday: "short", month: "short", day: "numeric" }).format(ms);
+export const formatDate = (ms: number, timeZone: string) => at(ms, timeZone).toFormat("ccc, LLL d");
 
 export const formatLongDate = (ms: number, timeZone: string) =>
-  formatter(timeZone, { month: "short", day: "numeric", year: "numeric" }).format(ms);
+  at(ms, timeZone).toFormat("LLL d, yyyy");
 
-export function nextClockChange(after: number, timeZone: string, days = 400): number | null {
+export const nextClockChange = (after: number, timeZone: string, days = 400) => {
   const offset = offsetMinutes(after, timeZone);
   const start = dayOf(after, timeZone);
   for (let i = 1; i <= days; i++) {
@@ -143,45 +94,47 @@ export function nextClockChange(after: number, timeZone: string, days = 400): nu
     if (offsetMinutes(noon, timeZone) !== offset) return noon;
   }
   return null;
-}
+};
 
-export function formatOffset(ms: number, timeZone: string): string {
+export const formatOffset = (ms: number, timeZone: string) => {
   const m = offsetMinutes(ms, timeZone);
   const h = Math.floor(Math.abs(m) / 60);
   const r = Math.abs(m) % 60;
   return `UTC${m < 0 ? "−" : "+"}${h}${r ? `:${String(r).padStart(2, "0")}` : ""}`;
-}
+};
 
-export function formatDuration(ms: number): string {
+export const formatDuration = (ms: number) => {
   const total = Math.round(ms / MINUTE);
   const h = Math.floor(total / 60);
   const m = total % 60;
   return [h ? `${h} h` : "", m ? `${m} min` : ""].filter(Boolean).join(" ");
-}
+};
 
 export const cityOf = (timeZone: string) =>
   (timeZone.split("/").pop() ?? timeZone).replaceAll("_", " ");
 
-export function workingIntervals(p: Person, from: number, to: number): Interval[] {
+export const workingIntervals = (p: Person, from: number, to: number) => {
   const first = addDays(dayOf(from, p.timeZone), -1);
   const out: Interval[] = [];
   for (let i = 0; i < 3; i++) {
     const day = addDays(first, i);
-    if (isWeekend(day)) continue;
-    const iv = {
-      start: wallToUtc(day, p.workStart, p.timeZone),
-      end: wallToUtc(day, p.workEnd, p.timeZone),
-    };
-    if (iv.end > from && iv.start < to) out.push(iv);
+    const weekday = isoWeekday(day);
+    for (const h of p.hours) {
+      if (h.weekday !== weekday) continue;
+      const iv = {
+        start: wallToUtc(day, h.start, p.timeZone),
+        end: wallToUtc(day, h.end, p.timeZone),
+      };
+      if (iv.end > from && iv.start < to) out.push(iv);
+    }
   }
   return out;
-}
+};
 
-export function nextMidnight(p: Person, after: number): number {
-  return wallToUtc(addDays(dayOf(after, p.timeZone), 1), 0, p.timeZone);
-}
+export const nextMidnight = (p: Person, after: number) =>
+  wallToUtc(addDays(dayOf(after, p.timeZone), 1), 0, p.timeZone);
 
-export function statusAt(p: Person, start: number, end: number): Status {
+export const statusAt = (p: Person, start: number, end: number): Status => {
   const hours = workingIntervals(p, start - 2 * HOUR, end + 2 * HOUR);
   const inHours = hours.some((h) => start >= h.start && end <= h.end);
   const busy = p.share === "calendar" && p.busy.some((b) => start < b.end && end > b.start);
@@ -202,28 +155,31 @@ export function statusAt(p: Person, start: number, end: number): Status {
     return { kind: "stretch", label: `${formatDuration(Math.min(...late))} after their day ends` };
   }
 
-  if (isWeekend(dayOf(start, p.timeZone))) return { kind: "out", label: "Weekend" };
-  const hour = wallClock(start, p.timeZone).hour;
+  const day = dayOf(start, p.timeZone);
+  if (!p.hours.some((h) => h.weekday === isoWeekday(day))) {
+    return { kind: "out", label: isWeekend(day) ? "Weekend" : "Day off" };
+  }
+  const hour = at(start, p.timeZone).hour;
   if (hour >= 5 && hour < 9) return { kind: "out", label: "Early morning" };
   if (hour >= 17 && hour < 22) return { kind: "out", label: "Evening" };
   if (hour >= 22 || hour < 5) return { kind: "out", label: "Night" };
   return { kind: "out", label: "Outside working hours" };
-}
+};
 
-function stretchMinutes(p: Person, start: number, end: number): number {
+const stretchMinutes = (p: Person, start: number, end: number) => {
   if (statusAt(p, start, end).kind === "free") return 0;
   const hours = workingIntervals(p, start - 12 * HOUR, end + 12 * HOUR);
   const gaps = hours.map((h) => Math.max(0, h.start - start, end - h.end) / MINUTE);
   return Math.min(180, ...gaps);
-}
+};
 
-export function availability(
+export const availability = (
   everyone: Person[],
   day: Day,
   timeZone: string,
   minutes: number,
   window: [number, number] = [7, 19],
-): Plan {
+): Plan => {
   const from = wallToUtc(day, window[0] * 60, timeZone);
   const to = wallToUtc(day, window[1] * 60, timeZone);
   const length = minutes * MINUTE;
@@ -239,7 +195,7 @@ export function availability(
     (a, b) => b.free - a.free || a.stretch - b.stretch || a.start - b.start,
   );
   return { from, to, slots, best };
-}
+};
 
 export const snapTo = (ms: number, minutes: number) =>
   Math.round(ms / (minutes * MINUTE)) * minutes * MINUTE;
@@ -253,59 +209,56 @@ export type RepeatRule = {
   until?: { year: number; month: number; day: number };
 };
 
-const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-const dayParts = (day: Day) => day.split("-").map(Number) as [number, number, number];
-const weekdayOf = (day: Day) => new Date(`${day}T00:00:00Z`).getUTCDay();
-const daysInMonth = (year: number, month: number) =>
-  new Date(Date.UTC(year, month, 0)).getUTCDate();
+const WEEKDAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+const weekdayCode = (day: Day) => WEEKDAY_CODES[isoWeekday(day) - 1];
 
-function monthlyMatch(rule: RepeatRule, day: Day, firstDay: number): boolean {
-  const [y, m, d] = dayParts(day);
+const monthlyMatch = (rule: RepeatRule, day: DateTime, firstDay: number) => {
   const ordinals = rule.byDay?.filter((b) => b.ordinal !== undefined) ?? [];
   if (ordinals.length) {
-    const fromEnd = -Math.ceil((daysInMonth(y, m) - d + 1) / 7);
+    const fromEnd = -Math.ceil(((day.daysInMonth ?? 31) - day.day + 1) / 7);
     return ordinals.some(
       (b) =>
-        WEEKDAY_CODES.indexOf(b.weekday) === weekdayOf(day) &&
-        (b.ordinal === Math.ceil(d / 7) || b.ordinal === fromEnd),
+        b.weekday === WEEKDAY_CODES[day.weekday - 1] &&
+        (b.ordinal === Math.ceil(day.day / 7) || b.ordinal === fromEnd),
     );
   }
-  return (rule.byMonthDay ?? [firstDay]).includes(d);
-}
+  return (rule.byMonthDay ?? [firstDay]).includes(day.day);
+};
 
-export function repeatDays(first: Day, rule: RepeatRule, horizonDays = 366): Day[] {
+export const repeatDays = (first: Day, rule: RepeatRule, horizonDays = 366) => {
   const interval = rule.interval ?? 1;
-  const [y0, m0, d0] = dayParts(first);
-  const sinceMonday = (weekdayOf(first) + 6) % 7;
+  const start = calendarDay(first);
+  const sinceMonday = start.weekday - 1;
   const weekdays = rule.byDay?.filter((b) => b.ordinal === undefined).map((b) => b.weekday);
   const onWeekday = (day: Day, fallback: boolean) =>
-    weekdays?.length ? weekdays.includes(WEEKDAY_CODES[weekdayOf(day)]) : fallback;
-  const until = rule.until
-    ? `${rule.until.year}-${String(rule.until.month).padStart(2, "0")}-${String(rule.until.day).padStart(2, "0")}`
-    : null;
+    weekdays?.length ? weekdays.includes(weekdayCode(day)) : fallback;
+  const until = rule.until ? DateTime.fromObject(rule.until, { zone: "utc" }).toISODate() : null;
 
   const days: Day[] = [];
   for (let i = 0; i < horizonDays; i++) {
-    const day = addDays(first, i);
+    const date = start.plus({ days: i });
+    const day = date.toISODate() ?? first;
     if (until && day > until) break;
-    const [y, m, d] = dayParts(day);
+    const months = (date.year - start.year) * 12 + (date.month - start.month);
     const matches =
       rule.freq === "DAILY"
         ? i % interval === 0 && onWeekday(day, true)
         : rule.freq === "WEEKLY"
           ? Math.floor((i + sinceMonday) / 7) % interval === 0 &&
-            onWeekday(day, weekdayOf(day) === weekdayOf(first))
+            onWeekday(day, date.weekday === start.weekday)
           : rule.freq === "MONTHLY"
-            ? ((y - y0) * 12 + (m - m0)) % interval === 0 && monthlyMatch(rule, day, d0)
-            : (y - y0) % interval === 0 && m === m0 && d === d0;
+            ? months % interval === 0 && monthlyMatch(rule, date, start.day)
+            : (date.year - start.year) % interval === 0 &&
+              date.month === start.month &&
+              date.day === start.day;
     if (!matches) continue;
     days.push(day);
     if (rule.count && days.length >= rule.count) break;
   }
   return days;
-}
+};
 
-export function clockShifts(people: Person[], starts: number[]): ClockShift[] {
+export const clockShifts = (people: Person[], starts: number[]) => {
   const shifts: ClockShift[] = [];
   for (let k = 1; k < starts.length; k++) {
     const changes = people.flatMap((person) => {
@@ -316,4 +269,4 @@ export function clockShifts(people: Person[], starts: number[]): ClockShift[] {
     if (changes.length) shifts.push({ start: starts[k], changes });
   }
   return shifts;
-}
+};

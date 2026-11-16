@@ -52,7 +52,7 @@ const seeds: Seed[] = [
   { id: "focus", title: "Focus time", weekday: 4, at: 9, minutes: 120, color: "blue", busy: false },
 ];
 
-export function sampleMeetings(timeZone: string): CalEvent[] {
+export const sampleMeetings = (timeZone: string): CalEvent[] => {
   const monday = mondayOf(dayOf(Date.now(), timeZone));
   return seeds.map(({ weekday, at, minutes, ...seed }) => {
     const start = wallToUtc(addDays(monday, weekday), at * 60, timeZone);
@@ -63,4 +63,4 @@ export function sampleMeetings(timeZone: string): CalEvent[] {
       timeZone,
     };
   });
-}
+};

@@ -53,13 +53,13 @@ type ScheduleFormProps = {
   initialTime?: Partial<MeetingTime>;
 };
 
-export function ScheduleForm({
+export const ScheduleForm = ({
   onInvite,
   onClose,
   display,
   onDisplayChange,
   initialTime,
-}: ScheduleFormProps) {
+}: ScheduleFormProps) => {
   const zone = display.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const form = useForm({
     defaultValues: {
@@ -314,4 +314,4 @@ export function ScheduleForm({
       </CardFooter>
     </Card>
   );
-}
+};

@@ -109,7 +109,7 @@ type FindATimeProps = {
   onDisplayChange: (display: ScheduleDisplay) => void;
 };
 
-export function FindATime({
+export const FindATime = ({
   organizer,
   people,
   teams,
@@ -121,7 +121,7 @@ export function FindATime({
   onTimeChange,
   display,
   onDisplayChange,
-}: FindATimeProps) {
+}: FindATimeProps) => {
   const slotRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const trackRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
@@ -788,9 +788,9 @@ export function FindATime({
       )}
     </section>
   );
-}
+};
 
-function ZoneCheck({ person, at, zone }: { person: Person; at: number; zone: string }) {
+const ZoneCheck = ({ person, at, zone }: { person: Person; at: number; zone: string }) => {
   const conflict = person.zoneConflict;
   if (!conflict) return null;
   const name = firstName(person);
@@ -816,4 +816,4 @@ function ZoneCheck({ person, at, zone }: { person: Person; at: number; zone: str
       </PopoverPopup>
     </Popover>
   );
-}
+};

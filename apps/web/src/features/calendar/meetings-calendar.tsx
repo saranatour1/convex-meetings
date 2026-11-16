@@ -15,7 +15,7 @@ type MeetingsCalendarProps = {
   onPlan: (time: MeetingTime) => void;
 };
 
-export function MeetingsCalendar({ zone, zones, onZonesChange, onPlan }: MeetingsCalendarProps) {
+export const MeetingsCalendar = ({ zone, zones, onZonesChange, onPlan }: MeetingsCalendarProps) => {
   const events = useMemo(() => sampleMeetings(zone), [zone]);
 
   return (
@@ -74,4 +74,4 @@ export function MeetingsCalendar({ zone, zones, onZonesChange, onPlan }: Meeting
       </KloqToolbar>
     </Kloq>
   );
-}
+};

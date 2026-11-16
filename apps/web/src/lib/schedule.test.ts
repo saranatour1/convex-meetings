@@ -16,14 +16,13 @@ import {
   type RepeatRule,
 } from "./schedule.ts";
 
-const person = (timeZone: string, workStart: number, workEnd: number): Person => ({
+const person = (timeZone: string, start: number, end: number): Person => ({
   id: timeZone,
   name: timeZone,
   initials: "",
   city: "",
   timeZone,
-  workStart,
-  workEnd,
+  hours: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, start, end })),
   share: "calendar",
   busy: [],
 });

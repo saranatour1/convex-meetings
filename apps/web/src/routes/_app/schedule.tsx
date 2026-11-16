@@ -8,19 +8,7 @@ type ScheduleSearch = ScheduleDisplay & { start?: number; minutes?: number };
 const positive = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 
-export const Route = createFileRoute("/_app/schedule")({
-  validateSearch: (search: Record<string, unknown>): ScheduleSearch => ({
-    view: search.view === "list" ? "list" : undefined,
-    zone: isTimeZone(search.zone) ? search.zone : undefined,
-    zones: parseZones(search.zones),
-    openTeam: typeof search.openTeam === "string" ? search.openTeam : undefined,
-    start: positive(search.start),
-    minutes: positive(search.minutes),
-  }),
-  component: SchedulePage,
-});
-
-function SchedulePage() {
+const SchedulePage = () => {
   const { view, zone, zones, openTeam, start, minutes } = Route.useSearch();
   const navigate = Route.useNavigate();
 
@@ -46,4 +34,16 @@ function SchedulePage() {
       />
     </main>
   );
-}
+};
+
+export const Route = createFileRoute("/_app/schedule")({
+  validateSearch: (search: Record<string, unknown>): ScheduleSearch => ({
+    view: search.view === "list" ? "list" : undefined,
+    zone: isTimeZone(search.zone) ? search.zone : undefined,
+    zones: parseZones(search.zones),
+    openTeam: typeof search.openTeam === "string" ? search.openTeam : undefined,
+    start: positive(search.start),
+    minutes: positive(search.minutes),
+  }),
+  component: SchedulePage,
+});

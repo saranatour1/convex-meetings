@@ -2,14 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MeetingsCalendar } from "#/features/calendar/meetings-calendar.tsx";
 import { parseZones } from "#/lib/schedule.ts";
 
-export const Route = createFileRoute("/_app/calendar")({
-  validateSearch: (search: Record<string, unknown>): { zones?: string[] } => ({
-    zones: parseZones(search.zones),
-  }),
-  component: CalendarPage,
-});
-
-function CalendarPage() {
+const CalendarPage = () => {
   const { zones } = Route.useSearch();
   const navigate = Route.useNavigate();
 
@@ -31,4 +24,11 @@ function CalendarPage() {
       />
     </main>
   );
-}
+};
+
+export const Route = createFileRoute("/_app/calendar")({
+  validateSearch: (search: Record<string, unknown>): { zones?: string[] } => ({
+    zones: parseZones(search.zones),
+  }),
+  component: CalendarPage,
+});

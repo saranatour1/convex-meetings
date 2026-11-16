@@ -34,7 +34,7 @@ type ZonePickerProps = {
   className?: string;
 };
 
-export function ZonePicker({ value, onChange, label, placeholder, className }: ZonePickerProps) {
+export const ZonePicker = ({ value, onChange, label, placeholder, className }: ZonePickerProps) => {
   const zones = allZones();
   const selected = zones.find((z) => z.id === value) ?? null;
   return (
@@ -64,4 +64,4 @@ export function ZonePicker({ value, onChange, label, placeholder, className }: Z
       </ComboboxPopup>
     </Combobox>
   );
-}
+};
