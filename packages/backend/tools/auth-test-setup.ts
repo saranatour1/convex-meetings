@@ -5,6 +5,7 @@ import { register as registerEmail } from "@sarant/cloudflare-email-component/te
 import { convexTest } from "convex-test";
 import { vi } from "vite-plus/test";
 import { components } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import schema from "../convex/schema";
 
 const modules = import.meta.glob("/convex/**/*.ts");
@@ -47,3 +48,22 @@ export const signedInUser = async (name: string) => {
   const t = testBackend();
   return { t, ...(await signIn(t, name)) };
 };
+
+export const addOrgMember = (
+  t: TestBackend,
+  orgId: Id<"organizations">,
+  userId: Id<"users">,
+  roleName?: string,
+) =>
+  t.run(async (ctx) => {
+    const memberId = await ctx.db.insert("members", { orgId, userId });
+    if (roleName) {
+      const role = await ctx.db
+        .query("roles")
+        .withIndex("by_org_and_name", (q) => q.eq("orgId", orgId).eq("name", roleName))
+        .unique();
+      if (!role) throw new Error(`No role named ${roleName}`);
+      await ctx.db.insert("memberRoles", { orgId, memberId, roleId: role._id });
+    }
+    return memberId;
+  });

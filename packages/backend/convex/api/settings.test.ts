@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { signIn, testBackend } from "../../tools/auth-test-setup";
+import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api } from "../_generated/api";
 import { DEFAULT_SETTINGS } from "../models/settings";
 
@@ -32,15 +32,7 @@ const setup = async () => {
   const owner = await signIn(t, "Owner");
   const member = await signIn(t, "Member");
   const orgId = await owner.asUser.mutation(api.api.orgs.create, { name: "Acme" });
-  const roles = await owner.asUser.query(api.api.orgs.roles, {
-    orgId,
-    paginationOpts: { numItems: 10, cursor: null },
-  });
-  const memberRole = roles.page.find((role) => role.name === "Member")!;
-  await t.run(async (ctx) => {
-    const memberId = await ctx.db.insert("members", { orgId, userId: member.userId });
-    await ctx.db.insert("memberRoles", { orgId, memberId, roleId: memberRole._id });
-  });
+  await addOrgMember(t, orgId, member.userId, "Member");
   return { t, owner, member, orgId };
 };
 

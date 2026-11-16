@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { signIn, testBackend } from "../../tools/auth-test-setup";
+import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
@@ -34,13 +34,7 @@ const setup = async (extra: { protected?: boolean } = {}) => {
   const host = await signIn(t, "Host");
   const guest = await signIn(t, "Guest");
   const orgId = await host.asUser.mutation(api.api.orgs.create, { name: "Acme" });
-  const roles = await host.asUser.query(api.api.orgs.roles, { orgId, paginationOpts: page });
-  const memberRole = roles.page.find((r) => r.name === "Member")!._id;
-  const orgMemberId = await t.run(async (ctx) => {
-    const memberId = await ctx.db.insert("members", { orgId, userId: guest.userId });
-    await ctx.db.insert("memberRoles", { orgId, memberId, roleId: memberRole });
-    return memberId;
-  });
+  const orgMemberId = await addOrgMember(t, orgId, guest.userId, "Member");
   const { meetingId } = await host.asUser.mutation(api.api.meetings.create, {
     orgId,
     title: "Planning",

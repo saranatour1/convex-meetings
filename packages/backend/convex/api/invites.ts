@@ -8,6 +8,7 @@ import {
   zPaginationOpts,
 } from "../lib/functions";
 import { enforceRateLimit } from "../lib/rateLimits";
+import { zSecret } from "../lib/validate";
 import { audit } from "../models/audit";
 import { activateOrg, actorOf, requireGrantableRole } from "../models/orgs";
 import {
@@ -18,8 +19,6 @@ import {
   resendInvite,
   revokeInvite,
 } from "../models/invites";
-
-const zSecret = z.string().regex(/^[0-9a-f]{64}$/);
 
 export const create = orgMutation({
   args: {

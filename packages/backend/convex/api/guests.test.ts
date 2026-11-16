@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { signIn, testBackend } from "../../tools/auth-test-setup";
+import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api } from "../_generated/api";
 
 const page = { numItems: 20, cursor: null };
@@ -31,14 +31,8 @@ const setup = async () => {
   const colleague = await signIn(t, "Colleague");
   const outsider = await signIn(t, "Outsider");
   const orgId = await host.asUser.mutation(api.api.orgs.create, { name: "Acme" });
-  const roles = await host.asUser.query(api.api.orgs.roles, { orgId, paginationOpts: page });
+  await addOrgMember(t, orgId, colleague.userId, "Member");
   await t.run(async (ctx) => {
-    const memberId = await ctx.db.insert("members", { orgId, userId: colleague.userId });
-    await ctx.db.insert("memberRoles", {
-      orgId,
-      memberId,
-      roleId: roles.page.find((r) => r.name === "Member")!._id,
-    });
     await ctx.db.patch("users", colleague.userId, { email: "col@acme.com", isVerified: true });
   });
   const create = (title: string) =>

@@ -31,6 +31,7 @@ import type * as internal_migrations from "../internal/migrations.js";
 import type * as internal_realtime from "../internal/realtime.js";
 import type * as internal_users from "../internal/users.js";
 import type * as lib_functions from "../lib/functions.js";
+import type * as lib_html from "../lib/html.js";
 import type * as lib_presets from "../lib/presets.js";
 import type * as lib_r2 from "../lib/r2.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   "internal/realtime": typeof internal_realtime;
   "internal/users": typeof internal_users;
   "lib/functions": typeof lib_functions;
+  "lib/html": typeof lib_html;
   "lib/presets": typeof lib_presets;
   "lib/r2": typeof lib_r2;
   "lib/rateLimits": typeof lib_rateLimits;
