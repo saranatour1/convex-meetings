@@ -54,7 +54,7 @@ export const newSession = async (
 
 export const signIn = async (t: TestBackend, name: string, options: SessionOptions = {}) => {
   const userId = await t.run((ctx) =>
-    ctx.db.insert("users", { name, method: "usernamePassword", isVerified: false }),
+    ctx.db.insert("users", { name, method: "google", isVerified: false }),
   );
   return { userId, asUser: await newSession(t, userId, options) };
 };

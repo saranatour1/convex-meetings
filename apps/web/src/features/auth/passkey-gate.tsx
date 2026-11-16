@@ -33,6 +33,29 @@ const copy = {
   },
 };
 
+const OAuthRequiredCard = () => {
+  const { signOut } = useAuthActions();
+
+  return (
+    <div className="grid min-h-dvh place-items-center bg-sidebar p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Sign in with Google or GitHub</CardTitle>
+          <CardDescription>
+            This account was made with a username, which Meetings no longer supports. Sign out, then
+            continue with Google or GitHub.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button className="w-full" onClick={() => void signOut()}>
+            Sign out
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
 const PasskeyStepCard = ({ step }: { step: "enroll" | "verify" }) => {
   const { signOut } = useAuthActions();
   const start = useMutation(api.passkeys.start);
@@ -101,6 +124,7 @@ const PasskeyStepCard = ({ step }: { step: "enroll" | "verify" }) => {
 export const PasskeyGate = ({ children }: { children: ReactNode }) => {
   const step = useQuery(api.passkeys.step);
   if (step === undefined) return <LoadingScreen />;
+  if (step === "oauth") return <OAuthRequiredCard />;
   if (step === "enroll" || step === "verify") return <PasskeyStepCard key={step} step={step} />;
   return children;
 };
