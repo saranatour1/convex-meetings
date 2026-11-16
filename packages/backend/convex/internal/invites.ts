@@ -54,6 +54,15 @@ export const send = internalAction({
       },
       seal: (text) => text,
     });
+    console.log("invite email", {
+      inviteId,
+      messageId: result.messageId,
+      error: result.error,
+      delivered: result.delivered?.length ?? 0,
+      queued: result.queued?.length ?? 0,
+      bounced: result.permanentBounces?.length ?? 0,
+      suppressed: result.suppressed?.length ?? 0,
+    });
     await ctx.runMutation(internal.internal.invites.recordSend, {
       inviteId,
       emailError: result.error,
