@@ -3,26 +3,7 @@ import { vGoogleProfile } from "@convex-dev/auth/methods/google/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
-import {
-  insertUser,
-  insertUsernameUser,
-  isStorableAvatar,
-  replaceImage as replaceUserImage,
-} from "../models/users";
-
-const vUsernameProfile = v.object({});
-
-export const createPasskeyUser = internalMutation({
-  args: { method: v.object({ name: v.literal("usernamePasskey"), profile: vUsernameProfile }) },
-  returns: v.id("users"),
-  handler: (ctx) => insertUsernameUser(ctx, "usernamePasskey"),
-});
-
-export const createPasswordUser = internalMutation({
-  args: { method: v.object({ name: v.literal("usernamePassword"), profile: vUsernameProfile }) },
-  returns: v.id("users"),
-  handler: (ctx) => insertUsernameUser(ctx, "usernamePassword"),
-});
+import { insertUser, isStorableAvatar, replaceImage as replaceUserImage } from "../models/users";
 
 export const createGoogleUser = internalMutation({
   args: { method: v.object({ name: v.literal("google"), profile: vGoogleProfile }) },
