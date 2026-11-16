@@ -221,3 +221,21 @@ test("people see and end their own sessions; only owners sign others out", async
   await expect(bea.asUser.query(api.api.users.sessions, {})).rejects.toThrow("Unauthenticated");
   expect(await ada.asUser.mutation(api.api.users.signOutEverywhere, {})).toBe(1);
 });
+
+test("org names can't repeat among your own orgs, and the active org follows you", async () => {
+  const { owner, ada, orgId } = await setup();
+  await expect(owner.asUser.mutation(api.api.orgs.create, { name: " acme " })).rejects.toThrow(
+    "already in an organization called Acme",
+  );
+  const second = await owner.asUser.mutation(api.api.orgs.create, { name: "Beta" });
+  expect((await owner.asUser.query(api.api.settings.getMine, {})).activeOrgId).toBe(second);
+  await expect(
+    owner.asUser.mutation(api.api.orgs.rename, { orgId: second, name: "ACME" }),
+  ).rejects.toThrow("already in an organization called Acme");
+  await owner.asUser.mutation(api.api.orgs.rename, { orgId, name: "Acme Inc" });
+  await owner.asUser.mutation(api.api.orgs.setActive, { orgId });
+  expect((await owner.asUser.query(api.api.settings.getMine, {})).activeOrgId).toBe(orgId);
+  await expect(ada.asUser.mutation(api.api.orgs.setActive, { orgId: second })).rejects.toThrow(
+    "Not a member",
+  );
+});

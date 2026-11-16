@@ -211,8 +211,8 @@ export const MeetingPage = ({
             {meeting.sessions.map((session) => (
               <section key={session._id} className="flex flex-col gap-1">
                 <Link
-                  to="/meetings/$code/recaps/$sessionId"
-                  params={{ code: meeting.code, sessionId: session._id }}
+                  to="/meetings/$code/recaps/$number"
+                  params={{ code: meeting.code, number: session.number }}
                   className="font-medium text-sm tabular-nums underline-offset-4 hover:underline"
                 >
                   {formatDate(session.startedAt, zone)} · {formatTime(session.startedAt, zone)}

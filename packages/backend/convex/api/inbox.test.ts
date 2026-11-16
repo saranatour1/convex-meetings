@@ -70,7 +70,7 @@ test("invites, replies and cancellations reach the right inbox", async () => {
 });
 
 test("a finished call becomes a recap with attendees, summary, transcript and recording", async () => {
-  const { t, host, guest, meetingId } = await setup();
+  const { t, host, guest, meetingId, code } = await setup();
   await guest.asUser.action(api.api.meetings.join, { meetingId });
   const guestMemberId = await t.run(async (ctx) => {
     const member = await ctx.db
@@ -104,9 +104,11 @@ test("a finished call becomes a recap with attendees, summary, transcript and re
     recordingKey: "recordings/rec.mp4",
   });
 
-  const sessionId = (await host.asUser.query(api.api.meetings.mine, { paginationOpts: page }))
-    .page[0]!.lastSession!._id;
-  const recap = await host.asUser.query(api.api.meetings.recap, { sessionId });
+  const lastSession = (await host.asUser.query(api.api.meetings.mine, { paginationOpts: page }))
+    .page[0]!.lastSession!;
+  expect(lastSession.number).toBe(1);
+  const sessionId = lastSession._id;
+  const recap = (await host.asUser.query(api.api.meetings.recap, { code, number: 1 }))!;
   expect(recap).toMatchObject({
     attendees: ["Guest"],
     summary: "We agreed on the plan.",
@@ -117,7 +119,7 @@ test("a finished call becomes a recap with attendees, summary, transcript and re
   const recapNotices = (
     await guest.asUser.query(api.api.inbox.list, { paginationOpts: page })
   ).page.filter((n) => n.kind === "recapReady");
-  expect(recapNotices).toHaveLength(1);
+  expect(recapNotices).toMatchObject([{ sessionNumber: 1 }]);
 
   expect(await host.asUser.query(api.api.meetings.recordingUrl, { sessionId })).toBe(
     "https://cf.example/rec.mp4",

@@ -7,10 +7,7 @@ const InvitePage = () => {
 
   return (
     <div className="grid min-h-dvh place-items-center bg-sidebar p-4">
-      <InviteCard
-        secret={secret}
-        onJoined={(orgId) => void navigate({ to: "/", search: { org: orgId } })}
-      />
+      <InviteCard secret={secret} onJoined={() => void navigate({ to: "/" })} />
     </div>
   );
 };

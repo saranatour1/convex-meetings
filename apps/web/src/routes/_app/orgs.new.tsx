@@ -6,11 +6,11 @@ const NewOrgPage = () => {
   const navigate = Route.useNavigate();
   return (
     <main className="flex flex-col items-center gap-4 p-4 lg:p-6">
-      <JoinableOrgs onJoined={(orgId) => void navigate({ to: "/", search: { org: orgId } })} />
+      <JoinableOrgs onJoined={() => void navigate({ to: "/" })} />
       <CreateOrgForm
         title="New organization"
         description="Start a separate space with its own members and meetings."
-        onCreated={(orgId) => void navigate({ to: "/", search: { org: orgId } })}
+        onCreated={() => void navigate({ to: "/" })}
       />
     </main>
   );

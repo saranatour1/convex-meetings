@@ -33,9 +33,13 @@ export const listNotifications = async (
     .paginate(paginationOpts);
   const page = await Promise.all(
     result.page.map(async (n) => {
-      const actor = n.actorId ? await getViewer(ctx, n.actorId) : null;
+      const [actor, session] = await Promise.all([
+        n.actorId ? getViewer(ctx, n.actorId) : null,
+        n.sessionId ? ctx.db.get("meetingSessions", n.sessionId) : null,
+      ]);
       return {
         ...n,
+        sessionNumber: session?.number ?? null,
         actorName: actor?.name ?? null,
         actorImageUrl: actor?.imageUrl ?? null,
       };

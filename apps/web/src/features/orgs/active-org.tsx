@@ -1,5 +1,5 @@
 import { createContext, use, type ReactNode } from "react";
-import { usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api, type Id } from "@meetings/backend";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { CreateOrgForm } from "./create-org-form.tsx";
@@ -16,16 +16,30 @@ export const useActiveOrg = () => {
   return org;
 };
 
+export const useSwitchOrg = () =>
+  useMutation(api.orgs.setActive).withOptimisticUpdate((store, { orgId }) => {
+    const settings = store.getQuery(api.settings.getMine, {});
+    if (settings)
+      store.setQuery(
+        api.settings.getMine,
+        {},
+        {
+          ...settings,
+          activeOrgId: orgId as Id<"organizations">,
+        },
+      );
+  });
+
 type OrgGateProps = {
-  requested?: string;
   onCreated: (orgId: Id<"organizations">) => void;
   children: ReactNode;
 };
 
-export const OrgGate = ({ requested, onCreated, children }: OrgGateProps) => {
+export const OrgGate = ({ onCreated, children }: OrgGateProps) => {
   const { results, status } = usePaginatedQuery(api.orgs.listMine, {}, { initialNumItems: 50 });
-  if (status === "LoadingFirstPage") return <LoadingScreen />;
-  const active = results.find((org) => org._id === requested) ?? results[0];
+  const settings = useQuery(api.settings.getMine);
+  if (status === "LoadingFirstPage" || settings === undefined) return <LoadingScreen />;
+  const active = results.find((org) => org._id === settings.activeOrgId) ?? results[0];
   if (!active) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-sidebar p-4">

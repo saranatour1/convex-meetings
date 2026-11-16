@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router";
+import { toastManager } from "@meetings/ui/components/toast";
+import { describeError } from "#/lib/errors.ts";
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 import {
   Menu,
@@ -9,10 +11,11 @@ import {
 } from "@meetings/ui/components/menu";
 import { SidebarMenuButton } from "@meetings/ui/components/sidebar";
 import { getInitials } from "#/lib/initials.ts";
-import { useActiveOrg } from "./active-org.tsx";
+import { useActiveOrg, useSwitchOrg } from "./active-org.tsx";
 
 export const OrgSwitcher = () => {
   const { orgId, name, orgs } = useActiveOrg();
+  const switchOrg = useSwitchOrg();
 
   return (
     <Menu>
@@ -30,7 +33,11 @@ export const OrgSwitcher = () => {
         {orgs.map((org) => (
           <MenuItem
             key={org._id}
-            render={<Link to="." search={(prev) => ({ ...prev, org: org._id })} />}
+            onClick={() =>
+              void switchOrg({ orgId: org._id }).catch((error: unknown) =>
+                toastManager.add({ title: describeError(error), type: "error" }),
+              )
+            }
           >
             <span className="truncate">{org.name}</span>
             {org._id === orgId && <CheckIcon className="ms-auto" />}

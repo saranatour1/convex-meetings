@@ -1,5 +1,5 @@
 import { track } from "@databuddy/sdk";
-import { Navigate, Outlet, createFileRoute, retainSearchParams } from "@tanstack/react-router";
+import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
 import { AuthLoading, Authenticated, Unauthenticated, useMutation } from "convex/react";
 import { api } from "@meetings/backend";
 import { toastManager } from "@meetings/ui/components/toast";
@@ -12,7 +12,7 @@ import { OrgGate, useActiveOrg } from "#/features/orgs/active-org.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 
-type AppSearch = { org?: string; inviteFor?: string };
+type AppSearch = { inviteFor?: string };
 
 const Header = () => {
   const { orgId } = useActiveOrg();
@@ -37,7 +37,7 @@ const Header = () => {
 };
 
 const AppLayout = () => {
-  const { org, inviteFor } = Route.useSearch();
+  const { inviteFor } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   return (
@@ -49,10 +49,7 @@ const AppLayout = () => {
         <Navigate to="/sign-in" replace />
       </Unauthenticated>
       <Authenticated>
-        <OrgGate
-          requested={org}
-          onCreated={(orgId) => void navigate({ to: "/", search: { org: orgId } })}
-        >
+        <OrgGate onCreated={() => void navigate({ to: "/" })}>
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
@@ -76,9 +73,7 @@ const AppLayout = () => {
 
 export const Route = createFileRoute("/_app")({
   validateSearch: (search: Record<string, unknown>): AppSearch => ({
-    org: typeof search.org === "string" ? search.org : undefined,
     inviteFor: typeof search.inviteFor === "string" ? search.inviteFor : undefined,
   }),
-  search: { middlewares: [retainSearchParams(["org"])] },
   component: AppLayout,
 });

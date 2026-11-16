@@ -16,7 +16,7 @@ import {
   previewJoinLink,
   revokeJoinLink,
 } from "../models/joinLinks";
-import { actorOf, requireGrantableRole } from "../models/orgs";
+import { activateOrg, actorOf, requireGrantableRole } from "../models/orgs";
 
 const zSecret = z.string().regex(/^[0-9a-f]{64}$/);
 
@@ -70,6 +70,7 @@ export const accept = authedMutation({
   handler: async (ctx, { secret }) => {
     await enforceRateLimit(ctx, "accept", ctx.userId);
     const { orgId, joined } = await acceptJoinLink(ctx, ctx.userId, secret);
+    await activateOrg(ctx, ctx.userId, orgId);
     if (joined) await audit(ctx, orgId, ctx.userId, "memberJoined", { detail: "Invite link" });
     return orgId;
   },

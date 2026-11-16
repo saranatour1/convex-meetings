@@ -87,10 +87,10 @@ const Row = ({ notification }: { notification: Notification }) => {
     </>
   );
   const link =
-    notification.kind === "recapReady" && notification.meetingCode && notification.sessionId ? (
+    notification.kind === "recapReady" && notification.meetingCode && notification.sessionNumber ? (
       <Link
-        to="/meetings/$code/recaps/$sessionId"
-        params={{ code: notification.meetingCode, sessionId: notification.sessionId }}
+        to="/meetings/$code/recaps/$number"
+        params={{ code: notification.meetingCode, number: notification.sessionNumber }}
         onClick={markRead}
         className="flex min-w-0 flex-1 items-center gap-3"
       >

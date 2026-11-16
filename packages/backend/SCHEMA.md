@@ -25,6 +25,7 @@ erDiagram
     boolean defaultRecap
     boolean autoRecord
     enum invitesFrom
+    id activeOrgId FK "organizations, optional"
   }
   organizations {
     id _id PK
@@ -139,6 +140,7 @@ erDiagram
     id meetingId FK "meetings"
     id orgId FK "organizations, optional"
     string rtkSessionId
+    number number
     number startedAt
     number endedAt "optional"
     array attendeeIds
@@ -190,6 +192,7 @@ erDiagram
   }
   users }o--o| _storage : imageId
   userSettings }o--|| users : userId
+  userSettings }o--o| organizations : activeOrgId
   organizations }o--o| roles : joinRoleId
   members }o--|| organizations : orgId
   members }o--|| users : userId
@@ -270,6 +273,7 @@ erDiagram
 | meetingGuests | by_token | tokenId |
 | meetingGuests | by_meeting | meetingId |
 | meetingSessions | by_meeting | meetingId |
+| meetingSessions | by_meeting_and_number | meetingId, number |
 | meetingSessions | by_rtk_session | rtkSessionId |
 | meetingSessions | by_org_and_ended | orgId, endedAt |
 | messages | by_meeting | meetingId |

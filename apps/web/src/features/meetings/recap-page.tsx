@@ -4,6 +4,7 @@ import { usePaginatedQuery, useQuery } from "convex/react";
 import {
   ArrowLeftIcon,
   DownloadIcon,
+  FileTextIcon,
   PencilIcon,
   SearchIcon,
   SparklesIcon,
@@ -20,6 +21,7 @@ import {
   CardTitle,
 } from "@meetings/ui/components/card";
 import { Input } from "@meetings/ui/components/input";
+import { EmptyState } from "#/components/empty-state.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
@@ -199,14 +201,24 @@ const Recording = ({
 
 type RecapPageProps = {
   code: string;
-  sessionId: Id<"meetingSessions">;
+  number: number;
   search: string;
   onSearchChange: (search: string) => void;
 };
 
-export const RecapPage = ({ code, sessionId, search, onSearchChange }: RecapPageProps) => {
-  const recap = useQuery(api.meetings.recap, { sessionId });
+export const RecapPage = ({ code, number, search, onSearchChange }: RecapPageProps) => {
+  const recap = useQuery(api.meetings.recap, { code, number });
   if (recap === undefined) return <LoadingScreen />;
+  if (recap === null) {
+    return (
+      <EmptyState
+        icon={<FileTextIcon />}
+        title="No recap here"
+        description="This call doesn't exist, or you weren't invited to the meeting."
+      />
+    );
+  }
+  const { sessionId } = recap;
   const zone = browserTimeZone();
   const length = recap.endedAt ? recap.endedAt - recap.startedAt : null;
 
