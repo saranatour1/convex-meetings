@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Fragment, useRef } from "react";
 import type { FunctionReturnType } from "convex/server";
 import { useMutation, usePaginatedQuery } from "convex/react";
@@ -213,7 +214,10 @@ export const MeetingChat = ({ meetingId, since, className }: MeetingChatProps) =
           const body = getComposerText(value).trim();
           if (!body) return;
           void send({ meetingId, body, ...pass })
-            .then(() => composer.current?.reset())
+            .then(() => {
+              track("chat_message_sent", { guest: Boolean(pass.guest) });
+              composer.current?.reset();
+            })
             .catch(showError);
         }}
       >

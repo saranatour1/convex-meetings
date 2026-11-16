@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useSignInWithUsernamePasskey } from "@convex-dev/auth/methods/username-passkey/react";
 import { KeyRoundIcon } from "lucide-react";
@@ -15,7 +16,9 @@ export const PasskeyForm = () => {
     validators: {
       onSubmitAsync: async ({ value }) => {
         const result = await passkey.signIn(value);
-        return result.status === "error" ? describeAuthError(result.userError.error) : undefined;
+        if (result.status === "error") return describeAuthError(result.userError.error);
+        track("signed_in", { method: "passkey" });
+        return undefined;
       },
     },
   });

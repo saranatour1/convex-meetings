@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { AuthLoading, Authenticated, Unauthenticated, useMutation, useQuery } from "convex/react";
@@ -30,6 +31,7 @@ const AcceptButton = ({ secret, onJoined }: InviteCardProps) => {
       onSubmitAsync: async () => {
         try {
           const orgId = await accept({ secret });
+          track("organization_joined", { via: "invite" });
           await reportTimeZone({ timeZone: browserTimeZone() });
           onJoined(orgId);
           return undefined;

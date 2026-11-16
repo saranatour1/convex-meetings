@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { PhoneOffIcon, RadioIcon } from "lucide-react";
@@ -51,9 +52,11 @@ export const LiveCalls = ({ canEnd }: { canEnd: boolean }) => {
                   size="sm"
                   variant="destructive-outline"
                   onClick={() =>
-                    void end({ meetingId: call.meetingId }).catch((error: unknown) =>
-                      toastManager.add({ title: describeError(error), type: "error" }),
-                    )
+                    void end({ meetingId: call.meetingId })
+                      .then(() => track("call_ended"))
+                      .catch((error: unknown) =>
+                        toastManager.add({ title: describeError(error), type: "error" }),
+                      )
                   }
                 >
                   <PhoneOffIcon />

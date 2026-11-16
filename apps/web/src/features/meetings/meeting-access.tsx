@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
 import { CopyIcon, DoorOpenIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
@@ -162,6 +163,7 @@ export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) =>
         if (emails.length > 30) return "Invite up to 30 people at a time";
         try {
           const { added, guests, skipped } = await invite({ meetingId, emails });
+          track("meeting_guests_invited", { members: added.length, guests: guests.length });
           formApi.reset();
           const parts = [
             added.length && `${added.length} from your organization`,
@@ -247,7 +249,13 @@ export const MeetingDoor = ({ code }: { code: string }) => {
       }
       action={
         door.canEnter && (
-          <Button onClick={() => void enter({ code }).catch(showError)}>
+          <Button
+            onClick={() =>
+              void enter({ code })
+                .then(() => track("meeting_entered"))
+                .catch(showError)
+            }
+          >
             <DoorOpenIcon />
             Join this meeting
           </Button>
