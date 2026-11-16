@@ -158,6 +158,13 @@ erDiagram
     id meetingMemberId FK "meetingMembers"
     string body
   }
+  messageReactions {
+    id _id PK
+    id messageId FK "messages"
+    id meetingId FK "meetings"
+    id memberId FK "meetingMembers"
+    enum emoji
+  }
   strokes {
     id _id PK
     id meetingId FK "meetings"
@@ -229,6 +236,9 @@ erDiagram
   meetingSessions }o--o| _storage : transcriptId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
+  messageReactions }o--|| messages : messageId
+  messageReactions }o--|| meetings : meetingId
+  messageReactions }o--|| meetingMembers : memberId
   strokes }o--|| meetings : meetingId
   strokes }o--|| meetingMembers : memberId
   annotationSnapshots }o--|| meetings : meetingId
@@ -277,6 +287,8 @@ erDiagram
 | meetingSessions | by_rtk_session | rtkSessionId |
 | meetingSessions | by_org_and_ended | orgId, endedAt |
 | messages | by_meeting | meetingId |
+| messageReactions | by_message_and_member | messageId, memberId |
+| messageReactions | by_meeting | meetingId |
 | strokes | by_meeting_and_share | meetingId, shareId |
 | annotationSnapshots | by_meeting | meetingId |
 | schedules | by_user | userId |

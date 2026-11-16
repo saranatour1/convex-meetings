@@ -67,6 +67,7 @@ import type * as tables_meetingTimes from "../tables/meetingTimes.js";
 import type * as tables_meetings from "../tables/meetings.js";
 import type * as tables_memberRoles from "../tables/memberRoles.js";
 import type * as tables_members from "../tables/members.js";
+import type * as tables_messageReactions from "../tables/messageReactions.js";
 import type * as tables_messages from "../tables/messages.js";
 import type * as tables_notifications from "../tables/notifications.js";
 import type * as tables_organizations from "../tables/organizations.js";
@@ -142,6 +143,7 @@ declare const fullApi: ApiFromModules<{
   "tables/meetings": typeof tables_meetings;
   "tables/memberRoles": typeof tables_memberRoles;
   "tables/members": typeof tables_members;
+  "tables/messageReactions": typeof tables_messageReactions;
   "tables/messages": typeof tables_messages;
   "tables/notifications": typeof tables_notifications;
   "tables/organizations": typeof tables_organizations;
