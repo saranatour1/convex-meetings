@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zAuditEvent, type zAuditAction } from "../tables/auditEvents";
 import type { z } from "zod";
-import { getViewer } from "./users";
+import { createViewerLoader } from "./users";
 
 export type AuditAction = z.infer<typeof zAuditAction>;
 
@@ -36,11 +36,12 @@ export const listAudit = async (
     .withIndex("by_org", (q) => q.eq("orgId", orgId))
     .order("desc")
     .paginate(paginationOpts);
+  const viewer = createViewerLoader(ctx);
   const page = await Promise.all(
     result.page.map(async (event) => {
       const [actor, target] = await Promise.all([
-        getViewer(ctx, event.actorId),
-        event.targetUserId ? getViewer(ctx, event.targetUserId) : null,
+        viewer(event.actorId),
+        event.targetUserId ? viewer(event.targetUserId) : null,
       ]);
       return {
         _id: event._id,

@@ -42,6 +42,17 @@ export const getViewer = async (ctx: QueryCtx, userId: Id<"users">) => {
   };
 };
 
+export const createViewerLoader = (ctx: QueryCtx) => {
+  const cache = new Map<Id<"users">, ReturnType<typeof getViewer>>();
+  return (userId: Id<"users">) => {
+    const cached = cache.get(userId);
+    if (cached) return cached;
+    const pending = getViewer(ctx, userId);
+    cache.set(userId, pending);
+    return pending;
+  };
+};
+
 export const replaceImage = async (
   ctx: MutationCtx,
   userId: Id<"users">,

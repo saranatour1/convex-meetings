@@ -4,7 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zNotification } from "../tables/notifications";
-import { getViewer } from "./users";
+import { createViewerLoader } from "./users";
 
 type NewNotification = Omit<typeof zNotification._input, "userId" | "readAt">;
 
@@ -31,10 +31,11 @@ export const listNotifications = async (
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .order("desc")
     .paginate(paginationOpts);
+  const viewer = createViewerLoader(ctx);
   const page = await Promise.all(
     result.page.map(async (n) => {
       const [actor, session] = await Promise.all([
-        n.actorId ? getViewer(ctx, n.actorId) : null,
+        n.actorId ? viewer(n.actorId) : null,
         n.sessionId ? ctx.db.get("meetingSessions", n.sessionId) : null,
       ]);
       return {
