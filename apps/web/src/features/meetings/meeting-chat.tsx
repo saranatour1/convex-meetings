@@ -9,7 +9,9 @@ import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { formatTime } from "#/lib/schedule.ts";
 
-export const MeetingChat = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
+type MeetingChatProps = { meetingId: Id<"meetings">; since?: number };
+
+export const MeetingChat = ({ meetingId, since }: MeetingChatProps) => {
   const messages = usePaginatedQuery(api.messages.list, { meetingId }, { initialNumItems: 50 });
   const send = useMutation(api.messages.send);
   const zone = browserTimeZone();
@@ -31,14 +33,26 @@ export const MeetingChat = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
   return (
     <div className="flex flex-col gap-3">
       <ol className="flex max-h-80 flex-col-reverse gap-3 overflow-y-auto">
-        {messages.results.map((message) => (
-          <li key={message._id} className="flex flex-col">
-            <span className="text-muted-foreground text-xs">
-              {message.authorName} · {formatTime(message._creationTime, zone)}
-            </span>
-            <span className="whitespace-pre-wrap text-sm">{message.body}</span>
-          </li>
-        ))}
+        {messages.results.map((message, index) => {
+          const newer = messages.results[index - 1];
+          const firstEarlier =
+            since !== undefined &&
+            message._creationTime < since &&
+            (newer === undefined || newer._creationTime >= since);
+          return (
+            <li key={message._id} className="flex flex-col">
+              <span className="text-muted-foreground text-xs">
+                {message.authorName} · {formatTime(message._creationTime, zone)}
+              </span>
+              <span className="whitespace-pre-wrap text-sm">{message.body}</span>
+              {firstEarlier && (
+                <span className="mt-3 flex items-center gap-2 text-muted-foreground text-xs before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+                  This call
+                </span>
+              )}
+            </li>
+          );
+        })}
         {messages.status === "CanLoadMore" && (
           <li>
             <Button size="sm" variant="ghost" onClick={() => messages.loadMore(50)}>

@@ -50,6 +50,24 @@ export const deactivate = internalAction({
   },
 });
 
+export const kick = internalAction({
+  args: { rtkMeetingId: v.string(), memberIds: v.array(v.string()) },
+  handler: async (_ctx, { rtkMeetingId, memberIds }) => {
+    await realtimeKit.kick(rtkMeetingId, memberIds).catch((error: unknown) => {
+      console.warn("kick skipped", String(error));
+    });
+  },
+});
+
+export const kickAll = internalAction({
+  args: { rtkMeetingId: v.string() },
+  handler: async (_ctx, { rtkMeetingId }) => {
+    await realtimeKit.kickAll(rtkMeetingId).catch((error: unknown) => {
+      console.warn("kick-all skipped", String(error));
+    });
+  },
+});
+
 export const setup = internalAction({
   args: {},
   handler: async () => {

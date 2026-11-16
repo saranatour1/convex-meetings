@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PEN_COLORS, type PenColor } from "#/features/meetings/call/annotations.tsx";
 import type { CallSide } from "#/features/meetings/call/call-ui.ts";
 import { MeetingPage } from "#/features/meetings/meeting-page.tsx";
 
 const SIDES: CallSide[] = ["chat", "participants", "polls", "plugins", "ai"];
 
-type MeetingSearch = { call?: true; side?: CallSide; expand?: true };
+type MeetingSearch = { call?: true; side?: CallSide; expand?: true; draw?: PenColor };
 
 const MeetingRoute = () => {
   const { code } = Route.useParams();
@@ -20,7 +21,12 @@ const MeetingRoute = () => {
         onCancelled={() => void navigate({ to: "/" })}
         inCall={call === true}
         onInCallChange={(inCall) =>
-          setSearch({ call: inCall || undefined, side: undefined, expand: undefined })
+          setSearch({
+            call: inCall || undefined,
+            side: undefined,
+            expand: undefined,
+            draw: undefined,
+          })
         }
         side={side}
         onSideChange={(next) => setSearch({ side: next })}
@@ -36,6 +42,7 @@ export const Route = createFileRoute("/_app/meetings/$code")({
     call: search.call === true || search.call === "true" ? true : undefined,
     side: SIDES.find((s) => s === search.side),
     expand: search.expand === true || search.expand === "true" ? true : undefined,
+    draw: PEN_COLORS.find((color) => color === search.draw),
   }),
   component: MeetingRoute,
 });

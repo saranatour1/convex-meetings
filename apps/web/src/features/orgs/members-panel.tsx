@@ -63,6 +63,7 @@ import { getInitials } from "#/lib/initials.ts";
 import { canGrant } from "#/lib/roles.ts";
 import { cityOf, formatAgo, formatLongDate, formatTime } from "#/lib/schedule.ts";
 import { useActiveOrg } from "./active-org.tsx";
+import { LiveCalls } from "./live-calls.tsx";
 import type { Member } from "./people.ts";
 
 export type MemberConfirm = { action: "remove" | "leave" | "signOut"; memberId: string };
@@ -470,6 +471,7 @@ export const MembersPanel = ({
 
   return (
     <div className="flex flex-col gap-6">
+      {can("manageOrganization") && <LiveCalls canEnd={can("manageMeetings")} />}
       {can("inviteMembers") && (
         <Card>
           <CardHeader>

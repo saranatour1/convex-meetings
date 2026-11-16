@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useAction, useQuery } from "convex/react";
 import {
@@ -29,10 +28,11 @@ type MeetingCallProps = {
   onSideChange: (side: CallSide | undefined) => void;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
-  chat: ReactNode;
+  canControl: boolean;
+  watermark: string | null;
 };
 
-type CallViewProps = Omit<MeetingCallProps, "meetingId" | "inCall" | "onInCallChange"> & {
+type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
   onBack: () => void;
   onRejoin: () => void;
   rejoining: boolean;
@@ -82,6 +82,7 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
             <form.Subscribe selector={(state) => state.isSubmitting}>
               {(rejoining) => (
                 <CallView
+                  meetingId={meetingId}
                   {...props}
                   onBack={() => {
                     if (meeting.self.roomState === "joined") void meeting.leave();

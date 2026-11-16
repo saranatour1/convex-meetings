@@ -8,6 +8,8 @@ import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
 import { zMessage } from "../tables/messages";
+import { clearStrokes } from "./annotations";
+import { canControlCall } from "./calls";
 import { findMember } from "./members";
 import { notify } from "./notifications";
 import { getSettings } from "./settings";
@@ -30,6 +32,7 @@ type NewMeeting = {
   rrule?: string;
   inviteeIds: Id<"users">[];
   canManageMeetings: boolean;
+  protected?: boolean;
 };
 
 export const meetingTime = (startsAt: number, minutes: number, timeZone: string) => {
@@ -100,6 +103,7 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
       kind: meeting.kind,
       recap: meeting.recap,
       record: autoRecord,
+      protected: meeting.protected || undefined,
     }),
   );
   await ctx.db.insert(
@@ -218,6 +222,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
         imageUrl: user?.imageUrl ?? null,
         role: m.role,
         response: m.response,
+        removed: Boolean(m.removedAt),
       };
     }),
   );
@@ -228,8 +233,15 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
+    protected: meeting.protected ?? false,
     time,
-    me: { _id: member._id, role: member.role, response: member.response },
+    me: {
+      _id: member._id,
+      role: member.role,
+      response: member.response,
+      removed: Boolean(member.removedAt),
+      canControl: await canControlCall(ctx, meeting, member),
+    },
     people,
     sessions: sessions.map((s) => ({
       _id: s._id,
@@ -265,7 +277,11 @@ export const respond = async (
 
 const deleteAll = async (
   ctx: MutationCtx,
-  docs: { _id: Id<"meetingTimes" | "meetingMembers" | "messages" | "meetingSessions"> }[],
+  docs: {
+    _id: Id<
+      "meetingTimes" | "meetingMembers" | "messages" | "meetingSessions" | "annotationSnapshots"
+    >;
+  }[],
 ) => {
   for (const doc of docs) await ctx.db.delete(doc._id);
 };
@@ -285,6 +301,13 @@ export const cancelMeeting = async (
   await deleteAll(ctx, await byMeeting("meetingTimes"));
   await deleteAll(ctx, await byMeeting("messages"));
   await deleteAll(ctx, await byMeeting("meetingSessions"));
+  await clearStrokes(ctx, meetingId);
+  const snapshots = await ctx.db
+    .query("annotationSnapshots")
+    .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
+    .take(1000);
+  for (const snapshot of snapshots) await ctx.storage.delete(snapshot.storageId);
+  await deleteAll(ctx, snapshots);
   const members = await ctx.db
     .query("meetingMembers")
     .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
@@ -328,6 +351,18 @@ export const busyForOrg = async (
   return Object.fromEntries(entries);
 };
 
+const describeMessage = async (ctx: QueryCtx, message: Doc<"messages">) => {
+  const author = await ctx.db.get("meetingMembers", message.meetingMemberId);
+  const user = author && (await getViewer(ctx, author.userId));
+  return {
+    _id: message._id,
+    _creationTime: message._creationTime,
+    body: message.body,
+    authorId: message.meetingMemberId,
+    authorName: user?.name ?? "Someone",
+  };
+};
+
 export const listMessages = async (
   ctx: QueryCtx,
   meetingId: Id<"meetings">,
@@ -338,20 +373,26 @@ export const listMessages = async (
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
     .order("desc")
     .paginate(paginationOpts);
-  const page = await Promise.all(
-    result.page.map(async (message) => {
-      const author = await ctx.db.get("meetingMembers", message.meetingMemberId);
-      const user = author && (await getViewer(ctx, author.userId));
-      return {
-        _id: message._id,
-        _creationTime: message._creationTime,
-        body: message.body,
-        authorId: message.meetingMemberId,
-        authorName: user?.name ?? "Someone",
-      };
-    }),
-  );
-  return { ...result, page };
+  return { ...result, page: await Promise.all(result.page.map((m) => describeMessage(ctx, m))) };
+};
+
+export const listSessionMessages = async (
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  sessionId: Id<"meetingSessions">,
+  paginationOpts: PaginationOptions,
+) => {
+  const { session } = await requireSessionAccess(ctx, userId, sessionId);
+  const result = await ctx.db
+    .query("messages")
+    .withIndex("by_meeting", (q) =>
+      q
+        .eq("meetingId", session.meetingId)
+        .gte("_creationTime", session.startedAt)
+        .lte("_creationTime", session.endedAt ?? Date.now()),
+    )
+    .paginate(paginationOpts);
+  return { ...result, page: await Promise.all(result.page.map((m) => describeMessage(ctx, m))) };
 };
 
 export const sendMessage = (
@@ -367,12 +408,13 @@ export const joinDetails = async (
   meetingId: Id<"meetings">,
 ) => {
   const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
+  if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
   const user = await getViewer(ctx, userId);
   return {
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
-    record: meeting.record ?? false,
+    record: !meeting.protected && (meeting.record ?? false),
     rtkMeetingId: meeting.rtkMeetingId ?? null,
     memberId: member._id,
     role: member.role,
@@ -442,6 +484,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
       "meetingSessions",
       await ctx.db.insert("meetingSessions", {
         meetingId: meeting._id,
+        orgId: meeting.orgId,
         rtkSessionId,
         startedAt: toMillis(event.meeting?.startedAt, now),
         attendeeIds: [],
@@ -452,7 +495,19 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   if (attendee && !session.attendeeIds.includes(attendee)) {
     patch.attendeeIds = [...session.attendeeIds, attendee].slice(0, 1000);
   }
-  if (event.event === "meeting.ended") patch.endedAt = toMillis(event.meeting?.endedAt, now);
+  const present = session.presentIds ?? [];
+  if (attendee && event.event === "meeting.participantJoined" && !present.includes(attendee)) {
+    patch.presentIds = [...present, attendee].slice(0, 1000);
+  }
+  if (attendee && event.event === "meeting.participantLeft") {
+    patch.presentIds = present.filter((id) => id !== attendee);
+  }
+  if (!session.orgId) patch.orgId = meeting.orgId;
+  if (event.event === "meeting.ended") {
+    patch.endedAt = toMillis(event.meeting?.endedAt, now);
+    patch.presentIds = [];
+    await clearStrokes(ctx, meeting._id);
+  }
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);
   if (event.transcriptDownloadUrl) patch.transcriptUrl = event.transcriptDownloadUrl;
   if (event.transcriptId) patch.transcriptId = event.transcriptId;
@@ -511,8 +566,10 @@ export const getRecap = async (
   sessionId: Id<"meetingSessions">,
 ) => {
   const { meeting, session } = await requireSessionAccess(ctx, userId, sessionId);
+  const { member } = await requireMeetingMember(ctx, meeting._id, userId);
   return {
     meeting: { title: meeting.title, code: meeting.code, kind: meeting.kind },
+    canDownload: !meeting.protected || (await canControlCall(ctx, meeting, member)),
     startedAt: session.startedAt,
     endedAt: session.endedAt ?? null,
     attendees: await meetingNames(ctx, session.attendeeIds),

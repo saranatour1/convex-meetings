@@ -101,6 +101,7 @@ erDiagram
     enum kind
     boolean recap
     boolean record "optional"
+    boolean protected "optional"
     string rtkMeetingId "optional"
   }
   meetingTimes {
@@ -121,14 +122,17 @@ erDiagram
     enum response
     enum role
     string rtkParticipantId "optional"
+    number removedAt "optional"
   }
   meetingSessions {
     id _id PK
     id meetingId FK "meetings"
+    id orgId FK "organizations, optional"
     string rtkSessionId
     number startedAt
     number endedAt "optional"
     array attendeeIds
+    array presentIds "optional"
     string summary "optional"
     string transcriptUrl "optional"
     string recordingUrl "optional"
@@ -141,6 +145,20 @@ erDiagram
     id meetingId FK "meetings"
     id meetingMemberId FK "meetingMembers"
     string body
+  }
+  strokes {
+    id _id PK
+    id meetingId FK "meetings"
+    string shareId
+    id memberId FK "meetingMembers"
+    enum color
+    array points
+  }
+  annotationSnapshots {
+    id _id PK
+    id meetingId FK "meetings"
+    id memberId FK "meetingMembers"
+    id storageId FK "_storage"
   }
   schedules {
     id _id PK
@@ -190,9 +208,15 @@ erDiagram
   meetingMembers }o--|| meetings : meetingId
   meetingMembers }o--|| users : userId
   meetingSessions }o--|| meetings : meetingId
+  meetingSessions }o--o| organizations : orgId
   meetingSessions }o--o| _storage : transcriptId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
+  strokes }o--|| meetings : meetingId
+  strokes }o--|| meetingMembers : memberId
+  annotationSnapshots }o--|| meetings : meetingId
+  annotationSnapshots }o--|| meetingMembers : memberId
+  annotationSnapshots }o--|| _storage : storageId
   schedules }o--|| users : userId
   notifications }o--|| users : userId
   notifications }o--o| meetingSessions : sessionId
@@ -231,7 +255,10 @@ erDiagram
 | meetingMembers | by_user | userId |
 | meetingSessions | by_meeting | meetingId |
 | meetingSessions | by_rtk_session | rtkSessionId |
+| meetingSessions | by_org_and_ended | orgId, endedAt |
 | messages | by_meeting | meetingId |
+| strokes | by_meeting_and_share | meetingId, shareId |
+| annotationSnapshots | by_meeting | meetingId |
 | schedules | by_user | userId |
 | notifications | by_user | userId |
 | notifications | by_user_and_readAt | userId, readAt |

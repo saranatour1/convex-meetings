@@ -1,7 +1,14 @@
 import { Suspense, use } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { ArrowLeftIcon, DownloadIcon, SearchIcon, SparklesIcon, UsersIcon } from "lucide-react";
+import { usePaginatedQuery, useQuery } from "convex/react";
+import {
+  ArrowLeftIcon,
+  DownloadIcon,
+  PencilIcon,
+  SearchIcon,
+  SparklesIcon,
+  UsersIcon,
+} from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
@@ -75,7 +82,85 @@ const Transcript = ({ url, search }: { url: string; search: string }) => {
   );
 };
 
-const Recording = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
+const RecapChat = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
+  const messages = usePaginatedQuery(
+    api.meetings.recapChat,
+    { sessionId },
+    { initialNumItems: 100 },
+  );
+  const zone = browserTimeZone();
+  if (messages.status === "LoadingFirstPage") return null;
+  if (!messages.results.length) {
+    return (
+      <p className="text-muted-foreground text-sm">No one wrote in the chat during this call.</p>
+    );
+  }
+  return (
+    <ol className="flex flex-col gap-3">
+      {messages.results.map((message) => (
+        <li key={message._id} className="grid grid-cols-[3.5rem_1fr] gap-3 text-sm">
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {formatTime(message._creationTime, zone)}
+          </span>
+          <span className="whitespace-pre-wrap">
+            <span className="font-medium">{message.authorName}</span> {message.body}
+          </span>
+        </li>
+      ))}
+      {messages.status === "CanLoadMore" && (
+        <li>
+          <Button size="sm" variant="ghost" onClick={() => messages.loadMore(100)}>
+            Show more
+          </Button>
+        </li>
+      )}
+    </ol>
+  );
+};
+
+const Snapshots = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
+  const snapshots = useQuery(api.annotations.snapshots, { sessionId });
+  if (!snapshots?.length) return null;
+  const zone = browserTimeZone();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <PencilIcon className="size-4" />
+          Annotations
+        </CardTitle>
+        <CardDescription>Screen shares with drawings saved during the call.</CardDescription>
+      </CardHeader>
+      <CardPanel className="grid gap-4 sm:grid-cols-2">
+        {snapshots.map(
+          (snapshot) =>
+            snapshot.url && (
+              <figure key={snapshot._id} className="flex flex-col gap-1.5">
+                <a href={snapshot.url} target="_blank" rel="noreferrer">
+                  <img
+                    src={snapshot.url}
+                    alt={`Annotation saved by ${snapshot.authorName}`}
+                    className="w-full rounded-lg border"
+                  />
+                </a>
+                <figcaption className="text-muted-foreground text-xs">
+                  {snapshot.authorName} · {formatTime(snapshot._creationTime, zone)}
+                </figcaption>
+              </figure>
+            ),
+        )}
+      </CardPanel>
+    </Card>
+  );
+};
+
+const Recording = ({
+  sessionId,
+  canDownload,
+}: {
+  sessionId: Id<"meetingSessions">;
+  canDownload: boolean;
+}) => {
   const url = useQuery(api.meetings.recordingUrl, { sessionId });
   if (url === undefined) return null;
   if (!url) {
@@ -87,13 +172,27 @@ const Recording = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
   }
   return (
     <div className="flex flex-col gap-3">
-      <video controls preload="metadata" className="w-full rounded-lg bg-black" src={url}>
+      <video
+        controls
+        preload="metadata"
+        className="w-full rounded-lg bg-black"
+        src={url}
+        controlsList={canDownload ? undefined : "nodownload"}
+        onContextMenu={canDownload ? undefined : (event) => event.preventDefault()}
+      >
         <track kind="captions" />
       </video>
-      <Button variant="outline" size="sm" className="self-start" render={<a href={url} download />}>
-        <DownloadIcon />
-        Download
-      </Button>
+      {canDownload && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start"
+          render={<a href={url} download />}
+        >
+          <DownloadIcon />
+          Download
+        </Button>
+      )}
     </div>
   );
 };
@@ -162,10 +261,21 @@ export const RecapPage = ({ code, sessionId, search, onSearchChange }: RecapPage
             )}
           </CardHeader>
           <CardPanel>
-            <Recording sessionId={sessionId} />
+            <Recording sessionId={sessionId} canDownload={recap.canDownload} />
           </CardPanel>
         </Card>
       )}
+
+      <Snapshots sessionId={sessionId} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Chat</CardTitle>
+        </CardHeader>
+        <CardPanel>
+          <RecapChat sessionId={sessionId} />
+        </CardPanel>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">

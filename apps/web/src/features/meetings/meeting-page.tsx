@@ -1,7 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { CheckIcon, FileTextIcon, VideoIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  FileTextIcon,
+  ShieldIcon,
+  UserCheckIcon,
+  UserXIcon,
+  VideoIcon,
+  XIcon,
+} from "lucide-react";
 import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
@@ -13,9 +21,13 @@ import {
   CardPanel,
   CardTitle,
 } from "@meetings/ui/components/card";
+import { Label } from "@meetings/ui/components/label";
+import { Switch } from "@meetings/ui/components/switch";
+import { toastManager } from "@meetings/ui/components/toast";
 import { EmptyState } from "#/components/empty-state.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
+import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
@@ -25,6 +37,9 @@ import { kindOf } from "./meeting-kinds.ts";
 const MeetingCall = lazy(() =>
   import("./meeting-call.tsx").then((module) => ({ default: module.MeetingCall })),
 );
+
+const showError = (error: unknown) =>
+  toastManager.add({ title: describeError(error), type: "error" });
 
 const RESPONSE_LABEL = { accepted: "Going", declined: "Not going", pending: "No reply yet" };
 
@@ -50,8 +65,12 @@ export const MeetingPage = ({
   onExpandedChange,
 }: MeetingPageProps) => {
   const meeting = useQuery(api.meetings.get, { code });
+  const viewer = useQuery(api.users.viewer);
   const respond = useMutation(api.meetings.respond);
   const cancel = useMutation(api.meetings.cancel);
+  const setProtected = useMutation(api.meetings.setProtected);
+  const remove = useMutation(api.calls.remove);
+  const letIn = useMutation(api.calls.letIn);
   if (meeting === undefined) return <LoadingScreen />;
   if (meeting === null) {
     return (
@@ -98,7 +117,12 @@ export const MeetingPage = ({
               onSideChange={onSideChange}
               expanded={expanded}
               onExpandedChange={onExpandedChange}
-              chat={<MeetingChat meetingId={meetingId} />}
+              canControl={meeting.me.canControl}
+              watermark={
+                meeting.protected && viewer
+                  ? [viewer.name, viewer.email].filter(Boolean).join(" · ")
+                  : null
+              }
             />
           </Suspense>
           <div className="flex flex-wrap gap-2">
@@ -125,6 +149,26 @@ export const MeetingPage = ({
               </>
             )}
           </div>
+          {meeting.me.canControl && (
+            <Label className="justify-between gap-3 font-normal">
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <ShieldIcon className="size-4" />
+                  Protected meeting
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  Marks every screen with the viewer's name and email, turns recording off and keeps
+                  downloads to hosts. It can't stop screenshots.
+                </span>
+              </span>
+              <Switch
+                checked={meeting.protected}
+                onCheckedChange={(on) =>
+                  void setProtected({ meetingId, protected: on }).catch(showError)
+                }
+              />
+            </Label>
+          )}
           <ul className="flex flex-col gap-2">
             {meeting.people.map((person) => (
               <li key={person._id} className="flex items-center gap-3">
@@ -136,6 +180,37 @@ export const MeetingPage = ({
                 <span className="text-muted-foreground text-xs">
                   {person.role === "host" ? "Host" : RESPONSE_LABEL[person.response]}
                 </span>
+                {person.removed && (
+                  <Badge variant="error" size="sm">
+                    Removed
+                  </Badge>
+                )}
+                {meeting.me.canControl && person._id !== meeting.me._id && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    className="ms-auto"
+                    onClick={() =>
+                      void (
+                        person.removed
+                          ? letIn({ meetingMemberId: person._id })
+                          : remove({ meetingMemberId: person._id })
+                      ).catch(showError)
+                    }
+                  >
+                    {person.removed ? (
+                      <>
+                        <UserCheckIcon />
+                        Let back in
+                      </>
+                    ) : (
+                      <>
+                        <UserXIcon />
+                        Remove from call
+                      </>
+                    )}
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

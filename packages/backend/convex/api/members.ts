@@ -2,6 +2,7 @@ import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
 import { orgMutation, orgQuery, zPaginationOpts } from "../lib/functions";
 import { audit } from "../models/audit";
+import { kickFromOrgCalls } from "../models/calls";
 import { listMembers, removeMember, setMemberRole } from "../models/members";
 import {
   OWNER_ROLE,
@@ -26,6 +27,7 @@ export const remove = orgMutation({
     await assertOutranks(ctx, orgId, actorOf(ctx), memberId);
     const owner = await findRole(ctx, orgId, OWNER_ROLE);
     const member = await removeMember(ctx, orgId, memberId, owner?._id ?? null);
+    if (memberId !== ctx.member._id) await kickFromOrgCalls(ctx, orgId, member.userId);
     if (memberId === ctx.member._id) await audit(ctx, orgId, ctx.userId, "memberLeft");
     else await audit(ctx, orgId, ctx.userId, "memberRemoved", { targetUserId: member.userId });
   },
