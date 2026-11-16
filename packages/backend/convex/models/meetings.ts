@@ -696,6 +696,28 @@ const trackPeers = async (
   }
 };
 
+const startSession = async (
+  ctx: MutationCtx,
+  meeting: Doc<"meetings">,
+  rtkSessionId: string,
+  startedAt: number,
+) => {
+  const stale = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meeting._id))
+    .take(1000);
+  for (const peer of stale) await ctx.db.delete("callPeers", peer._id);
+  const sessionId = await ctx.db.insert("meetingSessions", {
+    meetingId: meeting._id,
+    orgId: meeting.orgId,
+    number: await nextSessionNumber(ctx, meeting._id),
+    rtkSessionId,
+    startedAt,
+    attendeeIds: [],
+  });
+  return (await ctx.db.get("meetingSessions", sessionId))!;
+};
+
 export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent) => {
   const rtkMeetingId = event.meeting?.id;
   const rtkSessionId = event.meeting?.sessionId;
@@ -712,17 +734,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
     .unique();
   const session =
     existing ??
-    (await ctx.db.get(
-      "meetingSessions",
-      await ctx.db.insert("meetingSessions", {
-        meetingId: meeting._id,
-        orgId: meeting.orgId,
-        number: await nextSessionNumber(ctx, meeting._id),
-        rtkSessionId,
-        startedAt: toMillis(event.meeting?.startedAt, now),
-        attendeeIds: [],
-      }),
-    ))!;
+    (await startSession(ctx, meeting, rtkSessionId, toMillis(event.meeting?.startedAt, now)));
   const attendee = event.participant?.customParticipantId;
   const patch: Partial<Doc<"meetingSessions">> = {};
   if (attendee && !session.attendeeIds.includes(attendee)) {
