@@ -203,9 +203,7 @@ const ScheduleSettingsForm = ({ schedule }: { schedule: Doc<"schedules"> | null 
               </span>
             )}
           </form.Subscribe>
-          <form.Subscribe
-            selector={(state) => [state.isSubmitting, state.isSubmitSuccessful]}
-          >
+          <form.Subscribe selector={(state) => [state.isSubmitting, state.isSubmitSuccessful]}>
             {([isSubmitting, saved]) => (
               <>
                 {saved && !isSubmitting && (
