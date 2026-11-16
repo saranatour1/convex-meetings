@@ -1,18 +1,101 @@
-import { useForm } from "@tanstack/react-form";
+import { Fragment, useRef } from "react";
+import type { FunctionReturnType } from "convex/server";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { SendIcon } from "lucide-react";
+import { ArrowUpIcon, MessagesSquareIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
+import { ChatConversation } from "@meetings/ui/chat/chat-conversation";
+import { ChatDatePill } from "@meetings/ui/chat/chat-date-pill";
+import { ChatMessage } from "@meetings/ui/chat/chat-message";
+import { ChatEmptyState, ChatLoadingState } from "@meetings/ui/chat/chat-states";
+import { ChatUnreadDivider } from "@meetings/ui/chat/chat-unread-divider";
+import { useChatScroll } from "@meetings/ui/chat/hooks/use-chat-scroll";
+import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Button } from "@meetings/ui/components/button";
-import { Input } from "@meetings/ui/components/input";
-import { FormError } from "#/components/form-error.tsx";
+import {
+  Composer,
+  ComposerActions,
+  ComposerInput,
+  ComposerSubmit,
+} from "@meetings/ui/components/composer";
+import { toastManager } from "@meetings/ui/components/toast";
+import { getComposerText } from "@meetings/ui/lib/composer-editor";
+import { cn } from "@meetings/ui/lib/utils";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
-import { formatTime } from "#/lib/schedule.ts";
+import { getInitials } from "#/lib/initials.ts";
+import { dayOf, formatLongDate, formatTime } from "#/lib/schedule.ts";
 import { useGuestPass } from "./guest-pass.ts";
 
-type MeetingChatProps = { meetingId: Id<"meetings">; since?: number };
+export type ChatLine = FunctionReturnType<typeof api.messages.list>["page"][number];
 
-export const MeetingChat = ({ meetingId, since }: MeetingChatProps) => {
+const GROUP_MS = 5 * 60_000;
+
+const sameGroup = (a: ChatLine | undefined, b: ChatLine | undefined, zone: string) =>
+  a !== undefined &&
+  b !== undefined &&
+  a.authorId === b.authorId &&
+  Math.abs(b._creationTime - a._creationTime) < GROUP_MS &&
+  dayOf(a._creationTime, zone) === dayOf(b._creationTime, zone);
+
+type ChatLinesProps = { messages: ChatLine[]; since?: number };
+
+export const ChatLines = ({ messages, since }: ChatLinesProps) => {
+  const zone = browserTimeZone();
+  return (
+    <div className="flex flex-col gap-1">
+      {messages.map((message, index) => {
+        const previous = messages[index - 1];
+        const next = messages[index + 1];
+        const newDay =
+          !previous || dayOf(previous._creationTime, zone) !== dayOf(message._creationTime, zone);
+        const startsCall = (before: ChatLine | undefined, after: ChatLine | undefined) =>
+          since !== undefined &&
+          before !== undefined &&
+          after !== undefined &&
+          before._creationTime < since &&
+          after._creationTime >= since;
+        const callStart = startsCall(previous, message);
+        const grouped = !callStart && sameGroup(previous, message, zone);
+        const lastInGroup = startsCall(message, next) || !sameGroup(message, next, zone);
+        return (
+          <Fragment key={message._id}>
+            {newDay && (
+              <ChatDatePill className="my-2">
+                {formatLongDate(message._creationTime, zone)}
+              </ChatDatePill>
+            )}
+            {callStart && <ChatUnreadDivider>This call</ChatUnreadDivider>}
+            <ChatMessage
+              className={grouped ? undefined : "mt-2"}
+              side={message.mine ? "outgoing" : "incoming"}
+              author={message.authorName}
+              grouped={grouped}
+              avatar={
+                <Avatar className="size-7">
+                  {message.authorImageUrl && <AvatarImage src={message.authorImageUrl} alt="" />}
+                  <AvatarFallback className="text-[.625rem]">
+                    {getInitials(message.authorName)}
+                  </AvatarFallback>
+                </Avatar>
+              }
+              footer={lastInGroup ? formatTime(message._creationTime, zone) : undefined}
+            >
+              {message.body}
+            </ChatMessage>
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
+type MeetingChatProps = {
+  meetingId: Id<"meetings">;
+  since?: number;
+  className?: string;
+};
+
+export const MeetingChat = ({ meetingId, since, className }: MeetingChatProps) => {
   const pass = useGuestPass();
   const messages = usePaginatedQuery(
     api.messages.list,
@@ -20,82 +103,61 @@ export const MeetingChat = ({ meetingId, since }: MeetingChatProps) => {
     { initialNumItems: 50 },
   );
   const send = useMutation(api.messages.send);
-  const zone = browserTimeZone();
-  const form = useForm({
-    defaultValues: { body: "" },
-    validators: {
-      onSubmitAsync: async ({ value, formApi }) => {
-        try {
-          await send({ meetingId, body: value.body, ...pass });
-          formApi.reset();
-          return undefined;
-        } catch (error) {
-          return describeError(error);
-        }
-      },
-    },
-  });
+  const composer = useRef<HTMLFormElement>(null);
+  const ordered = [...messages.results].reverse();
+  const scroll = useChatScroll({ itemCount: ordered.length });
 
   return (
-    <div className="flex flex-col gap-3">
-      <ol className="flex max-h-80 flex-col-reverse gap-3 overflow-y-auto">
-        {messages.results.map((message, index) => {
-          const newer = messages.results[index - 1];
-          const firstEarlier =
-            since !== undefined &&
-            message._creationTime < since &&
-            (newer === undefined || newer._creationTime >= since);
-          return (
-            <li key={message._id} className="flex flex-col">
-              <span className="text-muted-foreground text-xs">
-                {message.authorName} · {formatTime(message._creationTime, zone)}
-              </span>
-              <span className="whitespace-pre-wrap text-sm">{message.body}</span>
-              {firstEarlier && (
-                <span className="mt-3 flex items-center gap-2 text-muted-foreground text-xs before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
-                  This call
-                </span>
-              )}
-            </li>
-          );
-        })}
+    <div className={cn("flex min-h-0 flex-col gap-3", className)}>
+      <ChatConversation
+        scroll={scroll}
+        label="Meeting chat"
+        jumpLabel="New messages"
+        contentClassName="px-1 pt-1"
+      >
         {messages.status === "CanLoadMore" && (
-          <li>
-            <Button size="sm" variant="ghost" onClick={() => messages.loadMore(50)}>
+          <div className="flex justify-center pb-2">
+            <Button size="xs" variant="ghost" onClick={() => messages.loadMore(50)}>
+              <ArrowUpIcon />
               Earlier messages
             </Button>
-          </li>
+          </div>
         )}
-      </ol>
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void form.handleSubmit();
+        {messages.status === "LoadingFirstPage" ? (
+          <ChatLoadingState label="Loading messages" />
+        ) : ordered.length === 0 ? (
+          <ChatEmptyState
+            icon={<MessagesSquareIcon />}
+            title="No messages yet"
+            description="Messages stay with this meeting, so people can read them after the call."
+          />
+        ) : (
+          <ChatLines messages={ordered} since={since} />
+        )}
+      </ChatConversation>
+      <Composer
+        ref={composer}
+        submitOnEnter="desktop"
+        onSubmit={(value) => {
+          const body = getComposerText(value).trim();
+          if (!body) return;
+          void send({ meetingId, body, ...pass })
+            .then(() => composer.current?.reset())
+            .catch((error: unknown) =>
+              toastManager.add({ title: describeError(error), type: "error" }),
+            );
         }}
       >
-        <form.Field name="body">
-          {(field) => (
-            <Input
-              aria-label="Message"
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Write to everyone in this meeting"
-              maxLength={4000}
-            />
-          )}
-        </form.Field>
-        <form.Subscribe selector={(state) => [!state.values.body.trim(), state.isSubmitting]}>
-          {([empty, isSubmitting]) => (
-            <Button type="submit" size="icon" aria-label="Send" disabled={empty || isSubmitting}>
-              <SendIcon />
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
-      <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
-        {(error) => <FormError error={error} />}
-      </form.Subscribe>
+        <ComposerInput aria-label="Message" placeholder="Message everyone in this meeting" />
+        <ComposerActions>
+          <ComposerSubmit
+            aria-label="Send"
+            render={<Button size="icon-sm" className="ms-auto rounded-full" />}
+          >
+            <ArrowUpIcon />
+          </ComposerSubmit>
+        </ComposerActions>
+      </Composer>
     </div>
   );
 };

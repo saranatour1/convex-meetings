@@ -25,6 +25,7 @@ import { EmptyState } from "#/components/empty-state.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
+import { ChatLines } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
 type TranscriptLine = {
@@ -90,7 +91,6 @@ const RecapChat = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
     { sessionId },
     { initialNumItems: 100 },
   );
-  const zone = browserTimeZone();
   if (messages.status === "LoadingFirstPage") return null;
   if (!messages.results.length) {
     return (
@@ -98,25 +98,19 @@ const RecapChat = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
     );
   }
   return (
-    <ol className="flex flex-col gap-3">
-      {messages.results.map((message) => (
-        <li key={message._id} className="grid grid-cols-[3.5rem_1fr] gap-3 text-sm">
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {formatTime(message._creationTime, zone)}
-          </span>
-          <span className="whitespace-pre-wrap">
-            <span className="font-medium">{message.authorName}</span> {message.body}
-          </span>
-        </li>
-      ))}
+    <div className="flex flex-col gap-3">
+      <ChatLines messages={messages.results} />
       {messages.status === "CanLoadMore" && (
-        <li>
-          <Button size="sm" variant="ghost" onClick={() => messages.loadMore(100)}>
-            Show more
-          </Button>
-        </li>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="self-center"
+          onClick={() => messages.loadMore(100)}
+        >
+          Show more
+        </Button>
       )}
-    </ol>
+    </div>
   );
 };
 

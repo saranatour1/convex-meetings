@@ -265,12 +265,11 @@ export const CallRoom = ({
                 <XIcon />
               </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              <MeetingChat
-                meetingId={meetingId}
-                since={startedAt ? new Date(startedAt).getTime() : undefined}
-              />
-            </div>
+            <MeetingChat
+              className="min-h-0 flex-1 p-3"
+              meetingId={meetingId}
+              since={startedAt ? new Date(startedAt).getTime() : undefined}
+            />
           </aside>
         )}
       </div>

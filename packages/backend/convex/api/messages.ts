@@ -9,7 +9,7 @@ export const list = meetingQuery({
   args: { meetingId: zid("meetings"), paginationOpts: zPaginationOpts },
   handler: async (ctx, { meetingId, paginationOpts }) => {
     await requireMeetingMember(ctx, meetingId, ctx.userId);
-    return listMessages(ctx, meetingId, paginationOpts);
+    return listMessages(ctx, meetingId, paginationOpts, ctx.userId);
   },
 });
 
