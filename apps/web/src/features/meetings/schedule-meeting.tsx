@@ -68,7 +68,7 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
           return describeError(error);
         }
       }}
-      invitees={{ organizer, people: people.filter((p) => p.id !== organizer.id), teams: [] }}
+      invitees={{ organizer, people: people.filter((p) => p.id !== organizer.id) }}
       homeZone={homeZone}
       defaults={{
         kind: settings.defaultKind,

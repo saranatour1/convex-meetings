@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { signIn, testBackend } from "../../tools/auth-test-setup";
+import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api } from "../_generated/api";
 
 const page = { numItems: 50, cursor: null };
@@ -11,10 +11,7 @@ const orgWithMember = async () => {
   const orgId = await owner.asUser.mutation(api.api.orgs.create, { name: "Acme" });
   const roles = await owner.asUser.query(api.api.orgs.roles, { orgId, paginationOpts: page });
   const role = (name: string) => roles.page.find((r) => r.name === name)!._id;
-  await t.run(async (ctx) => {
-    const memberId = await ctx.db.insert("members", { orgId, userId: bea.userId });
-    await ctx.db.insert("memberRoles", { orgId, memberId, roleId: role("Member") });
-  });
+  await addOrgMember(t, orgId, bea.userId, "Member");
   const members = await owner.asUser.query(api.api.members.list, { orgId, paginationOpts: page });
   const memberOf = (userId: typeof bea.userId) => members.page.find((m) => m.userId === userId)!;
   return { t, owner, bea, orgId, ownerRole: role("Owner"), memberRole: role("Member"), memberOf };

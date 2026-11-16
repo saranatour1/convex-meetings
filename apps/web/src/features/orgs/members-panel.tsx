@@ -58,6 +58,7 @@ import {
 import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
+import { splitEmails } from "#/lib/emails.ts";
 import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { canGrant } from "#/lib/roles.ts";
@@ -298,9 +299,6 @@ const ConfirmDialog = ({
     </AlertDialog>
   );
 };
-
-const splitEmails = (text: string) =>
-  [...new Set(text.split(/[\s,;]+/).map((email) => email.trim().toLowerCase()))].filter(Boolean);
 
 const InviteForm = ({ roles }: { roles: (Doc<"roles"> & { grantable: boolean })[] }) => {
   const { orgId } = useActiveOrg();

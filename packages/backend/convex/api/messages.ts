@@ -2,12 +2,8 @@ import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
 import { enforceRateLimit } from "../lib/rateLimits";
 import { meetingMutation, meetingQuery, zPaginationOpts } from "../lib/functions";
-import {
-  listMessages,
-  requireMeetingMember,
-  sendMessage,
-  toggleReaction,
-} from "../models/meetings";
+import { requireMeetingMember } from "../models/meetingAccess";
+import { listMessages, sendMessage, toggleReaction } from "../models/messages";
 import { zReactionEmoji } from "../tables/messageReactions";
 import { zMessage } from "../tables/messages";
 

@@ -25,6 +25,7 @@ import { toastManager } from "@meetings/ui/components/toast";
 import { EmptyState } from "#/components/empty-state.tsx";
 import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
+import { splitEmails } from "#/lib/emails.ts";
 import { copyWithToast, describeError, showError } from "#/lib/errors.ts";
 
 type Access = "invited" | "org" | "link";
@@ -149,9 +150,6 @@ export const MeetingSettingsCard = ({
     </Card>
   );
 };
-
-const splitEmails = (text: string) =>
-  [...new Set(text.split(/[\s,;]+/).map((email) => email.trim().toLowerCase()))].filter(Boolean);
 
 export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
   const invite = useMutation(api.meetings.invite);

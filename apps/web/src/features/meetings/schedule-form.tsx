@@ -51,7 +51,6 @@ import {
   wallToUtc,
   type Person,
   type Share,
-  type Team,
 } from "#/lib/schedule.ts";
 
 export type NewMeeting = {
@@ -68,7 +67,7 @@ export type NewMeeting = {
 
 export type ScheduleFormProps = {
   onSchedule: (meeting: NewMeeting) => Promise<string | undefined>;
-  invitees: { organizer: Person; people: Person[]; teams: Team[] };
+  invitees: { organizer: Person; people: Person[] };
   homeZone: string;
   defaults: { kind: MeetingKind; minutes: number; recap: boolean };
   alsoShow: string[];
@@ -108,7 +107,6 @@ export const ScheduleForm = ({
     validators: {
       onSubmitAsync: ({ value }) => {
         const people = invitees.people.filter((p) => !value.removed.includes(p.id));
-        const teams = invitees.teams.filter((t) => !value.removed.includes(t.id));
         return onSchedule({
           title: value.title,
           kind: value.kind,
@@ -118,7 +116,7 @@ export const ScheduleForm = ({
           minutes: value.durationMinutes,
           timeZone: zone,
           rrule: value.rrule,
-          inviteeIds: [...people, ...teams.flatMap((t) => t.members)].map((p) => p.id),
+          inviteeIds: people.map((p) => p.id),
         });
       },
     },
@@ -127,11 +125,10 @@ export const ScheduleForm = ({
   const { day, durationMinutes, start, removed, rrule } = values;
   const planMinutes = useDeferredValue(durationMinutes);
 
-  const { people, teams, everyone, plan } = useMemo(() => {
+  const { people, everyone, plan } = useMemo(() => {
     const people = invitees.people.filter((p) => !removed.includes(p.id));
-    const teams = invitees.teams.filter((t) => !removed.includes(t.id));
-    const everyone = [invitees.organizer, ...people, ...teams.flatMap((t) => t.members)];
-    return { people, teams, everyone, plan: availability(everyone, day, zone, planMinutes) };
+    const everyone = [invitees.organizer, ...people];
+    return { people, everyone, plan: availability(everyone, day, zone, planMinutes) };
   }, [invitees, removed, day, zone, planMinutes]);
 
   const chosen =
@@ -151,20 +148,12 @@ export const ScheduleForm = ({
   const sharing = (share: Share) => others.filter((p) => p.share === share).length;
   const notShared = sharing("none");
   const zoneCount = new Set(everyone.map((p) => formatOffset(chosen, p.timeZone))).size;
-  const chips = [
-    ...people.map((p) => ({
-      id: p.id,
-      name: p.name,
-      initials: p.initials,
-      detail: p.optional ? `${p.city} · optional` : p.city,
-    })),
-    ...teams.map((t) => ({
-      id: t.id,
-      name: t.name,
-      initials: t.name.slice(0, 2).toUpperCase(),
-      detail: `${t.members.length} people`,
-    })),
-  ];
+  const chips = people.map((p) => ({
+    id: p.id,
+    name: p.name,
+    initials: p.initials,
+    detail: p.optional ? `${p.city} · optional` : p.city,
+  }));
 
   return (
     <Card>
@@ -333,7 +322,6 @@ export const ScheduleForm = ({
         <FindATime
           organizer={invitees.organizer}
           people={people}
-          teams={teams}
           zone={zone}
           day={day}
           onDayChange={(next) => {

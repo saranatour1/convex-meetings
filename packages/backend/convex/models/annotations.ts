@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zAnnotationSnapshot, zStroke } from "../tables/annotations";
 import { canControlCall } from "./calls";
-import { requireMeetingMember, requireSessionAccess } from "./meetings";
+import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
 import { getViewer } from "./users";
 
 const STROKES_READ = 500;

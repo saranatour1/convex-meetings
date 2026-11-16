@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { signIn, testBackend } from "../../tools/auth-test-setup";
+import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api, internal } from "../_generated/api";
 import { allPresets } from "../lib/presets";
 import { FOREVER } from "../lib/recurrence";
@@ -42,9 +42,7 @@ const orgWithTwoPeople = async () => {
   const guest = await signIn(t, "Guest");
   const outsider = await signIn(t, "Outsider");
   const orgId = await host.asUser.mutation(api.api.orgs.create, { name: "Acme" });
-  await t.run(async (ctx) => {
-    await ctx.db.insert("members", { orgId, userId: guest.userId });
-  });
+  await addOrgMember(t, orgId, guest.userId);
   return { t, host, guest, outsider, orgId };
 };
 

@@ -6,7 +6,7 @@ import { zTimeOfDay, zTimeZone } from "../lib/time";
 export const zMeetingTime = z
   .object({
     meetingId: zid("meetings"),
-    orgId: zid("organizations").optional(),
+    orgId: zid("organizations"),
     date: z.number().int(),
     start: zTimeOfDay,
     end: zTimeOfDay,
@@ -14,11 +14,10 @@ export const zMeetingTime = z
     startsAt: z.number(),
     endsAt: z.number(),
     rrule: z.string().max(500).optional(),
-    repeatUntil: z.number().optional(),
+    repeatUntil: z.number(),
   })
   .refine(({ start, end }) => start < end, { message: "End must be after start" });
 
 export const meetingTimes = defineTable(zodToConvexFields(zMeetingTime.shape))
   .index("by_meeting", ["meetingId"])
-  .index("by_date", ["date"])
   .index("by_org_and_repeat_until", ["orgId", "repeatUntil"]);

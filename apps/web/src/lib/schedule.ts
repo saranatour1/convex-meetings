@@ -19,8 +19,6 @@ export type Person = {
   optional?: boolean;
 };
 
-export type Team = { id: string; name: string; members: Person[] };
-
 export type StatusKind = "free" | "busy" | "stretch" | "out";
 export type Status = { kind: StatusKind; label: string };
 

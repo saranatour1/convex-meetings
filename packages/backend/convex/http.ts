@@ -5,7 +5,7 @@ import { internal } from "./_generated/api";
 import { WEBHOOK_PATH } from "./internal/realtime";
 import { realtimeKit } from "./lib/realtimekit";
 import { isSignedBy, realtimePublicKey } from "./lib/webhooks";
-import type { RealtimeEvent } from "./models/meetings";
+import type { RealtimeEvent } from "./models/callSessions";
 
 const downloadText = (url: string | undefined) =>
   url

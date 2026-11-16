@@ -17,20 +17,18 @@ import { enforceRateLimit } from "../lib/rateLimits";
 import { r2Configured, signedRecordingUrl } from "../lib/r2";
 import { realtimeKit } from "../lib/realtimekit";
 import { zTimeZone } from "../lib/time";
+import { getRecap, type JoinDetails } from "../models/callSessions";
+import { findSessionByNumber, requireSessionAccess } from "../models/meetingAccess";
 import {
   busyForOrg,
   cancelMeeting,
   createMeeting,
   findMeetingByCode,
   getMeeting,
-  findSessionByNumber,
-  getRecap,
-  listSessionMessages,
-  requireSessionAccess,
   listMyMeetings,
   respond as respondToMeeting,
-  type JoinDetails,
 } from "../models/meetings";
+import { listSessionMessages } from "../models/messages";
 import { requireCallControl } from "../models/calls";
 import { canEnter, enterAsMember, inviteToMeeting } from "../models/guests";
 import { getSettings } from "../models/settings";

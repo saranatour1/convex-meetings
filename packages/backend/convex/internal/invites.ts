@@ -2,11 +2,8 @@ import { sendEmail } from "@sarant/cloudflare-email-component";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import { env, internalAction, internalMutation, internalQuery } from "../_generated/server";
+import { escapeHtml, oneLine } from "../lib/html";
 import { inviteEmailDetails, recordSendResult } from "../models/invites";
-
-const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-
-const oneLine = (text: string) => text.replace(/[\r\n]+/g, " ").trim();
 
 export const inviteEmail = ({
   orgName,

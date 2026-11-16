@@ -1,7 +1,6 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import { signIn, testBackend } from "../../tools/auth-test-setup";
+import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 
 const page = { numItems: 50, cursor: null };
 
@@ -17,14 +16,8 @@ const setup = async () => {
   const orgId = await owner.asUser.mutation(api.api.orgs.create, { name: "Acme" });
   const roles = await owner.asUser.query(api.api.orgs.roles, { orgId, paginationOpts: page });
   const role = (name: string) => roles.page.find((r) => r.name === name)!._id;
-  const join = (userId: Id<"users">, roleId: Id<"roles">) =>
-    t.run(async (ctx) => {
-      const memberId = await ctx.db.insert("members", { orgId, userId });
-      await ctx.db.insert("memberRoles", { orgId, memberId, roleId });
-      return memberId;
-    });
-  const adaMember = await join(ada.userId, role("Admin"));
-  const beaMember = await join(bea.userId, role("Member"));
+  const adaMember = await addOrgMember(t, orgId, ada.userId, "Admin");
+  const beaMember = await addOrgMember(t, orgId, bea.userId, "Member");
   const ownerMember = await t.run(
     async (ctx) =>
       (await ctx.db

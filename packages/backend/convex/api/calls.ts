@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { z } from "zod";
 import { authedMutation, meetingAction, meetingMutation, orgQuery } from "../lib/functions";
 import { realtimeKit } from "../lib/realtimekit";
-import type { JoinDetails } from "../models/meetings";
+import type { JoinDetails } from "../models/callSessions";
 import {
   endForEveryone,
   forgetDevices,
@@ -11,7 +11,7 @@ import {
   listLiveCalls,
   removeFromCall,
 } from "../models/calls";
-import { requireMeetingMember } from "../models/meetings";
+import { requireMeetingMember } from "../models/meetingAccess";
 
 export const remove = authedMutation({
   args: { meetingMemberId: zid("meetingMembers") },
