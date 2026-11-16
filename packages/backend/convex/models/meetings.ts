@@ -3,6 +3,7 @@ import { ConvexError } from "convex/values";
 import { DateTime } from "luxon";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { lastOccurrenceEnd, occurrencesBetween } from "../lib/recurrence";
 import { parseOrThrow } from "../lib/validate";
 import { zCallPeer } from "../tables/callPeers";
 import { zMeeting } from "../tables/meetings";
@@ -108,9 +109,16 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
       protected: meeting.protected || undefined,
     }),
   );
+  const rrule = meeting.rrule || undefined;
   await ctx.db.insert(
     "meetingTimes",
-    parseOrThrow(zMeetingTime, { ...time, meetingId, rrule: meeting.rrule || undefined }),
+    parseOrThrow(zMeetingTime, {
+      ...time,
+      meetingId,
+      orgId: meeting.orgId,
+      rrule,
+      repeatUntil: lastOccurrenceEnd(rrule, time),
+    }),
   );
   const members = [
     { userId: meeting.userId, role: "host" as const, response: "accepted" as const },
@@ -380,27 +388,36 @@ export const busyForOrg = async (
   from: number,
   to: number,
 ) => {
-  const members = await ctx.db
-    .query("members")
-    .withIndex("by_org_and_user", (q) => q.eq("orgId", orgId))
-    .take(MAX_MEMBERS_READ);
-  const entries = await Promise.all(
-    members.map(async (member) => {
-      const memberships = await ctx.db
-        .query("meetingMembers")
-        .withIndex("by_user", (q) => q.eq("userId", member.userId))
-        .order("desc")
-        .take(MAX_MEMBERS_READ);
-      const times = await Promise.all(
-        memberships.filter((m) => m.response !== "declined").map((m) => timeOf(ctx, m.meetingId)),
-      );
-      const busy = times
-        .filter((t) => t !== null && t.startsAt < to && t.endsAt > from)
-        .map((t) => ({ start: t!.startsAt, end: t!.endsAt }));
-      return [member.userId, busy] as const;
-    }),
+  const [members, times] = await Promise.all([
+    ctx.db
+      .query("members")
+      .withIndex("by_org_and_user", (q) => q.eq("orgId", orgId))
+      .take(MAX_MEMBERS_READ),
+    ctx.db
+      .query("meetingTimes")
+      .withIndex("by_org_and_repeat_until", (q) => q.eq("orgId", orgId).gte("repeatUntil", from))
+      .take(1000),
+  ]);
+  const busy = new Map<Id<"users">, { start: number; end: number }[]>(
+    members.map((member) => [member.userId, []]),
   );
-  return Object.fromEntries(entries);
+  await Promise.all(
+    times
+      .filter((time) => time.startsAt < to)
+      .map(async (time) => {
+        const occurrences = occurrencesBetween(time.rrule, time, from, to);
+        if (occurrences.length === 0) return;
+        const invited = await ctx.db
+          .query("meetingMembers")
+          .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", time.meetingId))
+          .take(MAX_MEMBERS_READ);
+        for (const member of invited) {
+          if (member.response === "declined") continue;
+          busy.get(member.userId)?.push(...occurrences);
+        }
+      }),
+  );
+  return Object.fromEntries(busy);
 };
 
 const REACTIONS_READ = 200;

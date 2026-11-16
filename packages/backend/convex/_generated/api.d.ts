@@ -35,6 +35,7 @@ import type * as lib_presets from "../lib/presets.js";
 import type * as lib_r2 from "../lib/r2.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_realtimekit from "../lib/realtimekit.js";
+import type * as lib_recurrence from "../lib/recurrence.js";
 import type * as lib_time from "../lib/time.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   "lib/r2": typeof lib_r2;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/realtimekit": typeof lib_realtimekit;
+  "lib/recurrence": typeof lib_recurrence;
   "lib/time": typeof lib_time;
   "lib/validate": typeof lib_validate;
   "lib/webhooks": typeof lib_webhooks;
