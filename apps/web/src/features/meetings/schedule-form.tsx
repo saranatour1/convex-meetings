@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { format } from "date-fns";
+import { DateTime } from "luxon";
 import { CalendarClockIcon, UsersIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import { Calendar } from "@meetings/ui/components/calendar";
@@ -82,7 +82,11 @@ export const ScheduleForm = ({ onInvite, onClose }: ScheduleFormProps) => {
           </form.Field>
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <form.Subscribe selector={(state) => state.values.date}>
-              {(date) => <p className="font-medium text-sm">{format(date, "EEEE, MMM d")}</p>}
+              {(date) => (
+                <p className="font-medium text-sm">
+                  {DateTime.fromJSDate(date).toFormat("EEEE, MMM d")}
+                </p>
+              )}
             </form.Subscribe>
             <form.Field name="time">
               {(field) => (
