@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { CheckIcon, FileTextIcon, UserCheckIcon, UserXIcon, VideoIcon, XIcon } from "lucide-react";
 import { api } from "@meetings/backend";
@@ -20,13 +20,10 @@ import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
+import { JoinCallCard, MeetingCall } from "./call-entry.tsx";
 import { InviteToMeeting, MeetingDoor, MeetingSettingsCard } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
-
-const MeetingCall = lazy(() =>
-  import("./meeting-call.tsx").then((module) => ({ default: module.MeetingCall })),
-);
 
 const showError = (error: unknown) =>
   toastManager.add({ title: describeError(error), type: "error" });
@@ -87,26 +84,30 @@ export const MeetingPage = ({
           )}
         </CardHeader>
         <CardPanel className="flex flex-col gap-6">
-          <Suspense fallback={<Button disabled>Loading call…</Button>}>
-            <MeetingCall
-              meetingId={meetingId}
-              title={meeting.title}
-              kind={meeting.kind}
-              inCall={inCall}
-              onInCallChange={onInCallChange}
-              side={side}
-              onSideChange={onSideChange}
-              expanded={expanded}
-              onExpandedChange={onExpandedChange}
-              canControl={meeting.me.canControl}
-              devicesInCall={meeting.me.devicesInCall}
-              watermark={
-                meeting.protected && viewer
-                  ? [viewer.name, viewer.email].filter(Boolean).join(" · ")
-                  : null
-              }
-            />
-          </Suspense>
+          {inCall ? (
+            <Suspense fallback={<Button disabled>Loading call…</Button>}>
+              <MeetingCall
+                meetingId={meetingId}
+                title={meeting.title}
+                kind={meeting.kind}
+                inCall={inCall}
+                onInCallChange={onInCallChange}
+                side={side}
+                onSideChange={onSideChange}
+                expanded={expanded}
+                onExpandedChange={onExpandedChange}
+                canControl={meeting.me.canControl}
+                devicesInCall={meeting.me.devicesInCall}
+                watermark={
+                  meeting.protected && viewer
+                    ? [viewer.name, viewer.email].filter(Boolean).join(" · ")
+                    : null
+                }
+              />
+            </Suspense>
+          ) : (
+            <JoinCallCard kind={meeting.kind} onJoin={() => onInCallChange(true)} />
+          )}
           <div className="flex flex-wrap gap-2">
             {isHost ? (
               <Button variant="ghost" onClick={() => void cancel({ meetingId }).then(onCancelled)}>
