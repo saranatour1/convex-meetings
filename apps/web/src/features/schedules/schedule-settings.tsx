@@ -204,11 +204,13 @@ const ScheduleSettingsForm = ({ schedule }: { schedule: Doc<"schedules"> | null 
             )}
           </form.Subscribe>
           <form.Subscribe
-            selector={(state) => [state.isSubmitting, state.isSubmitSuccessful, state.isDirty]}
+            selector={(state) => [state.isSubmitting, state.isSubmitSuccessful]}
           >
-            {([isSubmitting, saved, dirty]) => (
+            {([isSubmitting, saved]) => (
               <>
-                {saved && !dirty && <span className="text-muted-foreground text-sm">Saved</span>}
+                {saved && !isSubmitting && (
+                  <span className="text-muted-foreground text-sm">Saved</span>
+                )}
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "Saving…" : "Save"}
                 </Button>
