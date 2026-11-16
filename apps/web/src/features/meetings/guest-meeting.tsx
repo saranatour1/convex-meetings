@@ -117,7 +117,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
             <CardTitle>Chat</CardTitle>
           </CardHeader>
           <CardPanel>
-            <MeetingChat meetingId={meeting._id} />
+            <MeetingChat className="h-96" meetingId={meeting._id} />
           </CardPanel>
         </Card>
       </div>

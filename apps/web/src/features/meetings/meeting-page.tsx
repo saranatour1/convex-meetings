@@ -250,7 +250,7 @@ export const MeetingPage = ({
           <CardDescription>Only people invited to this meeting see it.</CardDescription>
         </CardHeader>
         <CardPanel>
-          <MeetingChat meetingId={meetingId} />
+          <MeetingChat className="h-96" meetingId={meetingId} />
         </CardPanel>
       </Card>
     </div>

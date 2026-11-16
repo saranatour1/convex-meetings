@@ -388,7 +388,7 @@ export const busyForOrg = async (
   return Object.fromEntries(entries);
 };
 
-const describeMessage = async (ctx: QueryCtx, message: Doc<"messages">) => {
+const describeMessage = async (ctx: QueryCtx, message: Doc<"messages">, userId: Id<"users">) => {
   const author = await ctx.db.get("meetingMembers", message.meetingMemberId);
   const user = author && (await getViewer(ctx, author.userId));
   return {
@@ -397,6 +397,8 @@ const describeMessage = async (ctx: QueryCtx, message: Doc<"messages">) => {
     body: message.body,
     authorId: message.meetingMemberId,
     authorName: user?.name ?? "Someone",
+    authorImageUrl: user?.imageUrl ?? null,
+    mine: author?.userId === userId,
   };
 };
 
@@ -404,13 +406,17 @@ export const listMessages = async (
   ctx: QueryCtx,
   meetingId: Id<"meetings">,
   paginationOpts: PaginationOptions,
+  userId: Id<"users">,
 ) => {
   const result = await ctx.db
     .query("messages")
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
     .order("desc")
     .paginate(paginationOpts);
-  return { ...result, page: await Promise.all(result.page.map((m) => describeMessage(ctx, m))) };
+  return {
+    ...result,
+    page: await Promise.all(result.page.map((m) => describeMessage(ctx, m, userId))),
+  };
 };
 
 export const listSessionMessages = async (
@@ -429,7 +435,10 @@ export const listSessionMessages = async (
         .lte("_creationTime", session.endedAt ?? Date.now()),
     )
     .paginate(paginationOpts);
-  return { ...result, page: await Promise.all(result.page.map((m) => describeMessage(ctx, m))) };
+  return {
+    ...result,
+    page: await Promise.all(result.page.map((m) => describeMessage(ctx, m, userId))),
+  };
 };
 
 export const sendMessage = (
