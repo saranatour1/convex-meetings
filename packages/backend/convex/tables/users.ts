@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zTimeZone } from "../lib/time";
 
 export const zUser = z.object({
-  name: z.string().optional(),
+  name: z.string().trim().min(1).max(100).optional(),
   email: z.string().optional(),
   bio: z.string().trim().max(280).optional(),
   imageId: zid("_storage").optional(),

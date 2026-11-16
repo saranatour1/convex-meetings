@@ -14,6 +14,18 @@ erDiagram
     boolean isVerified
     string seenTimeZone "optional"
   }
+  userSettings {
+    id _id PK
+    id userId FK "users"
+    enum theme
+    boolean joinMuted
+    boolean joinCameraOff
+    enum defaultKind
+    number defaultMinutes
+    boolean defaultRecap
+    boolean autoRecord
+    enum invitesFrom
+  }
   organizations {
     id _id PK
     string name
@@ -68,6 +80,7 @@ erDiagram
     string title
     enum kind
     boolean recap
+    boolean record "optional"
     string rtkMeetingId "optional"
   }
   meetingTimes {
@@ -114,6 +127,7 @@ erDiagram
     array alsoShow
   }
   users }o--o| _storage : imageId
+  userSettings }o--|| users : userId
   members }o--|| organizations : orgId
   members }o--|| users : userId
   roles }o--|| organizations : orgId
@@ -143,6 +157,7 @@ erDiagram
 
 | Table | Index | Fields |
 | --- | --- | --- |
+| userSettings | by_user | userId |
 | members | by_org_and_user | orgId, userId |
 | members | by_user | userId |
 | roles | by_org_and_name | orgId, name |

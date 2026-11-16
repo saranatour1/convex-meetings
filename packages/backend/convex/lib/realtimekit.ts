@@ -37,9 +37,10 @@ const call = async <T>(path: string, method: string, body?: unknown): Promise<T>
 };
 
 export const realtimeKit = {
-  createMeeting: (meeting: { title: string; recap: boolean }) =>
+  createMeeting: (meeting: { title: string; recap: boolean; record: boolean }) =>
     call<{ id: string }>("/meetings", "POST", {
       title: meeting.title,
+      record_on_start: meeting.record,
       transcribe_on_end: meeting.recap,
       summarize_on_end: meeting.recap,
       ai_config: meeting.recap

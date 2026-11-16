@@ -15,6 +15,7 @@ import type * as api_members from "../api/members.js";
 import type * as api_messages from "../api/messages.js";
 import type * as api_orgs from "../api/orgs.js";
 import type * as api_schedules from "../api/schedules.js";
+import type * as api_settings from "../api/settings.js";
 import type * as api_users from "../api/users.js";
 import type * as http from "../http.js";
 import type * as internal_invites from "../internal/invites.js";
@@ -33,6 +34,7 @@ import type * as models_members from "../models/members.js";
 import type * as models_orgs from "../models/orgs.js";
 import type * as models_roles from "../models/roles.js";
 import type * as models_schedules from "../models/schedules.js";
+import type * as models_settings from "../models/settings.js";
 import type * as models_users from "../models/users.js";
 import type * as tables_groupMembers from "../tables/groupMembers.js";
 import type * as tables_groups from "../tables/groups.js";
@@ -48,6 +50,7 @@ import type * as tables_organizations from "../tables/organizations.js";
 import type * as tables_roles from "../tables/roles.js";
 import type * as tables_schedules from "../tables/schedules.js";
 import type * as tables_tokens from "../tables/tokens.js";
+import type * as tables_userSettings from "../tables/userSettings.js";
 import type * as tables_users from "../tables/users.js";
 
 import type {
@@ -64,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   "api/messages": typeof api_messages;
   "api/orgs": typeof api_orgs;
   "api/schedules": typeof api_schedules;
+  "api/settings": typeof api_settings;
   "api/users": typeof api_users;
   http: typeof http;
   "internal/invites": typeof internal_invites;
@@ -82,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "models/orgs": typeof models_orgs;
   "models/roles": typeof models_roles;
   "models/schedules": typeof models_schedules;
+  "models/settings": typeof models_settings;
   "models/users": typeof models_users;
   "tables/groupMembers": typeof tables_groupMembers;
   "tables/groups": typeof tables_groups;
@@ -97,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   "tables/roles": typeof tables_roles;
   "tables/schedules": typeof tables_schedules;
   "tables/tokens": typeof tables_tokens;
+  "tables/userSettings": typeof tables_userSettings;
   "tables/users": typeof tables_users;
 }>;
 

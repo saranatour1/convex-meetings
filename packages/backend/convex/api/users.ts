@@ -1,7 +1,8 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "../_generated/server";
 import { authedMutation } from "../lib/functions";
-import { getViewer, setBio, setSeenTimeZone } from "../models/users";
+import { zid } from "convex-helpers/server/zod4";
+import { getViewer, setAvatar, setBio, setName, setSeenTimeZone } from "../models/users";
 import { zUser } from "../tables/users";
 
 export const viewer = query({
@@ -22,4 +23,19 @@ export const updateBio = authedMutation({
 export const reportTimeZone = authedMutation({
   args: { timeZone: zUser.shape.seenTimeZone.unwrap() },
   handler: (ctx, { timeZone }) => setSeenTimeZone(ctx, ctx.userId, timeZone),
+});
+
+export const updateName = authedMutation({
+  args: { name: zUser.shape.name.unwrap() },
+  handler: (ctx, { name }) => setName(ctx, ctx.userId, name),
+});
+
+export const generateAvatarUploadUrl = authedMutation({
+  args: {},
+  handler: (ctx) => ctx.storage.generateUploadUrl(),
+});
+
+export const updateAvatar = authedMutation({
+  args: { imageId: zid("_storage") },
+  handler: (ctx, { imageId }) => setAvatar(ctx, ctx.userId, imageId),
 });

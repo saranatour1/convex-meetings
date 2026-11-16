@@ -38,7 +38,12 @@ export const create = orgMutation({
   },
   handler: (ctx, { orgId, ...meeting }) => {
     ctx.requirePermission("createMeetings");
-    return createMeeting(ctx, { ...meeting, orgId, userId: ctx.userId });
+    return createMeeting(ctx, {
+      ...meeting,
+      orgId,
+      userId: ctx.userId,
+      canManageMeetings: ctx.can("manageMeetings"),
+    });
   },
 });
 

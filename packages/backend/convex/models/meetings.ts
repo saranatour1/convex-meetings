@@ -9,6 +9,7 @@ import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
 import { zMessage } from "../tables/messages";
 import { findMember } from "./members";
+import { getSettings } from "./settings";
 import { getViewer } from "./users";
 
 const MAX_INVITEES = 100;
@@ -27,6 +28,7 @@ type NewMeeting = {
   timeZone: string;
   rrule?: string;
   inviteeIds: Id<"users">[];
+  canManageMeetings: boolean;
 };
 
 export const meetingTime = (startsAt: number, minutes: number, timeZone: string) => {
@@ -78,7 +80,13 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
     if (!(await findMember(ctx, meeting.orgId, userId))) {
       throw new ConvexError("Only members of this organization can be invited");
     }
+    const settings = await getSettings(ctx, userId);
+    if (settings.invitesFrom === "managers" && !meeting.canManageMeetings) {
+      const invitee = await getViewer(ctx, userId);
+      throw new ConvexError(`${invitee?.name ?? "Someone"} only accepts invites from organizers`);
+    }
   }
+  const { autoRecord } = await getSettings(ctx, meeting.userId);
   const time = meetingTime(meeting.startsAt, meeting.minutes, meeting.timeZone);
   const code = await uniqueMeetingCode(ctx);
   const meetingId = await ctx.db.insert(
@@ -90,6 +98,7 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
       title: meeting.title,
       kind: meeting.kind,
       recap: meeting.recap,
+      record: autoRecord,
     }),
   );
   await ctx.db.insert(
@@ -330,6 +339,7 @@ export const joinDetails = async (
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
+    record: meeting.record ?? false,
     rtkMeetingId: meeting.rtkMeetingId ?? null,
     memberId: member._id,
     role: member.role,
