@@ -141,6 +141,9 @@ importers:
       '@convex-dev/workpool':
         specifier: ^0.4.16
         version: 0.4.16(convex-helpers@0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      '@sarant/cloudflare-email-component':
+        specifier: 0.4.0
+        version: 0.4.0(convex@1.50.0(react@19.3.1))
       convex:
         specifier: 'catalog:'
         version: 1.50.0(react@19.3.1)
@@ -1539,6 +1542,11 @@ packages:
 
   '@rolldown/pluginutils@1.1.1':
     resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
+
+  '@sarant/cloudflare-email-component@0.4.0':
+    resolution: {integrity: sha512-YN68d4ktevrwhYin6rrHQAIJpjlNSpKuliyadhMalxc/CCkX5ssLLk3ys3yQSO7cUV33Yy7orsFuGUC93fHXwg==}
+    peerDependencies:
+      convex: ^1.49.0
 
   '@simplewebauthn/browser@14.0.0':
     resolution: {integrity: sha512-1odWVqeEBTl7lJ9zMKLEsmTlnyrDO5iRcTvfMKKk1WThUnp/i8JJdffdj2icP+tty159s4PgwE3BiMoEW9NFow==}
@@ -3891,6 +3899,10 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.1.1': {}
+
+  '@sarant/cloudflare-email-component@0.4.0(convex@1.50.0(react@19.3.1))':
+    dependencies:
+      convex: 1.50.0(react@19.3.1)
 
   '@simplewebauthn/browser@14.0.0': {}
 

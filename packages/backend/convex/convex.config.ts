@@ -7,6 +7,7 @@ import authPasskey from "@convex-dev/auth/components/passkey/convex.config.js";
 import authGoogle from "@convex-dev/auth/components/google/convex.config.js";
 import authGithub from "@convex-dev/auth/components/github/convex.config.js";
 import workpool from "@convex-dev/workpool/convex.config.js";
+import cloudflareEmail from "@sarant/cloudflare-email-component/convex.config.js";
 
 const app = defineApp({
   env: {
@@ -15,6 +16,9 @@ const app = defineApp({
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
     AUTH_GITHUB_CLIENT_SECRET: v.string(),
+    CLOUDFLARE_ACCOUNT_ID: v.optional(v.string()),
+    CLOUDFLARE_API_TOKEN: v.optional(v.string()),
+    EMAIL_FROM: v.optional(v.string()),
   },
 });
 app.use(auth);
@@ -36,5 +40,12 @@ app.use(authGithub, {
   },
 });
 app.use(workpool, { name: "avatarWorkpool" });
+app.use(workpool, { name: "emailWorkpool" });
+app.use(cloudflareEmail, {
+  env: {
+    CLOUDFLARE_ACCOUNT_ID: app.env.CLOUDFLARE_ACCOUNT_ID,
+    CLOUDFLARE_API_TOKEN: app.env.CLOUDFLARE_API_TOKEN,
+  },
+});
 
 export default app;

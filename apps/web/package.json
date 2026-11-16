@@ -9,7 +9,8 @@
     "dev": "vp dev --port 3000",
     "build": "vp build",
     "preview": "vp preview",
-    "deploy": "vp build && wrangler deploy"
+    "deploy": "vp build && wrangler deploy",
+    "test": "vp test run"
   },
   "dependencies": {
     "@convex-dev/auth": "catalog:",

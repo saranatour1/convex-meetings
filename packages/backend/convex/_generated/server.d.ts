@@ -34,6 +34,9 @@ type Env = {
   readonly AUTH_GITHUB_CLIENT_SECRET: string;
   readonly AUTH_GOOGLE_CLIENT_ID: string;
   readonly AUTH_GOOGLE_CLIENT_SECRET: string;
+  readonly CLOUDFLARE_ACCOUNT_ID: string | undefined;
+  readonly CLOUDFLARE_API_TOKEN: string | undefined;
+  readonly EMAIL_FROM: string | undefined;
   readonly SITE_URL: string;
 };
 

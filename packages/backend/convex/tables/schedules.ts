@@ -15,6 +15,7 @@ export const zSchedule = z.object({
   userId: zid("users"),
   timeZone: zTimeZone,
   weeklyHours: z.array(zAvailableRange),
+  alsoShow: z.array(zTimeZone).max(5),
 });
 
 export const schedules = defineTable(zodToConvexFields(zSchedule.shape)).index("by_user", [

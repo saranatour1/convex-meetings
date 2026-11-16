@@ -12,6 +12,7 @@ erDiagram
     id imageId FK "_storage, optional"
     enum method
     boolean isVerified
+    string seenTimeZone "optional"
   }
   organizations {
     id _id PK
@@ -45,6 +46,8 @@ erDiagram
     id roleId FK "roles"
     id invitedBy FK "users"
     id tokenId FK "tokens"
+    string email
+    string emailError "optional"
   }
   groups {
     id _id PK
@@ -88,6 +91,7 @@ erDiagram
     id userId FK "users"
     string timeZone
     array weeklyHours
+    array alsoShow
   }
   users }o--o| _storage : imageId
   members }o--|| organizations : orgId
@@ -127,6 +131,7 @@ erDiagram
 | tokens | by_expiresAt | expiresAt |
 | invites | by_org | orgId |
 | invites | by_token | tokenId |
+| invites | by_org_and_email | orgId, email |
 | groups | by_org | orgId |
 | groupMembers | by_group_and_user | groupId, userId |
 | groupMembers | by_org_and_user | orgId, userId |

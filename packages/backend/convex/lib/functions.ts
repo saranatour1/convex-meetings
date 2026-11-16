@@ -1,6 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { customCtx, customCtxAndArgs } from "convex-helpers/server/customFunctions";
-import { type ZCustomCtx, zCustomMutation, zCustomQuery } from "convex-helpers/server/zod4";
+import { NoOp, customCtx, customCtxAndArgs } from "convex-helpers/server/customFunctions";
+import {
+  type ZCustomCtx,
+  convexToZod,
+  zCustomMutation,
+  zCustomQuery,
+} from "convex-helpers/server/zod4";
+import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
@@ -32,10 +38,13 @@ const orgMember = customCtxAndArgs({
     const requirePermission = (permission: Permission) => {
       if (!permissions.has(permission)) throw new ConvexError("Not allowed");
     };
-    return { ctx: { userId, member, requirePermission }, args: {} };
+    return { ctx: { userId, member, requirePermission }, args: { orgId } };
   },
 });
 
+export const zPaginationOpts = convexToZod(paginationOptsValidator);
+
+export const publicQuery = zCustomQuery(query, NoOp);
 export const authedQuery = zCustomQuery(query, signedInUser);
 export const authedMutation = zCustomMutation(mutation, signedInUser);
 export const orgQuery = zCustomQuery(query, orgMember);

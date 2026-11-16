@@ -59,3 +59,11 @@ export const setBio = async (ctx: MutationCtx, userId: Id<"users">, bio: string)
   const parsed = parseOrThrow(zUser.shape.bio.unwrap(), bio);
   await ctx.db.patch("users", userId, { bio: parsed || undefined });
 };
+
+export const setSeenTimeZone = async (ctx: MutationCtx, userId: Id<"users">, timeZone: string) => {
+  const user = await ctx.db.get("users", userId);
+  if (!user || user.seenTimeZone === timeZone) return;
+  await ctx.db.patch("users", userId, {
+    seenTimeZone: parseOrThrow(zUser.shape.seenTimeZone.unwrap(), timeZone),
+  });
+};

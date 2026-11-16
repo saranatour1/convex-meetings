@@ -9,12 +9,22 @@
  */
 
 import type * as api_auth from "../api/auth.js";
+import type * as api_invites from "../api/invites.js";
+import type * as api_members from "../api/members.js";
+import type * as api_orgs from "../api/orgs.js";
+import type * as api_schedules from "../api/schedules.js";
 import type * as api_users from "../api/users.js";
+import type * as internal_invites from "../internal/invites.js";
 import type * as internal_users from "../internal/users.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_time from "../lib/time.js";
+import type * as lib_validate from "../lib/validate.js";
 import type * as lib_workpools from "../lib/workpools.js";
+import type * as models_invites from "../models/invites.js";
+import type * as models_members from "../models/members.js";
+import type * as models_orgs from "../models/orgs.js";
 import type * as models_roles from "../models/roles.js";
+import type * as models_schedules from "../models/schedules.js";
 import type * as models_users from "../models/users.js";
 import type * as tables_groupMembers from "../tables/groupMembers.js";
 import type * as tables_groups from "../tables/groups.js";
@@ -39,12 +49,22 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "api/auth": typeof api_auth;
+  "api/invites": typeof api_invites;
+  "api/members": typeof api_members;
+  "api/orgs": typeof api_orgs;
+  "api/schedules": typeof api_schedules;
   "api/users": typeof api_users;
+  "internal/invites": typeof internal_invites;
   "internal/users": typeof internal_users;
   "lib/functions": typeof lib_functions;
   "lib/time": typeof lib_time;
+  "lib/validate": typeof lib_validate;
   "lib/workpools": typeof lib_workpools;
+  "models/invites": typeof models_invites;
+  "models/members": typeof models_members;
+  "models/orgs": typeof models_orgs;
   "models/roles": typeof models_roles;
+  "models/schedules": typeof models_schedules;
   "models/users": typeof models_users;
   "tables/groupMembers": typeof tables_groupMembers;
   "tables/groups": typeof tables_groups;
@@ -96,4 +116,6 @@ export declare const components: {
   authGoogle: import("@convex-dev/auth/components/google/_generated/component.js").ComponentApi<"authGoogle">;
   authGithub: import("@convex-dev/auth/components/github/_generated/component.js").ComponentApi<"authGithub">;
   avatarWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"avatarWorkpool">;
+  emailWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"emailWorkpool">;
+  cloudflareEmail: import("@sarant/cloudflare-email-component/_generated/component.js").ComponentApi<"cloudflareEmail">;
 };
