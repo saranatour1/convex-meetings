@@ -99,6 +99,7 @@ export const MeetingPage = ({
               expanded={expanded}
               onExpandedChange={onExpandedChange}
               canControl={meeting.me.canControl}
+              devicesInCall={meeting.me.devicesInCall}
               watermark={
                 meeting.protected && viewer
                   ? [viewer.name, viewer.email].filter(Boolean).join(" · ")

@@ -64,16 +64,16 @@ const setup = async (extra: { protected?: boolean } = {}) => {
     );
   const guestMember = await memberOf(guest.userId);
   const hostMember = await memberOf(host.userId);
-  const event = (name: string, participant?: string, sessionId = "session-1") =>
+  const event = (name: string, participant?: string, peerId = participant) =>
     t.mutation(internal.internal.realtime.recordEvent, {
       event: {
         event: name,
         meeting: {
           id: "rtk-meeting",
-          sessionId,
+          sessionId: "session-1",
           startedAt: new Date(Date.now() - 1000).toISOString(),
         },
-        participant: participant ? { customParticipantId: participant } : undefined,
+        participant: participant ? { customParticipantId: participant, peerId } : undefined,
       },
     });
   return { t, host, guest, orgId, orgMemberId, meetingId, guestMember, hostMember, event };
@@ -90,7 +90,7 @@ test("a removed person is kicked and can't rejoin until let back in", async () =
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   expect(calls.at(-1)).toMatchObject({
     url: expect.stringContaining("/meetings/rtk-meeting/active-session/kick"),
-    body: { custom_participant_ids: [guestMember] },
+    body: { participant_ids: ["participant"] },
   });
   await expect(guest.asUser.action(api.api.meetings.join, { meetingId })).rejects.toThrow(
     "removed you",
@@ -121,12 +121,12 @@ test("live calls track who is in, and admins end them for everyone", async () =>
 
 test("removing someone from the org takes them out of its live calls", async () => {
   vi.useFakeTimers();
-  const { t, host, orgId, orgMemberId, meetingId, guestMember, event } = await setup();
-  await host.asUser.action(api.api.meetings.join, { meetingId });
+  const { t, host, guest, orgId, orgMemberId, meetingId, guestMember, event } = await setup();
+  await guest.asUser.action(api.api.meetings.join, { meetingId });
   await event("meeting.participantJoined", guestMember);
   await host.asUser.mutation(api.api.members.remove, { orgId, memberId: orgMemberId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
-  expect(calls.at(-1)?.body).toEqual({ custom_participant_ids: [guestMember] });
+  expect(calls.at(-1)?.body).toEqual({ participant_ids: ["participant"] });
   const removed = await t.run((ctx) => ctx.db.get("meetingMembers", guestMember));
   expect(removed?.removedAt).toBeTypeOf("number");
 });
@@ -184,4 +184,33 @@ test("protected meetings never record and keep snapshots and downloads to hosts"
     paginationOpts: page,
   });
   expect(chat.page).toMatchObject([{ body: "During the call", authorName: "Guest" }]);
+});
+
+test("one person on two devices stays present until both leave, and can switch here", async () => {
+  vi.useFakeTimers();
+  const { t, host, orgId, meetingId, hostMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  const code = (await t.run((ctx) => ctx.db.get("meetings", meetingId)))!.code;
+  await event("meeting.participantJoined", hostMember, "laptop");
+  await event("meeting.participantJoined", hostMember, "phone");
+  await event("meeting.participantJoined", hostMember, "phone");
+  expect(await host.asUser.query(api.api.calls.live, { orgId })).toMatchObject([
+    { people: ["Host"], count: 1 },
+  ]);
+  expect((await host.asUser.query(api.api.meetings.get, { code }))?.me.devicesInCall).toBe(2);
+  await event("meeting.participantLeft", hostMember, "laptop");
+  expect(await host.asUser.query(api.api.calls.live, { orgId })).toHaveLength(1);
+  expect((await host.asUser.query(api.api.meetings.get, { code }))?.me.devicesInCall).toBe(1);
+
+  await event("meeting.participantJoined", hostMember, "tablet");
+  await host.asUser.mutation(api.api.calls.leftOnDevice, { meetingId, peerId: "tablet" });
+  expect((await host.asUser.query(api.api.meetings.get, { code }))?.me.devicesInCall).toBe(1);
+
+  await host.asUser.action(api.api.calls.switchHere, { meetingId });
+  expect(calls.at(-1)).toMatchObject({
+    url: expect.stringContaining("/active-session/kick"),
+    body: { participant_ids: ["participant"] },
+  });
+  expect((await host.asUser.query(api.api.meetings.get, { code }))?.me.devicesInCall).toBe(0);
+  expect(await host.asUser.query(api.api.calls.live, { orgId })).toEqual([]);
 });

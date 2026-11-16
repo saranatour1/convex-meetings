@@ -5,7 +5,10 @@ import { Button } from "@meetings/ui/components/button";
 const MESSAGES: Record<string, { title: string; description: string }> = {
   left: { title: "You left the call", description: "The call is still going if others are in it." },
   ended: { title: "The call ended", description: "The host ended it for everyone." },
-  kicked: { title: "You were removed from the call", description: "A host removed you." },
+  kicked: {
+    title: "You were removed from the call",
+    description: "A host removed you, or you switched to another device.",
+  },
   rejected: { title: "You weren't let in", description: "A host declined your request to join." },
   disconnected: {
     title: "Your connection dropped",
@@ -45,7 +48,7 @@ export const CallEnded = ({ title, onRejoin, onBack, rejoining }: CallEndedProps
             <ArrowLeftIcon />
             Back to meeting
           </Button>
-          {state !== "kicked" && state !== "rejected" && (
+          {state !== "rejected" && (
             <Button disabled={rejoining} onClick={onRejoin}>
               <RotateCwIcon />
               {rejoining ? "Rejoining…" : "Rejoin"}

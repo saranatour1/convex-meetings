@@ -144,7 +144,7 @@ erDiagram
     number startedAt
     number endedAt "optional"
     array attendeeIds
-    array presentIds "optional"
+    array presentPeers "optional"
     string summary "optional"
     string transcriptUrl "optional"
     string recordingUrl "optional"

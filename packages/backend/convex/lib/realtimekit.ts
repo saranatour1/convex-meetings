@@ -76,9 +76,9 @@ export const realtimeKit = {
       `/sessions/${sessionId}/transcript?format=JSON`,
       "GET",
     ),
-  kick: (meetingId: string, customParticipantIds: string[]) =>
+  kick: (meetingId: string, participantIds: string[]) =>
     call<unknown>(`/meetings/${meetingId}/active-session/kick`, "POST", {
-      custom_participant_ids: customParticipantIds,
+      participant_ids: participantIds,
     }),
   kickAll: (meetingId: string) =>
     call<unknown>(`/meetings/${meetingId}/active-session/kick-all`, "POST", {}),

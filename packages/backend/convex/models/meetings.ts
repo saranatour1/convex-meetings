@@ -211,6 +211,15 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
   ]);
   if (!meeting || !member) return null;
   const isGuest = viewer?.method === "guest";
+  const openSession = await ctx.db
+    .query("meetingSessions")
+    .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
+    .order("desc")
+    .first();
+  const devicesInCall =
+    openSession && !openSession.endedAt
+      ? (openSession.presentPeers ?? []).filter((peer) => peer.memberId === member._id).length
+      : 0;
   const canControl = !isGuest && (await canControlCall(ctx, meeting, member));
   const [time, members, sessions] = await Promise.all([
     timeOf(ctx, meetingId),
@@ -254,6 +263,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
       role: member.role,
       response: member.response,
       removed: Boolean(member.removedAt),
+      devicesInCall,
       isGuest,
       canControl,
       canInvite: !isGuest && (canControl || (meeting.inviters ?? "hosts") === "everyone"),
@@ -474,7 +484,7 @@ export const setRtkParticipant = (
 export type RealtimeEvent = {
   event: string;
   meeting?: { id?: string; sessionId?: string; startedAt?: string; endedAt?: string };
-  participant?: { customParticipantId?: string };
+  participant?: { customParticipantId?: string; peerId?: string };
   summaryDownloadUrl?: string;
   transcriptDownloadUrl?: string;
   recording?: {
@@ -538,17 +548,20 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   if (attendee && !session.attendeeIds.includes(attendee)) {
     patch.attendeeIds = [...session.attendeeIds, attendee].slice(0, 1000);
   }
-  const present = session.presentIds ?? [];
-  if (attendee && event.event === "meeting.participantJoined" && !present.includes(attendee)) {
-    patch.presentIds = [...present, attendee].slice(0, 1000);
+  const peers = session.presentPeers ?? [];
+  const peerId = event.participant?.peerId ?? attendee;
+  if (attendee && peerId && event.event === "meeting.participantJoined") {
+    if (!peers.some((peer) => peer.peerId === peerId)) {
+      patch.presentPeers = [...peers, { peerId, memberId: attendee }].slice(0, 1000);
+    }
   }
-  if (attendee && event.event === "meeting.participantLeft") {
-    patch.presentIds = present.filter((id) => id !== attendee);
+  if (peerId && event.event === "meeting.participantLeft") {
+    patch.presentPeers = peers.filter((peer) => peer.peerId !== peerId);
   }
   if (!session.orgId) patch.orgId = meeting.orgId;
   if (event.event === "meeting.ended") {
     patch.endedAt = toMillis(event.meeting?.endedAt, now);
-    patch.presentIds = [];
+    patch.presentPeers = [];
     await clearStrokes(ctx, meeting._id);
   }
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);

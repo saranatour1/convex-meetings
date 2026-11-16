@@ -6,8 +6,18 @@ import {
   RtkParticipantTile,
   RtkSpeakerSelector,
 } from "@cloudflare/realtimekit-react-ui";
-import { ArrowLeftIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ArrowRightLeftIcon,
+  MicIcon,
+  MicOffIcon,
+  MonitorSmartphoneIcon,
+  VideoIcon,
+  VideoOffIcon,
+} from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
+import { toastManager } from "@meetings/ui/components/toast";
+import { describeError } from "#/lib/errors.ts";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 
 const LobbyToggles = ({ kind }: { kind: MeetingKind }) => {
@@ -50,9 +60,15 @@ const LobbyToggles = ({ kind }: { kind: MeetingKind }) => {
   );
 };
 
-type CallLobbyProps = { title: string; kind: MeetingKind; onBack: () => void };
+type CallLobbyProps = {
+  title: string;
+  kind: MeetingKind;
+  onBack: () => void;
+  devicesInCall: number;
+  onSwitchHere: () => Promise<unknown>;
+};
 
-export const CallLobby = ({ title, kind, onBack }: CallLobbyProps) => {
+export const CallLobby = ({ title, kind, onBack, devicesInCall, onSwitchHere }: CallLobbyProps) => {
   const { meeting } = useRealtimeKitMeeting();
   const name = useRealtimeKitSelector((m) => m.self.name);
   const waiting = useRealtimeKitSelector((m) => m.self.roomState === "waitlisted");
@@ -94,8 +110,40 @@ export const CallLobby = ({ title, kind, onBack }: CallLobbyProps) => {
               {kind !== "audioRoom" && <RtkCameraSelector meeting={meeting} />}
               <RtkSpeakerSelector meeting={meeting} />
             </div>
-            <Button size="lg" disabled={waiting} onClick={() => void meeting.join()}>
-              {waiting ? "Waiting for the host to let you in…" : "Join now"}
+            {devicesInCall > 0 && !waiting && (
+              <div className="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                <span className="flex items-center gap-2 font-medium">
+                  <MonitorSmartphoneIcon className="size-4" />
+                  You're already in this call on another device
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  Switch here to leave it there, or join on both.
+                </span>
+                <Button
+                  onClick={() =>
+                    void onSwitchHere()
+                      .then(() => meeting.join())
+                      .catch((error: unknown) =>
+                        toastManager.add({ title: describeError(error), type: "error" }),
+                      )
+                  }
+                >
+                  <ArrowRightLeftIcon />
+                  Switch here
+                </Button>
+              </div>
+            )}
+            <Button
+              size="lg"
+              variant={devicesInCall > 0 && !waiting ? "outline" : "default"}
+              disabled={waiting}
+              onClick={() => void meeting.join()}
+            >
+              {waiting
+                ? "Waiting for the host to let you in…"
+                : devicesInCall > 0
+                  ? "Join on this device too"
+                  : "Join now"}
             </Button>
           </div>
         </div>
