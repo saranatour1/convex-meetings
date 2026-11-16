@@ -82,7 +82,8 @@ export const AnnotationLayer = ({
   canClear,
   canSnapshot,
 }: AnnotationLayerProps) => {
-  const pen = PEN_COLORS.find((color) => color === useSearch({ strict: false }).draw);
+  const { draw } = useSearch({ strict: false });
+  const pen = PEN_COLORS.find((color) => color === draw);
   const navigate = useNavigate();
   const pass = useGuestPass();
   const strokes = useQuery(api.annotations.strokes, { meetingId, shareId, ...pass }) ?? [];
