@@ -83,7 +83,7 @@ Layers depend downward only: `routes` → `layouts` → `features` → `componen
 | `providers/`         | App-wide providers (`ConvexWithAuthProvider` wires Convex and Convex Auth)                                              |
 | `routes/`            | Route config, search-param validation, auth gates, and handing URL state to layouts and features                        |
 | `layouts/`           | Page frames that compose features, such as `app-shell/` (sidebar and header for signed-in pages)                        |
-| `features/<domain>/` | UI plus Convex calls for one domain: `auth`, `meetings`, `tasks`                                                        |
+| `features/<domain>/` | UI plus Convex calls for one domain: `auth`, `meetings`                                                                 |
 | `components/`        | Domain-free building blocks with no Convex calls: `EmptyState`, `FormError`, `LoadingScreen`                            |
 | `lib/`               | Pure helpers                                                                                                            |
 
