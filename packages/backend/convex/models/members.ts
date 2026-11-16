@@ -53,7 +53,7 @@ const describeMember = async (ctx: QueryCtx, member: Doc<"members">) => {
     imageUrl: user?.imageUrl ?? null,
     isVerified: user?.isVerified ?? false,
     seenTimeZone: user?.seenTimeZone ?? null,
-    roles: roles.map((role) => role.name),
+    roles: roles.map((role) => ({ _id: role._id, name: role.name })),
     schedule: schedule ? { timeZone: schedule.timeZone, weeklyHours: schedule.weeklyHours } : null,
   };
 };
@@ -76,6 +76,31 @@ const isLastHolder = async (ctx: QueryCtx, roleId: Id<"roles">) => {
     .withIndex("by_role", (q) => q.eq("roleId", roleId))
     .take(2);
   return holders.length < 2;
+};
+
+export const setMemberRole = async (
+  ctx: MutationCtx,
+  orgId: Id<"organizations">,
+  memberId: Id<"members">,
+  roleId: Id<"roles">,
+  ownerRoleId: Id<"roles"> | null,
+) => {
+  const [member, role] = await Promise.all([
+    ctx.db.get("members", memberId),
+    ctx.db.get("roles", roleId),
+  ]);
+  if (!member || member.orgId !== orgId) throw new ConvexError("Not a member");
+  if (!role || role.orgId !== orgId) throw new ConvexError("Unknown role");
+  const assignments = await ctx.db
+    .query("memberRoles")
+    .withIndex("by_member_and_role", (q) => q.eq("memberId", memberId))
+    .take(MAX_ROLES_PER_MEMBER);
+  const losesOwner = roleId !== ownerRoleId && assignments.some((a) => a.roleId === ownerRoleId);
+  if (ownerRoleId && losesOwner && (await isLastHolder(ctx, ownerRoleId))) {
+    throw new ConvexError("An organization needs at least one owner");
+  }
+  await Promise.all(assignments.map((a) => ctx.db.delete("memberRoles", a._id)));
+  await ctx.db.insert("memberRoles", { orgId, memberId, roleId });
 };
 
 export const removeMember = async (

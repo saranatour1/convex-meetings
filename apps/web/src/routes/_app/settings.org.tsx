@@ -1,4 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { OrgSettings } from "#/features/orgs/org-settings.tsx";
 
-export const Route = createFileRoute("/_app/settings/org")({ component: OrgSettings });
+const OrgSettingsPage = () => {
+  const navigate = Route.useNavigate();
+  return <OrgSettings onLeft={() => void navigate({ to: "/", search: { org: undefined } })} />;
+};
+
+export const Route = createFileRoute("/_app/settings/org")({ component: OrgSettingsPage });

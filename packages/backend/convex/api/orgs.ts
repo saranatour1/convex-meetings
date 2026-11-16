@@ -1,5 +1,11 @@
-import { authedMutation, authedQuery, orgQuery, zPaginationOpts } from "../lib/functions";
-import { createOrg, listOrgsForUser, listRoles } from "../models/orgs";
+import {
+  authedMutation,
+  authedQuery,
+  orgMutation,
+  orgQuery,
+  zPaginationOpts,
+} from "../lib/functions";
+import { createOrg, listOrgsForUser, listRoles, renameOrg } from "../models/orgs";
 import { grantedPermissions } from "../models/roles";
 import { zOrganization } from "../tables/organizations";
 
@@ -26,5 +32,13 @@ export const get = orgQuery({
       grantedPermissions(ctx, ctx.member._id),
     ]);
     return org && { _id: org._id, name: org.name, permissions: [...permissions] };
+  },
+});
+
+export const rename = orgMutation({
+  args: { name: zOrganization.shape.name },
+  handler: (ctx, { orgId, name }) => {
+    ctx.requirePermission("manageRoles");
+    return renameOrg(ctx, orgId, name);
   },
 });

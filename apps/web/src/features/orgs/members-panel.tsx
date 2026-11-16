@@ -1,7 +1,28 @@
+import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { BadgeCheckIcon, MailIcon, RotateCwIcon, TriangleAlertIcon, XIcon } from "lucide-react";
-import { api } from "@meetings/backend";
+import {
+  BadgeCheckIcon,
+  LogOutIcon,
+  MailIcon,
+  MoreHorizontalIcon,
+  RotateCwIcon,
+  SearchIcon,
+  ShieldIcon,
+  TriangleAlertIcon,
+  UserMinusIcon,
+  XIcon,
+} from "lucide-react";
+import { api, type Id } from "@meetings/backend";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "@meetings/ui/components/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
@@ -15,61 +36,236 @@ import {
 import { Input } from "@meetings/ui/components/input";
 import { Label } from "@meetings/ui/components/label";
 import {
+  Menu,
+  MenuItem,
+  MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuSub,
+  MenuSubPopup,
+  MenuSubTrigger,
+  MenuTrigger,
+} from "@meetings/ui/components/menu";
+import {
   Select,
   SelectItem,
   SelectPopup,
   SelectTrigger,
   SelectValue,
 } from "@meetings/ui/components/select";
+import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
+import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
-import { cityOf, formatLongDate } from "#/lib/schedule.ts";
+import { cityOf, formatLongDate, formatTime } from "#/lib/schedule.ts";
 import { useActiveOrg } from "./active-org.tsx";
+import type { Member } from "./people.ts";
 
-const MembersList = () => {
+export type MemberConfirm = { action: "remove" | "leave"; memberId: string };
+
+type MembersPanelProps = {
+  search: string;
+  onSearchChange: (search: string) => void;
+  confirm?: MemberConfirm;
+  onConfirmChange: (confirm: MemberConfirm | undefined) => void;
+  onLeft: () => void;
+};
+
+const RowMenu = ({ children }: { children: ReactNode }) => (
+  <Menu>
+    <MenuTrigger render={<Button size="icon-sm" variant="ghost" aria-label="Member actions" />}>
+      <MoreHorizontalIcon />
+    </MenuTrigger>
+    <MenuPopup align="end" className="min-w-52">
+      {children}
+    </MenuPopup>
+  </Menu>
+);
+
+const MemberRow = ({
+  member,
+  isSelf,
+  canManageRoles,
+  canRemove,
+  roles,
+  onConfirm,
+}: {
+  member: Member;
+  isSelf: boolean;
+  canManageRoles: boolean;
+  canRemove: boolean;
+  roles: { _id: Id<"roles">; name: string }[];
+  onConfirm: (confirm: MemberConfirm) => void;
+}) => {
   const { orgId } = useActiveOrg();
-  const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 50 });
+  const setRole = useMutation(api.members.setRole);
+  const zone = member.schedule?.timeZone ?? member.seenTimeZone;
+  const hasActions = canManageRoles || canRemove || isSelf;
 
   return (
-    <ul className="flex flex-col divide-y">
-      {members.results.map((member) => (
-        <li key={member._id} className="flex items-center gap-3 py-3">
-          <Avatar className="size-9">
-            {member.imageUrl && <AvatarImage src={member.imageUrl} alt="" />}
-            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-          </Avatar>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="flex items-center gap-2 font-medium text-sm">
-              {member.name}
-              {member.isVerified ? (
-                <Badge variant="success" size="sm">
-                  <BadgeCheckIcon />
-                  Verified
-                </Badge>
-              ) : (
-                <Badge variant="warning" size="sm">
-                  Unverified
-                </Badge>
-              )}
-            </span>
-            <span className="truncate text-muted-foreground text-xs">
-              {[member.email, member.roles.join(", ")].filter(Boolean).join(" · ")}
-            </span>
-          </div>
-          <span className="text-muted-foreground text-xs">
-            {member.schedule ? cityOf(member.schedule.timeZone) : "No working hours yet"}
+    <li className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 sm:grid-cols-[minmax(0,1fr)_9rem_8rem_auto]">
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar className="size-9">
+          {member.imageUrl && <AvatarImage src={member.imageUrl} alt="" />}
+          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+        </Avatar>
+        <div className="flex min-w-0 flex-col">
+          <span className="flex items-center gap-1.5 truncate font-medium text-sm">
+            {member.name}
+            {isSelf && <span className="text-muted-foreground font-normal">(you)</span>}
+            {member.isVerified && (
+              <BadgeCheckIcon
+                className="size-3.5 text-success-foreground"
+                aria-label="Verified email"
+              />
+            )}
           </span>
-        </li>
-      ))}
-      {members.status === "CanLoadMore" && (
-        <li className="pt-3">
-          <Button size="sm" variant="ghost" onClick={() => members.loadMore(50)}>
-            Show more
-          </Button>
-        </li>
+          <span className="truncate text-muted-foreground text-xs">
+            {member.email ?? "No email yet"}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {member.roles.map((role) => (
+          <Badge key={role._id} variant={role.name === "Owner" ? "default" : "outline"}>
+            {role.name}
+          </Badge>
+        ))}
+      </div>
+      <span className="hidden text-muted-foreground text-xs tabular-nums sm:block">
+        {zone ? `${formatTime(Date.now(), zone)} · ${cityOf(zone)}` : "No hours set"}
+      </span>
+      {hasActions ? (
+        <RowMenu>
+          {canManageRoles && (
+            <MenuSub>
+              <MenuSubTrigger>
+                <ShieldIcon />
+                Change role
+              </MenuSubTrigger>
+              <MenuSubPopup>
+                <MenuRadioGroup
+                  value={member.roles[0]?._id ?? ""}
+                  onValueChange={(roleId) =>
+                    void setRole({
+                      orgId,
+                      memberId: member._id,
+                      roleId: roleId as Id<"roles">,
+                    }).catch((error: unknown) =>
+                      toastManager.add({ title: describeError(error), type: "error" }),
+                    )
+                  }
+                >
+                  {roles.map((role) => (
+                    <MenuRadioItem key={role._id} value={role._id}>
+                      {role.name}
+                    </MenuRadioItem>
+                  ))}
+                </MenuRadioGroup>
+              </MenuSubPopup>
+            </MenuSub>
+          )}
+          {canManageRoles && (canRemove || isSelf) && <MenuSeparator />}
+          {isSelf ? (
+            <MenuItem
+              variant="destructive"
+              onClick={() => onConfirm({ action: "leave", memberId: member._id })}
+            >
+              <LogOutIcon />
+              Leave organization
+            </MenuItem>
+          ) : (
+            canRemove && (
+              <MenuItem
+                variant="destructive"
+                onClick={() => onConfirm({ action: "remove", memberId: member._id })}
+              >
+                <UserMinusIcon />
+                Remove from organization
+              </MenuItem>
+            )
+          )}
+        </RowMenu>
+      ) : (
+        <span />
       )}
-    </ul>
+    </li>
+  );
+};
+
+const ConfirmDialog = ({
+  confirm,
+  members,
+  onClose,
+  onLeft,
+}: {
+  confirm?: MemberConfirm;
+  members: Member[];
+  onClose: () => void;
+  onLeft: () => void;
+}) => {
+  const { orgId, name } = useActiveOrg();
+  const remove = useMutation(api.members.remove);
+  const leave = useMutation(api.members.leave);
+  const target = members.find((m) => m._id === confirm?.memberId);
+  const form = useForm({
+    defaultValues: {},
+    validators: {
+      onSubmitAsync: async () => {
+        try {
+          if (confirm?.action === "leave") {
+            await leave({ orgId });
+            onLeft();
+          } else if (target) {
+            await remove({ orgId, memberId: target._id });
+            onClose();
+          }
+          return undefined;
+        } catch (error) {
+          return describeError(error);
+        }
+      },
+    },
+  });
+  const leaving = confirm?.action === "leave";
+
+  return (
+    <AlertDialog
+      open={Boolean(confirm && (leaving || target))}
+      onOpenChange={(open) => !open && onClose()}
+    >
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {leaving ? `Leave ${name}?` : `Remove ${target?.name ?? "this person"}?`}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {leaving
+              ? "You'll lose access to its members and meetings until someone invites you again."
+              : "They lose access to this organization's members and meetings. You can invite them again later."}
+          </AlertDialogDescription>
+          <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+            {(error) => <FormError error={error} />}
+          </form.Subscribe>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button variant="ghost" />}>Cancel</AlertDialogClose>
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <Button
+                variant="destructive"
+                disabled={isSubmitting}
+                onClick={() => void form.handleSubmit()}
+              >
+                {leaving ? "Leave" : "Remove"}
+              </Button>
+            )}
+          </form.Subscribe>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
   );
 };
 
@@ -169,52 +365,73 @@ const PendingInvites = () => {
   if (!invites.results.length) return null;
 
   return (
-    <ul className="flex flex-col divide-y">
-      {invites.results.map((invite) => (
-        <li key={invite._id} className="flex flex-wrap items-center gap-3 py-3">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="font-medium text-sm">{invite.email}</span>
-            <span className="text-muted-foreground text-xs">
-              {invite.role} · link works until{" "}
-              {formatLongDate(invite.expiresAt, Intl.DateTimeFormat().resolvedOptions().timeZone)}
+    <div className="flex flex-col gap-1">
+      <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+        Pending invites
+      </span>
+      <ul className="flex flex-col divide-y">
+        {invites.results.map((invite) => (
+          <li key={invite._id} className="flex items-center gap-3 py-3">
+            <span className="grid size-9 place-items-center rounded-full bg-muted">
+              <MailIcon className="size-4 opacity-70" />
             </span>
-            {invite.emailError && (
-              <span className="flex items-center gap-1.5 text-destructive-foreground text-xs">
-                <TriangleAlertIcon className="size-3.5" />
-                Email not sent: {invite.emailError}
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-medium text-sm">{invite.email}</span>
+              <span className="text-muted-foreground text-xs">
+                {invite.role} · link works until{" "}
+                {formatLongDate(invite.expiresAt, browserTimeZone())}
               </span>
-            )}
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => void resend({ orgId, inviteId: invite._id })}
-          >
-            <RotateCwIcon />
-            Resend
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => void revoke({ orgId, inviteId: invite._id })}
-          >
-            <XIcon />
-            Revoke
-          </Button>
-        </li>
-      ))}
-    </ul>
+              {invite.emailError && (
+                <span className="flex items-center gap-1.5 text-destructive-foreground text-xs">
+                  <TriangleAlertIcon className="size-3.5" />
+                  Email not sent: {invite.emailError}
+                </span>
+              )}
+            </div>
+            <RowMenu>
+              <MenuItem onClick={() => void resend({ orgId, inviteId: invite._id })}>
+                <RotateCwIcon />
+                Resend invite
+              </MenuItem>
+              <MenuItem
+                variant="destructive"
+                onClick={() => void revoke({ orgId, inviteId: invite._id })}
+              >
+                <XIcon />
+                Revoke invite
+              </MenuItem>
+            </RowMenu>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 
-export const MembersPanel = () => {
+export const MembersPanel = ({
+  search,
+  onSearchChange,
+  confirm,
+  onConfirmChange,
+  onLeft,
+}: MembersPanelProps) => {
   const { orgId, name } = useActiveOrg();
   const org = useQuery(api.orgs.get, { orgId });
-  const canInvite = org?.permissions.includes("inviteMembers") ?? false;
+  const viewer = useQuery(api.users.viewer);
+  const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
+  const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
+  const can = (permission: string) => org?.permissions.includes(permission as never) ?? false;
+  const query = search.trim().toLowerCase();
+  const shown = members.results.filter(
+    (m) =>
+      !query ||
+      m.name.toLowerCase().includes(query) ||
+      (m.email ?? "").toLowerCase().includes(query),
+  );
 
   return (
     <div className="flex flex-col gap-6">
-      {canInvite && (
+      {can("inviteMembers") && (
         <Card>
           <CardHeader>
             <CardTitle>Invite people</CardTitle>
@@ -223,21 +440,64 @@ export const MembersPanel = () => {
               address.
             </CardDescription>
           </CardHeader>
-          <CardPanel className="flex flex-col gap-4">
+          <CardPanel className="flex flex-col gap-5">
             <InviteForm />
             <PendingInvites />
           </CardPanel>
         </Card>
       )}
       <Card>
-        <CardHeader>
-          <CardTitle>Members</CardTitle>
-          <CardDescription>Everyone in {name}.</CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <CardTitle>Members</CardTitle>
+            <CardDescription>
+              {members.results.length} {members.results.length === 1 ? "person" : "people"} in{" "}
+              {name}
+            </CardDescription>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 opacity-60" />
+            <Input
+              aria-label="Search members"
+              className="ps-8"
+              placeholder="Search by name or email"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardPanel>
-          <MembersList />
+          <ul className="flex flex-col divide-y">
+            {shown.map((member) => (
+              <MemberRow
+                key={member._id}
+                member={member}
+                isSelf={member.userId === viewer?._id}
+                canManageRoles={can("manageRoles")}
+                canRemove={can("removeMembers")}
+                roles={roles.results}
+                onConfirm={onConfirmChange}
+              />
+            ))}
+            {shown.length === 0 && (
+              <li className="py-6 text-center text-muted-foreground text-sm">
+                No one matches “{search}”.
+              </li>
+            )}
+          </ul>
+          {members.status === "CanLoadMore" && (
+            <Button size="sm" variant="ghost" onClick={() => members.loadMore(100)}>
+              Show more
+            </Button>
+          )}
         </CardPanel>
       </Card>
+      <ConfirmDialog
+        confirm={confirm}
+        members={members.results}
+        onClose={() => onConfirmChange(undefined)}
+        onLeft={onLeft}
+      />
     </div>
   );
 };
