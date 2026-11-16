@@ -248,7 +248,7 @@ export const FindATime = ({
     );
   };
 
-  const personRow = (p: Person, nested = false) => {
+  const personRow = (p: Person) => {
     const hours = workingIntervals(p, plan.from, plan.to);
     const busy =
       p.share === "calendar" ? p.busy.filter((b) => b.end > plan.from && b.start < plan.to) : [];
@@ -256,9 +256,7 @@ export const FindATime = ({
     const tag = p.id === organizer.id ? "Organizer" : p.optional ? "Optional" : null;
     return (
       <div key={p.id} className="flex min-h-16 border-b">
-        <div
-          className={cn("flex w-68 shrink-0 items-start gap-2.5 py-2.5 pe-3", nested && "ps-10")}
-        >
+        <div className="flex w-68 shrink-0 items-start gap-2.5 py-2.5 pe-3">
           <span
             aria-hidden="true"
             className="grid size-8 shrink-0 place-items-center rounded-full bg-muted font-medium text-xs"
@@ -614,7 +612,7 @@ export const FindATime = ({
                     {...dragHandlers("draw")}
                     className="absolute inset-y-0 start-68 end-0 z-10 cursor-crosshair"
                   />
-                  {[organizer, ...people].map((p) => personRow(p))}
+                  {[organizer, ...people].map(personRow)}
                 </div>
               </div>
             </div>
