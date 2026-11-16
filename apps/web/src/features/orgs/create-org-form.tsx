@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { BuildingIcon } from "lucide-react";
@@ -28,7 +29,9 @@ export const CreateOrgForm = ({ title, description, onCreated }: CreateOrgFormPr
     validators: {
       onSubmitAsync: async ({ value }) => {
         try {
-          onCreated(await create({ name: value.name }));
+          const orgId = await create({ name: value.name });
+          track("organization_created");
+          onCreated(orgId);
           return undefined;
         } catch (error) {
           return describeError(error);

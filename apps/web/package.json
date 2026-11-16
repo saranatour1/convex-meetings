@@ -16,6 +16,7 @@
     "@cloudflare/realtimekit-react": "^2.0.4",
     "@cloudflare/realtimekit-react-ui": "^2.0.3",
     "@convex-dev/auth": "catalog:",
+    "@databuddy/sdk": "^3.5.3",
     "@meetings/backend": "workspace:*",
     "@meetings/ui": "workspace:*",
     "@tailwindcss/vite": "^4.3.5",

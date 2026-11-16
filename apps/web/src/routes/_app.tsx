@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Navigate, Outlet, createFileRoute, retainSearchParams } from "@tanstack/react-router";
 import { AuthLoading, Authenticated, Unauthenticated, useMutation } from "convex/react";
 import { api } from "@meetings/backend";
@@ -23,9 +24,10 @@ const Header = () => {
       onJoinCode={(code) => void navigate({ to: "/meetings/$code", params: { code } })}
       onStartMeeting={() =>
         void startNow({ orgId, timeZone: browserTimeZone() })
-          .then(({ code }) =>
-            navigate({ to: "/meetings/$code", params: { code }, search: { call: true } }),
-          )
+          .then(({ code }) => {
+            track("meeting_started");
+            return navigate({ to: "/meetings/$code", params: { code }, search: { call: true } });
+          })
           .catch((error: unknown) =>
             toastManager.add({ title: describeError(error), type: "error" }),
           )

@@ -25,7 +25,7 @@ pnpm dev
 Env files (gitignored):
 
 - `packages/backend/.env.local`: `CONVEX_DEPLOYMENT`, written by `convex dev`
-- `apps/web/.env.local`: `VITE_CONVEX_URL`
+- `apps/web/.env.local`: `VITE_CONVEX_URL`, `VITE_DATABUDDY_CLIENT_ID` (Databuddy analytics; tracking is off when unset)
 
 Sign-in methods: passkey (default for development), Google, GitHub, username/password.
 Google/GitHub need `AUTH_{GOOGLE,GITHUB}_CLIENT_{ID,SECRET}` on the Convex deployment and the
