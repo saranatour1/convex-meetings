@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { ScheduleDisplay } from "#/features/meetings/find-a-time.tsx";
 import { ScheduleMeeting } from "#/features/meetings/schedule-meeting.tsx";
-import { isTimeZone, parseZones } from "#/lib/schedule.ts";
+import { isTimeZone, parseZones } from "#/lib/zones.ts";
 
 type ScheduleSearch = ScheduleDisplay & { start?: number; minutes?: number };
 
