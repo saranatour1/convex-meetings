@@ -1,6 +1,8 @@
 import { lazy } from "react";
-import { VideoIcon } from "lucide-react";
+import { VideoIcon, VideoOffIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
+import { browserTimeZone } from "#/lib/browser.ts";
+import { formatDate, formatTime } from "#/lib/schedule.ts";
 import { kindOf, type MeetingKind } from "./meeting-kinds.ts";
 
 const loadMeetingCall = () => import("./meeting-call.tsx");
@@ -30,5 +32,18 @@ export const JoinCallCard = ({ kind, onJoin }: JoinCallCardProps) => (
       <VideoIcon />
       Join the call
     </Button>
+  </div>
+);
+
+export const MeetingEnded = ({ endedAt }: { endedAt: number }) => (
+  <div className="flex items-center gap-4 rounded-xl border border-dashed p-4">
+    <span className="grid size-10 place-items-center rounded-full bg-muted">
+      <VideoOffIcon className="size-5" />
+    </span>
+    <span className="text-muted-foreground text-sm">
+      This meeting ended on {formatDate(endedAt, browserTimeZone())} at{" "}
+      {formatTime(endedAt, browserTimeZone())}, after everyone left. Schedule a new one to meet
+      again.
+    </span>
   </div>
 );

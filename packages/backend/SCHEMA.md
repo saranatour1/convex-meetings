@@ -99,6 +99,7 @@ erDiagram
     enum access "optional"
     enum inviters "optional"
     string rtkMeetingId "optional"
+    number endedAt "optional"
   }
   meetingTimes {
     id _id PK

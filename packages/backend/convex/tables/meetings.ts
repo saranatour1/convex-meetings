@@ -23,6 +23,7 @@ export const zMeeting = z.object({
   access: zMeetingAccess.optional(),
   inviters: zMeetingInviters.optional(),
   rtkMeetingId: z.string().optional(),
+  endedAt: z.number().optional(),
 });
 
 export const meetings = defineTable(zodToConvexFields(zMeeting.shape))

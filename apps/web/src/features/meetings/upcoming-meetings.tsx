@@ -36,7 +36,7 @@ export const UpcomingMeetings = ({ scheduleAction }: { scheduleAction?: ReactNod
   const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 100 });
   const now = Date.now();
   const future = meetings.results
-    .filter((m) => m.endsAt > now && m.response !== "declined")
+    .filter((m) => m.endedAt === null && m.endsAt > now && m.response !== "declined")
     .sort((a, b) => a.startsAt - b.startsAt);
   const needsReply = future.filter((m) => m.response === "pending");
   const upcoming = future.filter((m) => m.response !== "pending").slice(0, 8);
