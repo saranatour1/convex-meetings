@@ -13,7 +13,7 @@ import {
   UserMinusIcon,
   XIcon,
 } from "lucide-react";
-import { api, type Id } from "@meetings/backend";
+import { api, type Doc, type Id } from "@meetings/backend";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -34,6 +34,7 @@ import {
   CardTitle,
 } from "@meetings/ui/components/card";
 import { Input } from "@meetings/ui/components/input";
+import { Textarea } from "@meetings/ui/components/textarea";
 import { Label } from "@meetings/ui/components/label";
 import {
   Menu,
@@ -59,11 +60,12 @@ import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
-import { cityOf, formatLongDate, formatTime } from "#/lib/schedule.ts";
+import { canGrant } from "#/lib/roles.ts";
+import { cityOf, formatAgo, formatLongDate, formatTime } from "#/lib/schedule.ts";
 import { useActiveOrg } from "./active-org.tsx";
 import type { Member } from "./people.ts";
 
-export type MemberConfirm = { action: "remove" | "leave"; memberId: string };
+export type MemberConfirm = { action: "remove" | "leave" | "signOut"; memberId: string };
 
 type MembersPanelProps = {
   search: string;
@@ -89,6 +91,7 @@ const MemberRow = ({
   isSelf,
   canManageRoles,
   canRemove,
+  canSignOut,
   roles,
   onConfirm,
 }: {
@@ -96,13 +99,14 @@ const MemberRow = ({
   isSelf: boolean;
   canManageRoles: boolean;
   canRemove: boolean;
-  roles: { _id: Id<"roles">; name: string }[];
+  canSignOut: boolean;
+  roles: (Doc<"roles"> & { grantable: boolean })[];
   onConfirm: (confirm: MemberConfirm) => void;
 }) => {
   const { orgId } = useActiveOrg();
   const setRole = useMutation(api.members.setRole);
   const zone = member.schedule?.timeZone ?? member.seenTimeZone;
-  const hasActions = canManageRoles || canRemove || isSelf;
+  const hasActions = canManageRoles || canRemove || canSignOut || isSelf;
 
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 py-3 sm:grid-cols-[minmax(0,1fr)_9rem_8rem_auto]">
@@ -124,6 +128,7 @@ const MemberRow = ({
           </span>
           <span className="truncate text-muted-foreground text-xs">
             {member.email ?? "No email yet"}
+            {member.lastActiveAt && ` · active ${formatAgo(member.lastActiveAt)}`}
           </span>
         </div>
       </div>
@@ -159,7 +164,7 @@ const MemberRow = ({
                   }
                 >
                   {roles.map((role) => (
-                    <MenuRadioItem key={role._id} value={role._id}>
+                    <MenuRadioItem key={role._id} value={role._id} disabled={!role.grantable}>
                       {role.name}
                     </MenuRadioItem>
                   ))}
@@ -167,7 +172,13 @@ const MemberRow = ({
               </MenuSubPopup>
             </MenuSub>
           )}
-          {canManageRoles && (canRemove || isSelf) && <MenuSeparator />}
+          {canSignOut && !isSelf && (
+            <MenuItem onClick={() => onConfirm({ action: "signOut", memberId: member._id })}>
+              <LogOutIcon />
+              Sign out everywhere
+            </MenuItem>
+          )}
+          {(canManageRoles || canSignOut) && (canRemove || isSelf) && <MenuSeparator />}
           {isSelf ? (
             <MenuItem
               variant="destructive"
@@ -209,6 +220,7 @@ const ConfirmDialog = ({
   const { orgId, name } = useActiveOrg();
   const remove = useMutation(api.members.remove);
   const leave = useMutation(api.members.leave);
+  const signOut = useMutation(api.members.signOutEverywhere);
   const target = members.find((m) => m._id === confirm?.memberId);
   const form = useForm({
     defaultValues: {},
@@ -218,6 +230,9 @@ const ConfirmDialog = ({
           if (confirm?.action === "leave") {
             await leave({ orgId });
             onLeft();
+          } else if (target && confirm?.action === "signOut") {
+            await signOut({ orgId, memberId: target._id });
+            onClose();
           } else if (target) {
             await remove({ orgId, memberId: target._id });
             onClose();
@@ -230,6 +245,24 @@ const ConfirmDialog = ({
     },
   });
   const leaving = confirm?.action === "leave";
+  const signingOut = confirm?.action === "signOut";
+  const copy = leaving
+    ? {
+        title: `Leave ${name}?`,
+        body: "You'll lose access to its members and meetings until someone invites you again.",
+        button: "Leave",
+      }
+    : signingOut
+      ? {
+          title: `Sign ${target?.name ?? "this person"} out everywhere?`,
+          body: "Every browser and device they're signed in on is signed out right away. They can sign in again.",
+          button: "Sign out",
+        }
+      : {
+          title: `Remove ${target?.name ?? "this person"}?`,
+          body: "They lose access to this organization's members and meetings. You can invite them again later.",
+          button: "Remove",
+        };
 
   return (
     <AlertDialog
@@ -238,14 +271,8 @@ const ConfirmDialog = ({
     >
       <AlertDialogPopup>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {leaving ? `Leave ${name}?` : `Remove ${target?.name ?? "this person"}?`}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {leaving
-              ? "You'll lose access to its members and meetings until someone invites you again."
-              : "They lose access to this organization's members and meetings. You can invite them again later."}
-          </AlertDialogDescription>
+          <AlertDialogTitle>{copy.title}</AlertDialogTitle>
+          <AlertDialogDescription>{copy.body}</AlertDialogDescription>
           <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
             {(error) => <FormError error={error} />}
           </form.Subscribe>
@@ -259,7 +286,7 @@ const ConfirmDialog = ({
                 disabled={isSubmitting}
                 onClick={() => void form.handleSubmit()}
               >
-                {leaving ? "Leave" : "Remove"}
+                {copy.button}
               </Button>
             )}
           </form.Subscribe>
@@ -269,21 +296,33 @@ const ConfirmDialog = ({
   );
 };
 
-const InviteForm = () => {
+const splitEmails = (text: string) =>
+  [...new Set(text.split(/[\s,;]+/).map((email) => email.trim().toLowerCase()))].filter(Boolean);
+
+const InviteForm = ({ roles }: { roles: (Doc<"roles"> & { grantable: boolean })[] }) => {
   const { orgId } = useActiveOrg();
-  const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
   const invite = useMutation(api.invites.create);
-  const memberRole = roles.results.find((role) => role.name === "Member") ?? roles.results[0];
+  const grantable = roles.filter((role) => role.grantable);
+  const memberRole = grantable.find((role) => role.name === "Member") ?? grantable[0];
   const form = useForm({
-    defaultValues: { email: "", roleId: "" },
+    defaultValues: { emails: "", roleId: "" },
     validators: {
       onSubmitAsync: async ({ value, formApi }) => {
-        const roleId =
-          roles.results.find((role) => role._id === value.roleId)?._id ?? memberRole?._id;
-        if (!roleId) return "This organization has no roles yet";
+        const roleId = grantable.find((role) => role._id === value.roleId)?._id ?? memberRole?._id;
+        if (!roleId) return "You can't invite anyone into a role yet";
+        const emails = splitEmails(value.emails);
+        if (!emails.length) return "Add at least one email";
+        if (emails.length > 50) return "Invite up to 50 people at a time";
         try {
-          await invite({ orgId, email: value.email, roleId });
+          const { sent, skipped } = await invite({ orgId, emails, roleId });
           formApi.reset();
+          toastManager.add({
+            title: `Sent ${sent.length} ${sent.length === 1 ? "invite" : "invites"}`,
+            description: skipped.length
+              ? `Already in the organization: ${skipped.join(", ")}`
+              : undefined,
+            type: "success",
+          });
           return undefined;
         } catch (error) {
           return describeError(error);
@@ -300,17 +339,16 @@ const InviteForm = () => {
         void form.handleSubmit();
       }}
     >
-      <form.Field name="email">
+      <form.Field name="emails">
         {(field) => (
           <div className="flex min-w-56 flex-1 flex-col gap-2">
-            <Label htmlFor="invite-email">Email</Label>
-            <Input
-              id="invite-email"
-              type="email"
+            <Label htmlFor="invite-emails">Emails</Label>
+            <Textarea
+              id="invite-emails"
+              rows={2}
               value={field.state.value}
               onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="name@company.com"
-              required
+              placeholder="name@company.com, another@company.com"
             />
           </div>
         )}
@@ -322,13 +360,13 @@ const InviteForm = () => {
             <Select
               value={field.state.value || memberRole?._id || null}
               onValueChange={(value) => field.handleChange(String(value ?? ""))}
-              items={roles.results.map((role) => ({ value: role._id, label: role.name }))}
+              items={grantable.map((role) => ({ value: role._id, label: role.name }))}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectPopup>
-                {roles.results.map((role) => (
+                {grantable.map((role) => (
                   <SelectItem key={role._id} value={role._id}>
                     {role.name}
                   </SelectItem>
@@ -342,7 +380,7 @@ const InviteForm = () => {
         {(isSubmitting) => (
           <Button type="submit" disabled={isSubmitting}>
             <MailIcon />
-            {isSubmitting ? "Sending…" : "Send invite"}
+            {isSubmitting ? "Sending…" : "Send invites"}
           </Button>
         )}
       </form.Subscribe>
@@ -421,6 +459,7 @@ export const MembersPanel = ({
   const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
   const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
   const can = (permission: string) => org?.permissions.includes(permission as never) ?? false;
+  const grantableRoles = roles.results.map((role) => ({ ...role, grantable: canGrant(role, org) }));
   const query = search.trim().toLowerCase();
   const shown = members.results.filter(
     (m) =>
@@ -436,12 +475,12 @@ export const MembersPanel = ({
           <CardHeader>
             <CardTitle>Invite people</CardTitle>
             <CardDescription>
-              They get an email with a link to join {name}. Accepting it confirms their email
-              address.
+              Paste one or more emails. Each person gets a link to join {name}; accepting it
+              confirms their email. For a shareable link, use Organization settings.
             </CardDescription>
           </CardHeader>
           <CardPanel className="flex flex-col gap-5">
-            <InviteForm />
+            <InviteForm roles={grantableRoles} />
             <PendingInvites />
           </CardPanel>
         </Card>
@@ -475,7 +514,8 @@ export const MembersPanel = ({
                 isSelf={member.userId === viewer?._id}
                 canManageRoles={can("manageRoles")}
                 canRemove={can("removeMembers")}
-                roles={roles.results}
+                canSignOut={org?.isOwner ?? false}
+                roles={grantableRoles}
                 onConfirm={onConfirmChange}
               />
             ))}

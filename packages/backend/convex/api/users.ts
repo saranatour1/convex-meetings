@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "../_generated/server";
-import { authedMutation } from "../lib/functions";
+import { authedMutation, authedQuery } from "../lib/functions";
+import { listSessions, signOutEverywhere as revokeAll } from "../models/sessions";
 import { zid } from "convex-helpers/server/zod4";
 import { getViewer, setAvatar, setBio, setName, setSeenTimeZone } from "../models/users";
 import { zUser } from "../tables/users";
@@ -38,4 +39,25 @@ export const generateAvatarUploadUrl = authedMutation({
 export const updateAvatar = authedMutation({
   args: { imageId: zid("_storage") },
   handler: (ctx, { imageId }) => setAvatar(ctx, ctx.userId, imageId),
+});
+
+export const sessions = authedQuery({
+  args: {},
+  handler: async (ctx) => {
+    const current = (await ctx.auth.getUserIdentity())?.subject;
+    const sessions = await listSessions(ctx, ctx.userId);
+    return sessions
+      .map((session) => ({
+        _id: session.sessionId,
+        startedAt: session.creationTime,
+        lastActiveAt: session.lastRefreshedAt,
+        current: session.sessionId === current,
+      }))
+      .sort((a, b) => b.lastActiveAt - a.lastActiveAt);
+  },
+});
+
+export const signOutEverywhere = authedMutation({
+  args: {},
+  handler: (ctx) => revokeAll(ctx, ctx.userId),
 });

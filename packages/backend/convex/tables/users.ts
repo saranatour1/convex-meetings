@@ -13,4 +13,4 @@ export const zUser = z.object({
   seenTimeZone: zTimeZone.optional(),
 });
 
-export const users = defineTable(zodToConvexFields(zUser.shape));
+export const users = defineTable(zodToConvexFields(zUser.shape)).index("by_email", ["email"]);

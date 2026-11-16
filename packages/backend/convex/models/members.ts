@@ -1,6 +1,7 @@
 import type { PaginationOptions } from "convex/server";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
+import { components } from "../_generated/api";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { MAX_ROLES_PER_MEMBER } from "./roles";
 import { getViewer } from "./users";
@@ -39,7 +40,15 @@ const scheduleOf = (ctx: QueryCtx, userId: Id<"users">) =>
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .first();
 
-const describeMember = async (ctx: QueryCtx, member: Doc<"members">) => {
+const lastActive = async (ctx: QueryCtx, userId: Id<"users">) => {
+  const sessions = await ctx.runQuery(components.auth.public.listSessions, { userId });
+  return sessions.reduce<number | null>(
+    (latest, session) => Math.max(latest ?? 0, session.lastRefreshedAt),
+    null,
+  );
+};
+
+const describeMember = async (ctx: QueryCtx, member: Doc<"members">, withActivity: boolean) => {
   const [user, roles, schedule] = await Promise.all([
     getViewer(ctx, member.userId),
     rolesOf(ctx, member._id),
@@ -55,6 +64,7 @@ const describeMember = async (ctx: QueryCtx, member: Doc<"members">) => {
     seenTimeZone: user?.seenTimeZone ?? null,
     roles: roles.map((role) => ({ _id: role._id, name: role.name })),
     schedule: schedule ? { timeZone: schedule.timeZone, weeklyHours: schedule.weeklyHours } : null,
+    lastActiveAt: withActivity ? await lastActive(ctx, member.userId) : null,
   };
 };
 
@@ -62,12 +72,16 @@ export const listMembers = async (
   ctx: QueryCtx,
   orgId: Id<"organizations">,
   paginationOpts: PaginationOptions,
+  withActivity = false,
 ) => {
   const result = await ctx.db
     .query("members")
     .withIndex("by_org_and_user", (q) => q.eq("orgId", orgId))
     .paginate(paginationOpts);
-  return { ...result, page: await Promise.all(result.page.map((m) => describeMember(ctx, m))) };
+  return {
+    ...result,
+    page: await Promise.all(result.page.map((m) => describeMember(ctx, m, withActivity))),
+  };
 };
 
 const isLastHolder = async (ctx: QueryCtx, roleId: Id<"roles">) => {
@@ -101,6 +115,7 @@ export const setMemberRole = async (
   }
   await Promise.all(assignments.map((a) => ctx.db.delete("memberRoles", a._id)));
   await ctx.db.insert("memberRoles", { orgId, memberId, roleId });
+  return member;
 };
 
 export const removeMember = async (
@@ -121,4 +136,5 @@ export const removeMember = async (
   }
   await Promise.all(assignments.map((a) => ctx.db.delete("memberRoles", a._id)));
   await ctx.db.delete("members", memberId);
+  return member;
 };

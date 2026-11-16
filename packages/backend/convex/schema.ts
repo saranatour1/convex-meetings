@@ -1,7 +1,9 @@
 import { defineSchema } from "convex/server";
+import { auditEvents } from "./tables/auditEvents";
 import { groupMembers } from "./tables/groupMembers";
 import { groups } from "./tables/groups";
 import { invites } from "./tables/invites";
+import { joinLinks } from "./tables/joinLinks";
 import { meetingMembers } from "./tables/meetingMembers";
 import { meetingSessions } from "./tables/meetingSessions";
 import { meetings } from "./tables/meetings";
@@ -26,6 +28,8 @@ export default defineSchema({
   memberRoles,
   tokens,
   invites,
+  joinLinks,
+  auditEvents,
   groups,
   groupMembers,
   meetings,

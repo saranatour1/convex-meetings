@@ -5,7 +5,9 @@ type MembersSearch = { q?: string; confirm?: string };
 
 const parseConfirm = (value: string | undefined): MemberConfirm | undefined => {
   const [action, memberId] = (value ?? "").split(":");
-  return (action === "remove" || action === "leave") && memberId ? { action, memberId } : undefined;
+  return (action === "remove" || action === "leave" || action === "signOut") && memberId
+    ? { action, memberId }
+    : undefined;
 };
 
 const MembersPage = () => {

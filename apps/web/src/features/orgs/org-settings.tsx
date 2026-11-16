@@ -28,20 +28,9 @@ import { Switch } from "@meetings/ui/components/switch";
 import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
 import { describeError } from "#/lib/errors.ts";
+import { BUILT_IN_ROLES, LOCKED_ROLES, PERMISSIONS, canGrant } from "#/lib/roles.ts";
+import { ActivityCard, InviteLinksCard, JoinDomainCard } from "./access-settings.tsx";
 import { useActiveOrg } from "./active-org.tsx";
-
-type Permission = keyof Doc<"roles">["permissions"];
-
-const PERMISSIONS: { key: Permission; label: string }[] = [
-  { key: "inviteMembers", label: "Invite people" },
-  { key: "removeMembers", label: "Remove people" },
-  { key: "manageRoles", label: "Manage roles and the organization" },
-  { key: "manageGroups", label: "Manage teams" },
-  { key: "createMeetings", label: "Schedule meetings" },
-  { key: "manageMeetings", label: "Manage everyone's meetings" },
-];
-
-const BUILT_IN = ["Owner", "Member"];
 
 const showError = (error: unknown) =>
   toastManager.add({ title: describeError(error), type: "error" });
@@ -119,12 +108,23 @@ const NameCard = ({ canEdit }: { canEdit: boolean }) => {
   );
 };
 
-const RoleSection = ({ role, canEdit }: { role: Doc<"roles">; canEdit: boolean }) => {
+type Viewer = { permissions: string[]; isOwner: boolean };
+
+const RoleSection = ({
+  role,
+  canManage,
+  viewer,
+}: {
+  role: Doc<"roles">;
+  canManage: boolean;
+  viewer: Viewer;
+}) => {
   const { orgId } = useActiveOrg();
   const update = useMutation(api.roles.update);
   const remove = useMutation(api.roles.remove);
-  const isOwner = role.name === "Owner";
-  const builtIn = BUILT_IN.includes(role.name);
+  const locked = LOCKED_ROLES.includes(role.name);
+  const builtIn = BUILT_IN_ROLES.includes(role.name);
+  const canEdit = canManage && !locked && canGrant(role, viewer);
 
   return (
     <section className="flex flex-col gap-3 py-4">
@@ -163,8 +163,8 @@ const RoleSection = ({ role, canEdit }: { role: Doc<"roles">; canEdit: boolean }
           <Label key={permission.key} className="justify-between gap-3 font-normal">
             {permission.label}
             <Switch
-              checked={isOwner || role.permissions[permission.key] === true}
-              disabled={!canEdit || isOwner}
+              checked={locked || role.permissions[permission.key] === true}
+              disabled={!canEdit || !viewer.permissions.includes(permission.key)}
               onCheckedChange={(checked) =>
                 void update({
                   orgId,
@@ -289,26 +289,31 @@ export const OrgSettings = ({ onLeft }: { onLeft: () => void }) => {
   const { orgId } = useActiveOrg();
   const org = useQuery(api.orgs.get, { orgId });
   const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
-  const canEdit = org?.permissions.includes("manageRoles") ?? false;
+  const canManageRoles = org?.permissions.includes("manageRoles") ?? false;
+  const canManageOrg = org?.permissions.includes("manageOrganization") ?? false;
 
   return (
     <div className="flex flex-col gap-6">
-      <NameCard key={org?.name} canEdit={canEdit} />
+      <NameCard key={org?.name} canEdit={canManageOrg} />
+      <InviteLinksCard />
+      <JoinDomainCard />
       <Card>
         <CardHeader>
           <CardTitle>Roles and permissions</CardTitle>
           <CardDescription>
-            Each member has one role. Owner can do everything; Member is what invites give by
-            default.
+            Each member has one role. Owner and Admin can do everything, but only owners can make
+            owners. You can only hand out permissions you have yourself.
           </CardDescription>
         </CardHeader>
         <CardPanel className="flex flex-col divide-y">
-          {roles.results.map((role) => (
-            <RoleSection key={role._id} role={role} canEdit={canEdit} />
-          ))}
-          {canEdit && <AddRole />}
+          {org &&
+            roles.results.map((role) => (
+              <RoleSection key={role._id} role={role} canManage={canManageRoles} viewer={org} />
+            ))}
+          {canManageRoles && <AddRole />}
         </CardPanel>
       </Card>
+      <ActivityCard />
       <LeaveCard onLeft={onLeft} />
     </div>
   );

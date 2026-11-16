@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as api_audit from "../api/audit.js";
 import type * as api_auth from "../api/auth.js";
 import type * as api_inbox from "../api/inbox.js";
 import type * as api_invites from "../api/invites.js";
+import type * as api_joinLinks from "../api/joinLinks.js";
 import type * as api_meetings from "../api/meetings.js";
 import type * as api_members from "../api/members.js";
 import type * as api_messages from "../api/messages.js";
@@ -26,23 +28,30 @@ import type * as internal_users from "../internal/users.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_presets from "../lib/presets.js";
 import type * as lib_r2 from "../lib/r2.js";
+import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_realtimekit from "../lib/realtimekit.js";
 import type * as lib_time from "../lib/time.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
 import type * as lib_workpools from "../lib/workpools.js";
+import type * as models_audit from "../models/audit.js";
+import type * as models_domains from "../models/domains.js";
 import type * as models_invites from "../models/invites.js";
+import type * as models_joinLinks from "../models/joinLinks.js";
 import type * as models_meetings from "../models/meetings.js";
 import type * as models_members from "../models/members.js";
 import type * as models_notifications from "../models/notifications.js";
 import type * as models_orgs from "../models/orgs.js";
 import type * as models_roles from "../models/roles.js";
 import type * as models_schedules from "../models/schedules.js";
+import type * as models_sessions from "../models/sessions.js";
 import type * as models_settings from "../models/settings.js";
 import type * as models_users from "../models/users.js";
+import type * as tables_auditEvents from "../tables/auditEvents.js";
 import type * as tables_groupMembers from "../tables/groupMembers.js";
 import type * as tables_groups from "../tables/groups.js";
 import type * as tables_invites from "../tables/invites.js";
+import type * as tables_joinLinks from "../tables/joinLinks.js";
 import type * as tables_meetingMembers from "../tables/meetingMembers.js";
 import type * as tables_meetingSessions from "../tables/meetingSessions.js";
 import type * as tables_meetingTimes from "../tables/meetingTimes.js";
@@ -65,9 +74,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "api/audit": typeof api_audit;
   "api/auth": typeof api_auth;
   "api/inbox": typeof api_inbox;
   "api/invites": typeof api_invites;
+  "api/joinLinks": typeof api_joinLinks;
   "api/meetings": typeof api_meetings;
   "api/members": typeof api_members;
   "api/messages": typeof api_messages;
@@ -83,23 +94,30 @@ declare const fullApi: ApiFromModules<{
   "lib/functions": typeof lib_functions;
   "lib/presets": typeof lib_presets;
   "lib/r2": typeof lib_r2;
+  "lib/rateLimits": typeof lib_rateLimits;
   "lib/realtimekit": typeof lib_realtimekit;
   "lib/time": typeof lib_time;
   "lib/validate": typeof lib_validate;
   "lib/webhooks": typeof lib_webhooks;
   "lib/workpools": typeof lib_workpools;
+  "models/audit": typeof models_audit;
+  "models/domains": typeof models_domains;
   "models/invites": typeof models_invites;
+  "models/joinLinks": typeof models_joinLinks;
   "models/meetings": typeof models_meetings;
   "models/members": typeof models_members;
   "models/notifications": typeof models_notifications;
   "models/orgs": typeof models_orgs;
   "models/roles": typeof models_roles;
   "models/schedules": typeof models_schedules;
+  "models/sessions": typeof models_sessions;
   "models/settings": typeof models_settings;
   "models/users": typeof models_users;
+  "tables/auditEvents": typeof tables_auditEvents;
   "tables/groupMembers": typeof tables_groupMembers;
   "tables/groups": typeof tables_groups;
   "tables/invites": typeof tables_invites;
+  "tables/joinLinks": typeof tables_joinLinks;
   "tables/meetingMembers": typeof tables_meetingMembers;
   "tables/meetingSessions": typeof tables_meetingSessions;
   "tables/meetingTimes": typeof tables_meetingTimes;
@@ -152,5 +170,6 @@ export declare const components: {
   avatarWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"avatarWorkpool">;
   emailWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"emailWorkpool">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   cloudflareEmail: import("@sarant/cloudflare-email-component/_generated/component.js").ComponentApi<"cloudflareEmail">;
 };

@@ -2,13 +2,14 @@ import { defineTable } from "convex/server";
 import { zid, zodToConvexFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
-const zPermission = z.enum([
+export const zPermission = z.enum([
   "inviteMembers",
   "removeMembers",
   "manageRoles",
   "manageGroups",
   "createMeetings",
   "manageMeetings",
+  "manageOrganization",
 ]);
 
 export const zRole = z.object({
