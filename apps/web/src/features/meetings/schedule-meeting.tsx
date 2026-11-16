@@ -29,7 +29,8 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
     members.status === "LoadingFirstPage" ||
     viewer === undefined ||
     schedule === undefined ||
-    settings === undefined
+    settings === undefined ||
+    busy === undefined
   ) {
     return <LoadingScreen />;
   }
@@ -37,7 +38,7 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
   const now = Date.now();
   const people = members.results.map((member) => ({
     ...memberToPerson(member, now),
-    busy: busy?.[member.userId] ?? [],
+    busy: busy[member.userId] ?? [],
   }));
   const homeZone = schedule?.timeZone ?? browserTimeZone();
   const organizer = people.find((p) => p.id === viewer?._id) ?? {

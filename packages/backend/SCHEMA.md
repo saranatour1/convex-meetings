@@ -110,6 +110,7 @@ erDiagram
   meetingTimes {
     id _id PK
     id meetingId FK "meetings"
+    id orgId FK "organizations, optional"
     number date
     string start
     string end
@@ -117,6 +118,7 @@ erDiagram
     number startsAt
     number endsAt
     string rrule "optional"
+    number repeatUntil "optional"
   }
   meetingMembers {
     id _id PK
@@ -151,6 +153,13 @@ erDiagram
     id transcriptId FK "_storage, optional"
     string recordingKey "optional"
     number recordingSeconds "optional"
+  }
+  callPeers {
+    id _id PK
+    id sessionId FK "meetingSessions"
+    id meetingId FK "meetings"
+    id memberId FK "meetingMembers"
+    string peerId
   }
   messages {
     id _id PK
@@ -225,6 +234,7 @@ erDiagram
   meetings }o--|| organizations : orgId
   meetings }o--|| users : userId
   meetingTimes }o--|| meetings : meetingId
+  meetingTimes }o--o| organizations : orgId
   meetingMembers }o--|| meetings : meetingId
   meetingMembers }o--|| users : userId
   meetingGuests }o--|| meetings : meetingId
@@ -234,6 +244,9 @@ erDiagram
   meetingSessions }o--|| meetings : meetingId
   meetingSessions }o--o| organizations : orgId
   meetingSessions }o--o| _storage : transcriptId
+  callPeers }o--|| meetingSessions : sessionId
+  callPeers }o--|| meetings : meetingId
+  callPeers }o--|| meetingMembers : memberId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
   messageReactions }o--|| messages : messageId
@@ -278,6 +291,7 @@ erDiagram
 | meetings | by_code | code |
 | meetingTimes | by_meeting | meetingId |
 | meetingTimes | by_date | date |
+| meetingTimes | by_org_and_repeat_until | orgId, repeatUntil |
 | meetingMembers | by_meeting_and_user | meetingId, userId |
 | meetingMembers | by_user | userId |
 | meetingGuests | by_token | tokenId |
@@ -286,6 +300,8 @@ erDiagram
 | meetingSessions | by_meeting_and_number | meetingId, number |
 | meetingSessions | by_rtk_session | rtkSessionId |
 | meetingSessions | by_org_and_ended | orgId, endedAt |
+| callPeers | by_session_and_peer | sessionId, peerId |
+| callPeers | by_meeting_and_member | meetingId, memberId |
 | messages | by_meeting | meetingId |
 | messageReactions | by_message_and_member | messageId, memberId |
 | messageReactions | by_meeting | meetingId |

@@ -3,7 +3,9 @@ import { ConvexError } from "convex/values";
 import { DateTime } from "luxon";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { lastOccurrenceEnd, occurrencesBetween } from "../lib/recurrence";
 import { parseOrThrow } from "../lib/validate";
+import { zCallPeer } from "../tables/callPeers";
 import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
@@ -107,9 +109,16 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
       protected: meeting.protected || undefined,
     }),
   );
+  const rrule = meeting.rrule || undefined;
   await ctx.db.insert(
     "meetingTimes",
-    parseOrThrow(zMeetingTime, { ...time, meetingId, rrule: meeting.rrule || undefined }),
+    parseOrThrow(zMeetingTime, {
+      ...time,
+      meetingId,
+      orgId: meeting.orgId,
+      rrule,
+      repeatUntil: lastOccurrenceEnd(rrule, time),
+    }),
   );
   const members = [
     { userId: meeting.userId, role: "host" as const, response: "accepted" as const },
@@ -212,15 +221,14 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
   ]);
   if (!meeting || !member) return null;
   const isGuest = viewer?.method === "guest";
-  const openSession = await ctx.db
-    .query("meetingSessions")
-    .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
-    .order("desc")
-    .first();
-  const devicesInCall =
-    openSession && !openSession.endedAt
-      ? (openSession.presentPeers ?? []).filter((peer) => peer.memberId === member._id).length
-      : 0;
+  const devicesInCall = (
+    await ctx.db
+      .query("callPeers")
+      .withIndex("by_meeting_and_member", (q) =>
+        q.eq("meetingId", meetingId).eq("memberId", member._id),
+      )
+      .take(20)
+  ).length;
   const canControl = !isGuest && (await canControlCall(ctx, meeting, member));
   const [time, members, sessions] = await Promise.all([
     timeOf(ctx, meetingId),
@@ -313,6 +321,7 @@ const deleteAll = async (
       | "messageReactions"
       | "meetingSessions"
       | "annotationSnapshots"
+      | "callPeers"
     >;
   }[],
 ) => {
@@ -335,6 +344,13 @@ export const cancelMeeting = async (
   await deleteAll(ctx, await byMeeting("messages"));
   await deleteAll(ctx, await byMeeting("messageReactions"));
   await deleteAll(ctx, await byMeeting("meetingSessions"));
+  await deleteAll(
+    ctx,
+    await ctx.db
+      .query("callPeers")
+      .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
+      .take(1000),
+  );
   await clearStrokes(ctx, meetingId);
   const snapshots = await ctx.db
     .query("annotationSnapshots")
@@ -372,27 +388,36 @@ export const busyForOrg = async (
   from: number,
   to: number,
 ) => {
-  const members = await ctx.db
-    .query("members")
-    .withIndex("by_org_and_user", (q) => q.eq("orgId", orgId))
-    .take(MAX_MEMBERS_READ);
-  const entries = await Promise.all(
-    members.map(async (member) => {
-      const memberships = await ctx.db
-        .query("meetingMembers")
-        .withIndex("by_user", (q) => q.eq("userId", member.userId))
-        .order("desc")
-        .take(MAX_MEMBERS_READ);
-      const times = await Promise.all(
-        memberships.filter((m) => m.response !== "declined").map((m) => timeOf(ctx, m.meetingId)),
-      );
-      const busy = times
-        .filter((t) => t !== null && t.startsAt < to && t.endsAt > from)
-        .map((t) => ({ start: t!.startsAt, end: t!.endsAt }));
-      return [member.userId, busy] as const;
-    }),
+  const [members, times] = await Promise.all([
+    ctx.db
+      .query("members")
+      .withIndex("by_org_and_user", (q) => q.eq("orgId", orgId))
+      .take(MAX_MEMBERS_READ),
+    ctx.db
+      .query("meetingTimes")
+      .withIndex("by_org_and_repeat_until", (q) => q.eq("orgId", orgId).gte("repeatUntil", from))
+      .take(1000),
+  ]);
+  const busy = new Map<Id<"users">, { start: number; end: number }[]>(
+    members.map((member) => [member.userId, []]),
   );
-  return Object.fromEntries(entries);
+  await Promise.all(
+    times
+      .filter((time) => time.startsAt < to)
+      .map(async (time) => {
+        const occurrences = occurrencesBetween(time.rrule, time, from, to, time.repeatUntil);
+        if (occurrences.length === 0) return;
+        const invited = await ctx.db
+          .query("meetingMembers")
+          .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", time.meetingId))
+          .take(MAX_MEMBERS_READ);
+        for (const member of invited) {
+          if (member.response === "declined") continue;
+          busy.get(member.userId)?.push(...occurrences);
+        }
+      }),
+  );
+  return Object.fromEntries(busy);
 };
 
 const REACTIONS_READ = 200;
@@ -631,6 +656,68 @@ export const findSessionByNumber = (ctx: QueryCtx, meetingId: Id<"meetings">, nu
     .withIndex("by_meeting_and_number", (q) => q.eq("meetingId", meetingId).eq("number", number))
     .unique();
 
+const peerOf = (ctx: QueryCtx, sessionId: Id<"meetingSessions">, peerId: string) =>
+  ctx.db
+    .query("callPeers")
+    .withIndex("by_session_and_peer", (q) => q.eq("sessionId", sessionId).eq("peerId", peerId))
+    .first();
+
+const trackPeers = async (
+  ctx: MutationCtx,
+  session: Doc<"meetingSessions">,
+  event: RealtimeEvent,
+) => {
+  const attendee = event.participant?.customParticipantId;
+  const peerId = event.participant?.peerId ?? attendee;
+  if (event.event === "meeting.participantJoined" && attendee && peerId && !session.endedAt) {
+    const memberId = ctx.db.normalizeId("meetingMembers", attendee);
+    if (memberId && !(await peerOf(ctx, session._id, peerId))) {
+      await ctx.db.insert(
+        "callPeers",
+        parseOrThrow(zCallPeer, {
+          sessionId: session._id,
+          meetingId: session.meetingId,
+          memberId,
+          peerId,
+        }),
+      );
+    }
+  }
+  if (event.event === "meeting.participantLeft" && peerId) {
+    const peer = await peerOf(ctx, session._id, peerId);
+    if (peer) await ctx.db.delete("callPeers", peer._id);
+  }
+  if (event.event === "meeting.ended") {
+    const peers = await ctx.db
+      .query("callPeers")
+      .withIndex("by_session_and_peer", (q) => q.eq("sessionId", session._id))
+      .take(1000);
+    for (const peer of peers) await ctx.db.delete("callPeers", peer._id);
+  }
+};
+
+const startSession = async (
+  ctx: MutationCtx,
+  meeting: Doc<"meetings">,
+  rtkSessionId: string,
+  startedAt: number,
+) => {
+  const stale = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meeting._id))
+    .take(1000);
+  for (const peer of stale) await ctx.db.delete("callPeers", peer._id);
+  const sessionId = await ctx.db.insert("meetingSessions", {
+    meetingId: meeting._id,
+    orgId: meeting.orgId,
+    number: await nextSessionNumber(ctx, meeting._id),
+    rtkSessionId,
+    startedAt,
+    attendeeIds: [],
+  });
+  return (await ctx.db.get("meetingSessions", sessionId))!;
+};
+
 export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent) => {
   const rtkMeetingId = event.meeting?.id;
   const rtkSessionId = event.meeting?.sessionId;
@@ -647,36 +734,15 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
     .unique();
   const session =
     existing ??
-    (await ctx.db.get(
-      "meetingSessions",
-      await ctx.db.insert("meetingSessions", {
-        meetingId: meeting._id,
-        orgId: meeting.orgId,
-        number: await nextSessionNumber(ctx, meeting._id),
-        rtkSessionId,
-        startedAt: toMillis(event.meeting?.startedAt, now),
-        attendeeIds: [],
-      }),
-    ))!;
+    (await startSession(ctx, meeting, rtkSessionId, toMillis(event.meeting?.startedAt, now)));
   const attendee = event.participant?.customParticipantId;
   const patch: Partial<Doc<"meetingSessions">> = {};
   if (attendee && !session.attendeeIds.includes(attendee)) {
     patch.attendeeIds = [...session.attendeeIds, attendee].slice(0, 1000);
   }
-  const peers = session.presentPeers ?? [];
-  const peerId = event.participant?.peerId ?? attendee;
-  if (attendee && peerId && event.event === "meeting.participantJoined") {
-    if (!peers.some((peer) => peer.peerId === peerId)) {
-      patch.presentPeers = [...peers, { peerId, memberId: attendee }].slice(0, 1000);
-    }
-  }
-  if (peerId && event.event === "meeting.participantLeft") {
-    patch.presentPeers = peers.filter((peer) => peer.peerId !== peerId);
-  }
   if (!session.orgId) patch.orgId = meeting.orgId;
   if (event.event === "meeting.ended") {
     patch.endedAt = toMillis(event.meeting?.endedAt, now);
-    patch.presentPeers = [];
     await clearStrokes(ctx, meeting._id);
   }
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);
@@ -690,6 +756,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
     }
   }
   if (Object.keys(patch).length) await ctx.db.patch("meetingSessions", session._id, patch);
+  await trackPeers(ctx, session, event);
   if (event.summary && !session.summary) {
     const members = await ctx.db
       .query("meetingMembers")

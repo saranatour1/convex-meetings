@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { signIn, testBackend } from "../../tools/auth-test-setup";
 import { api, internal } from "../_generated/api";
 import { allPresets } from "../lib/presets";
+import { FOREVER } from "../lib/recurrence";
 import { importPublicKey, isSignedBy } from "../lib/webhooks";
 
 const page = { numItems: 20, cursor: null };
@@ -53,6 +54,7 @@ const schedule = (
     kind: "groupCall" | "webinar" | "classroom" | "audioRoom";
     startsAt: number;
     minutes: number;
+    rrule: string;
   }> = {},
 ) =>
   setup.host.asUser.mutation(api.api.meetings.create, {
@@ -64,6 +66,7 @@ const schedule = (
     minutes: overrides.minutes ?? 30,
     timeZone: "Europe/Berlin",
     inviteeIds: [setup.guest.userId],
+    rrule: overrides.rrule,
   });
 
 test("a scheduled meeting shows up for the host and the invitee", async () => {
@@ -154,6 +157,22 @@ test("busy times cover everyone who hasn't declined", async () => {
     to: startsAt + HOUR,
   });
   expect(after[setup.guest.userId]).toEqual([]);
+});
+
+test("busy times include later occurrences of a repeating meeting", async () => {
+  const setup = await orgWithTwoPeople();
+  await schedule(setup, { rrule: "FREQ=WEEKLY;BYDAY=WE" });
+  const time = await setup.t.run((ctx) => ctx.db.query("meetingTimes").first());
+  expect(time).toMatchObject({ orgId: setup.orgId, repeatUntil: FOREVER });
+  const nextWeek = startsAt + 7 * 24 * HOUR;
+  const busy = await setup.host.asUser.query(api.api.meetings.busy, {
+    orgId: setup.orgId,
+    from: nextWeek - HOUR,
+    to: nextWeek + HOUR,
+  });
+  expect(busy[setup.guest.userId]).toEqual([{ start: nextWeek, end: nextWeek + HOUR / 2 }]);
+  expect(busy[setup.host.userId]).toEqual([{ start: nextWeek, end: nextWeek + HOUR / 2 }]);
+  expect(busy[setup.outsider.userId]).toBeUndefined();
 });
 
 test("presets keep chat in Convex and audio rooms voice-only", () => {

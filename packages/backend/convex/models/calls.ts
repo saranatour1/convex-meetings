@@ -110,8 +110,14 @@ export const listLiveCalls = async (ctx: QueryCtx, orgId: Id<"organizations">) =
   const sessions = await liveSessions(ctx, orgId);
   const calls = await Promise.all(
     sessions.map(async (session) => {
-      const meeting = await ctx.db.get("meetings", session.meetingId);
-      const present = [...new Set((session.presentPeers ?? []).map((peer) => peer.memberId))];
+      const [meeting, peers] = await Promise.all([
+        ctx.db.get("meetings", session.meetingId),
+        ctx.db
+          .query("callPeers")
+          .withIndex("by_session_and_peer", (q) => q.eq("sessionId", session._id))
+          .take(1000),
+      ]);
+      const present = [...new Set(peers.map((peer) => peer.memberId))];
       if (!meeting || present.length === 0) return null;
       const names = await Promise.all(present.slice(0, 20).map((id) => nameOf(ctx, id)));
       return {
@@ -144,7 +150,13 @@ export const kickFromOrgCalls = async (
       .unique();
     if (!meeting || !member) continue;
     await ctx.db.patch("meetingMembers", member._id, { removedAt: Date.now() });
-    if (session.presentPeers?.some((peer) => peer.memberId === member._id)) {
+    const inCall = await ctx.db
+      .query("callPeers")
+      .withIndex("by_meeting_and_member", (q) =>
+        q.eq("meetingId", session.meetingId).eq("memberId", member._id),
+      )
+      .first();
+    if (inCall) {
       await kickLater(ctx, meeting.rtkMeetingId, member);
     }
   }
@@ -162,11 +174,15 @@ export const forgetDevices = async (
     .order("desc")
     .first();
   if (!session || session.endedAt) return;
-  const peers = session.presentPeers ?? [];
-  const kept = peers.filter(
-    (peer) => peer.memberId !== memberId || (peerId !== undefined && peer.peerId !== peerId),
-  );
-  if (kept.length !== peers.length) {
-    await ctx.db.patch("meetingSessions", session._id, { presentPeers: kept });
+  const peers = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) =>
+      q.eq("meetingId", meetingId).eq("memberId", memberId),
+    )
+    .take(100);
+  for (const peer of peers) {
+    if (peer.sessionId !== session._id) continue;
+    if (peerId !== undefined && peer.peerId !== peerId) continue;
+    await ctx.db.delete("callPeers", peer._id);
   }
 };
