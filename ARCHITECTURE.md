@@ -55,11 +55,15 @@ Rules:
 - Public queries and mutations have no `returns`. Internal functions declare `returns` only where a library needs it (the Convex Auth `createUser` callbacks).
 - List queries paginate with Convex's `paginationOptsValidator`, `.paginate()` on the server, and `usePaginatedQuery` on the client. Single-document reads stay plain.
 - Function builders in `lib/functions.ts`:
+  - `publicQuery` takes Zod args and needs no sign-in (invite previews).
   - `authedQuery` / `authedMutation` inject `ctx.userId`, or throw `ConvexError("Unauthenticated")`.
   - `orgQuery` / `orgMutation` take `orgId` and inject `ctx.userId`, `ctx.member` and `ctx.requirePermission(permission)`. They throw `ConvexError("Not a member")` for anyone outside the org.
+  - `zPaginationOpts` is Convex's `paginationOptsValidator` converted to Zod, for the `paginationOpts` arg of list queries.
   - `OrgQueryCtx` / `OrgMutationCtx` are the context types for model functions that run inside them.
 - `ctx.run*`, the scheduler and workpools only target `internal.internal.*`.
 - Environment variables are declared in `convex.config.ts` and read through the typed `env` from `_generated/server`.
+- Email goes out through `@sarant/cloudflare-email-component` (`components.cloudflareEmail`) from actions on `emailWorkpool`, which never retries because Cloudflare has no idempotency key. It needs `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Email Sending: Edit) and `EMAIL_FROM` on an onboarded domain.
+- Invites: the link carries a random secret; `tokens.value` stores only its SHA-256. Links expire after 7 days and work once. Accepting one marks the user verified with the invited address.
 - Tests sit next to the code (`*.test.ts`). Convex never deploys files with two dots in the name. Tests use `convex-test` and run with `pnpm test`.
 
 ### Why `api.api`
@@ -84,7 +88,7 @@ Layers depend downward only: `routes` → `layouts` → `features` → `componen
 | `providers/`         | App-wide providers (`ConvexWithAuthProvider` wires Convex and Convex Auth)                                              |
 | `routes/`            | Route config, search-param validation, auth gates, and handing URL state to layouts and features                        |
 | `layouts/`           | Page frames that compose features, such as `app-shell/` (sidebar and header for signed-in pages)                        |
-| `features/<domain>/` | UI plus Convex calls for one domain: `auth`, `meetings`                                                                 |
+| `features/<domain>/` | UI plus Convex calls for one domain: `auth`, `meetings`, `orgs`, `schedules`                                            |
 | `components/`        | Domain-free building blocks with no Convex calls: `EmptyState`, `FormError`, `LoadingScreen`                            |
 | `lib/`               | Pure helpers                                                                                                            |
 
@@ -95,8 +99,9 @@ Rules:
   - Declarative navigation is a `<Link>` anywhere: features, layouts or routes.
   - Imperative navigation (`navigate`) belongs to routes. Features receive it as callbacks (`onClose`, `onInvite`).
 - Server data comes from Convex `useQuery` / `useMutation`.
-- Times are stored as UTC milliseconds plus an IANA zone name and converted with `Intl` in `lib/schedule.ts`. No hand-written UTC offsets. Its tests sit next to it (`schedule.test.ts`) and run with `pnpm test`.
-- Until invitees and meetings come from Convex, `features/meetings/sample-invitees.ts` and `features/calendar/sample-meetings.ts` stand in for them with the same `Person`, `Team` and Kloq `CalEvent` shapes.
+- Times are UTC milliseconds plus an IANA zone name, converted with Luxon in `lib/schedule.ts`. No hand-written UTC offsets. Its tests sit next to it (`schedule.test.ts`) and run with `pnpm test`.
+- The active organization is `?org=` on every signed-in route, kept across links by `retainSearchParams`. `OrgGate` falls back to the first org, or asks to create one. Features read it with `useActiveOrg()`.
+- Find a time shows the org's members (`features/orgs/people.ts` maps them to `Person`). Until meetings live in Convex, `features/calendar/sample-meetings.ts` stands in for the calendar and is labelled Sample.
 - Search-param updates that only change what is shown pass `resetScroll: false`, so the page doesn't jump to the top.
 - Form state comes from TanStack Form (`useForm`). Server errors come back through `validators.onSubmitAsync`.
 - No `useEffect`. Scroll, layout and visibility use CSS or declarative components (`<Authenticated>`, `<Navigate>`). For example, the invite chat stays scrolled to the newest message because its scroll container is `flex-col-reverse`.

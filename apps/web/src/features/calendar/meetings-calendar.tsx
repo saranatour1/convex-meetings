@@ -37,6 +37,12 @@ export const MeetingsCalendar = ({ zone, zones, onZonesChange, onPlan }: Meeting
     >
       <KloqToolbar>
         <KloqNav />
+        <span
+          className="rounded-full bg-warning/8 px-2.5 py-1 font-medium text-warning-foreground text-xs dark:bg-warning/16"
+          title="These meetings are examples until scheduling saves real ones"
+        >
+          Sample meetings
+        </span>
         <div className="flex flex-wrap items-center gap-2">
           {zones.map((z) => (
             <span
