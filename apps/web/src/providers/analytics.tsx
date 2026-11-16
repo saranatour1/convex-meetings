@@ -6,8 +6,8 @@ import type { MeetingKind } from "#/features/meetings/meeting-kinds.ts";
 
 declare module "@databuddy/sdk" {
   interface Events {
-    signed_up: { method: "password" };
-    signed_in: { method: "password" | "passkey" };
+    signed_in: { method: "password" | "passkey" | "oauth" };
+    passkey_added: undefined;
     sign_in_started: { method: "google" | "github" };
     organization_created: undefined;
     organization_joined: { via: "invite" | "link" | "domain" };

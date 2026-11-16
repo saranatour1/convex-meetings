@@ -20,9 +20,11 @@ import { schedules } from "./tables/schedules";
 import { tokens } from "./tables/tokens";
 import { userSettings } from "./tables/userSettings";
 import { users } from "./tables/users";
+import { verifiedSessions } from "./tables/verifiedSessions";
 
 export default defineSchema({
   users,
+  verifiedSessions,
   userSettings,
   organizations,
   members,

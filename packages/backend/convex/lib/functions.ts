@@ -1,4 +1,3 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { NoOp, customCtx, customCtxAndArgs } from "convex-helpers/server/customFunctions";
 import {
   type ZCustomCtx,
@@ -13,13 +12,11 @@ import type { Id } from "../_generated/dataModel";
 import { action, mutation, query, type ActionCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { guestUserId } from "../models/guests";
+import { requireSignedIn, requireVerifiedUserId } from "../models/passkeys";
 import { grantedPermissions, type Permission } from "../models/roles";
 
-const requireUserId = async (ctx: Pick<QueryCtx, "auth" | "runQuery">) => {
-  const userId = await getAuthUserId(ctx);
-  if (userId === null) throw new ConvexError("Unauthenticated");
-  return userId;
-};
+const verifiedUserIdInAction = (ctx: ActionCtx): Promise<Id<"users">> =>
+  ctx.runQuery(internal.internal.passkeys.verifiedUserId, {});
 
 const requireMember = async (ctx: QueryCtx, orgId: Id<"organizations">, userId: Id<"users">) => {
   const member = await ctx.db
@@ -30,12 +27,16 @@ const requireMember = async (ctx: QueryCtx, orgId: Id<"organizations">, userId: 
   return member;
 };
 
-const signedInUser = customCtx(async (ctx: QueryCtx) => ({ userId: await requireUserId(ctx) }));
+const verifiedUser = customCtx(async (ctx: QueryCtx) => ({
+  userId: await requireVerifiedUserId(ctx),
+}));
+
+const signedInSession = customCtx((ctx: QueryCtx) => requireSignedIn(ctx));
 
 const orgMember = customCtxAndArgs({
   args: { orgId: v.id("organizations") },
   input: async (ctx: QueryCtx, { orgId }) => {
-    const userId = await requireUserId(ctx);
+    const userId = await requireVerifiedUserId(ctx);
     const member = await requireMember(ctx, orgId, userId);
     const permissions = await grantedPermissions(ctx, member._id);
     const requirePermission = (permission: Permission) => {
@@ -49,7 +50,7 @@ const orgMember = customCtxAndArgs({
 const meetingCaller = customCtxAndArgs({
   args: { guest: v.optional(v.string()) },
   input: async (ctx: QueryCtx, { guest }) => ({
-    ctx: { userId: guest ? await guestUserId(ctx, guest) : await requireUserId(ctx) },
+    ctx: { userId: guest ? await guestUserId(ctx, guest) : await requireVerifiedUserId(ctx) },
     args: {},
   }),
 });
@@ -62,7 +63,7 @@ const meetingCallerAction = customCtxAndArgs({
   ): Promise<{ ctx: { userId: Id<"users"> }; args: Record<string, never> }> => {
     const userId: Id<"users"> = guest
       ? await ctx.runQuery(internal.internal.guests.userId, { secret: guest })
-      : await requireUserId(ctx as unknown as Pick<QueryCtx, "auth" | "runQuery">);
+      : await verifiedUserIdInAction(ctx);
     return { ctx: { userId }, args: {} };
   },
 });
@@ -71,13 +72,13 @@ export const zPaginationOpts = convexToZod(paginationOptsValidator);
 
 export const publicQuery = zCustomQuery(query, NoOp);
 export const publicMutation = zCustomMutation(mutation, NoOp);
-export const authedQuery = zCustomQuery(query, signedInUser);
-export const authedMutation = zCustomMutation(mutation, signedInUser);
+export const signedInQuery = zCustomQuery(query, signedInSession);
+export const signedInMutation = zCustomMutation(mutation, signedInSession);
+export const authedQuery = zCustomQuery(query, verifiedUser);
+export const authedMutation = zCustomMutation(mutation, verifiedUser);
 export const authedAction = zCustomAction(
   action,
-  customCtx(async (ctx: ActionCtx) => ({
-    userId: await requireUserId(ctx as unknown as Pick<QueryCtx, "auth" | "runQuery">),
-  })),
+  customCtx(async (ctx: ActionCtx) => ({ userId: await verifiedUserIdInAction(ctx) })),
 );
 export const meetingQuery = zCustomQuery(query, meetingCaller);
 export const meetingMutation = zCustomMutation(mutation, meetingCaller);
