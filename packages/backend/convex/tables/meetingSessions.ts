@@ -11,6 +11,9 @@ export const zMeetingSession = z.object({
   summary: z.string().optional(),
   transcriptUrl: z.string().optional(),
   recordingUrl: z.string().optional(),
+  transcriptId: zid("_storage").optional(),
+  recordingKey: z.string().optional(),
+  recordingSeconds: z.number().optional(),
 });
 
 export const meetingSessions = defineTable(zodToConvexFields(zMeetingSession.shape))

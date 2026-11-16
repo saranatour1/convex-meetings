@@ -112,6 +112,9 @@ erDiagram
     string summary "optional"
     string transcriptUrl "optional"
     string recordingUrl "optional"
+    id transcriptId FK "_storage, optional"
+    string recordingKey "optional"
+    number recordingSeconds "optional"
   }
   messages {
     id _id PK
@@ -125,6 +128,17 @@ erDiagram
     string timeZone
     array weeklyHours
     array alsoShow
+  }
+  notifications {
+    id _id PK
+    id userId FK "users"
+    enum kind
+    string title
+    string detail "optional"
+    string meetingCode "optional"
+    id sessionId FK "meetingSessions, optional"
+    id actorId FK "users, optional"
+    number readAt "optional"
   }
   users }o--o| _storage : imageId
   userSettings }o--|| users : userId
@@ -148,9 +162,13 @@ erDiagram
   meetingMembers }o--|| meetings : meetingId
   meetingMembers }o--|| users : userId
   meetingSessions }o--|| meetings : meetingId
+  meetingSessions }o--o| _storage : transcriptId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
   schedules }o--|| users : userId
+  notifications }o--|| users : userId
+  notifications }o--o| meetingSessions : sessionId
+  notifications }o--o| users : actorId
 ```
 
 ## Indexes
@@ -182,3 +200,5 @@ erDiagram
 | meetingSessions | by_rtk_session | rtkSessionId |
 | messages | by_meeting | meetingId |
 | schedules | by_user | userId |
+| notifications | by_user | userId |
+| notifications | by_user_and_readAt | userId, readAt |

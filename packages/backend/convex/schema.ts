@@ -9,6 +9,7 @@ import { meetingTimes } from "./tables/meetingTimes";
 import { memberRoles } from "./tables/memberRoles";
 import { members } from "./tables/members";
 import { messages } from "./tables/messages";
+import { notifications } from "./tables/notifications";
 import { organizations } from "./tables/organizations";
 import { roles } from "./tables/roles";
 import { schedules } from "./tables/schedules";
@@ -33,4 +34,5 @@ export default defineSchema({
   meetingSessions,
   messages,
   schedules,
+  notifications,
 });

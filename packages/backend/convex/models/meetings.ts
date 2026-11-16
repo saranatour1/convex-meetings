@@ -9,6 +9,7 @@ import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
 import { zMessage } from "../tables/messages";
 import { findMember } from "./members";
+import { notify } from "./notifications";
 import { getSettings } from "./settings";
 import { getViewer } from "./users";
 
@@ -116,6 +117,12 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
   for (const member of members) {
     await ctx.db.insert("meetingMembers", parseOrThrow(zMeetingMember, { ...member, meetingId }));
   }
+  await notify(ctx, inviteeIds, {
+    kind: "meetingInvite",
+    title: meeting.title,
+    meetingCode: code,
+    actorId: meeting.userId,
+  });
   return { meetingId, code };
 };
 
@@ -153,9 +160,14 @@ export const listMyMeetings = async (
     .paginate(paginationOpts);
   const page = await Promise.all(
     memberships.page.map(async (membership) => {
-      const [meeting, time] = await Promise.all([
+      const [meeting, time, lastSession] = await Promise.all([
         ctx.db.get("meetings", membership.meetingId),
         timeOf(ctx, membership.meetingId),
+        ctx.db
+          .query("meetingSessions")
+          .withIndex("by_meeting", (q) => q.eq("meetingId", membership.meetingId))
+          .order("desc")
+          .first(),
       ]);
       if (!meeting || !time) return null;
       return {
@@ -169,6 +181,14 @@ export const listMyMeetings = async (
         rrule: time.rrule ?? null,
         response: membership.response,
         role: membership.role,
+        lastSession: lastSession
+          ? {
+              _id: lastSession._id,
+              startedAt: lastSession.startedAt,
+              hasSummary: Boolean(lastSession.summary),
+              hasRecording: Boolean(lastSession.recordingKey || lastSession.recordingUrl),
+            }
+          : null,
       };
     }),
   );
@@ -229,8 +249,18 @@ export const respond = async (
   meetingId: Id<"meetings">,
   response: Doc<"meetingMembers">["response"],
 ) => {
-  const { member } = await requireMeetingMember(ctx, meetingId, userId);
+  const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
+  if (member.response === response) return;
   await ctx.db.patch("meetingMembers", member._id, { response });
+  if (response !== "pending") {
+    await notify(ctx, [meeting.userId], {
+      kind: "rsvp",
+      title: meeting.title,
+      detail: response === "accepted" ? "is going" : "can't make it",
+      meetingCode: meeting.code,
+      actorId: userId,
+    });
+  }
 };
 
 const deleteAll = async (
@@ -255,13 +285,16 @@ export const cancelMeeting = async (
   await deleteAll(ctx, await byMeeting("meetingTimes"));
   await deleteAll(ctx, await byMeeting("messages"));
   await deleteAll(ctx, await byMeeting("meetingSessions"));
-  await deleteAll(
+  const members = await ctx.db
+    .query("meetingMembers")
+    .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
+    .take(1000);
+  await notify(
     ctx,
-    await ctx.db
-      .query("meetingMembers")
-      .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
-      .take(1000),
+    members.map((m) => m.userId),
+    { kind: "meetingCancelled", title: meeting.title, actorId: userId },
   );
+  await deleteAll(ctx, members);
   await ctx.db.delete("meetings", meetingId);
   return meeting.rtkMeetingId ?? null;
 };
@@ -375,8 +408,15 @@ export type RealtimeEvent = {
   participant?: { customParticipantId?: string };
   summaryDownloadUrl?: string;
   transcriptDownloadUrl?: string;
-  recording?: { downloadUrl?: string; status?: string };
+  recording?: {
+    downloadUrl?: string;
+    status?: string;
+    outputFileName?: string;
+    recordingDuration?: number;
+  };
   summary?: string;
+  transcriptId?: Id<"_storage">;
+  recordingKey?: string;
 };
 
 const toMillis = (value: string | undefined, fallback: number) =>
@@ -415,8 +455,70 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   if (event.event === "meeting.ended") patch.endedAt = toMillis(event.meeting?.endedAt, now);
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);
   if (event.transcriptDownloadUrl) patch.transcriptUrl = event.transcriptDownloadUrl;
-  if (event.recording?.downloadUrl && event.recording.status === "UPLOADED") {
-    patch.recordingUrl = event.recording.downloadUrl;
+  if (event.transcriptId) patch.transcriptId = event.transcriptId;
+  if (event.recording?.status === "UPLOADED") {
+    if (event.recording.downloadUrl) patch.recordingUrl = event.recording.downloadUrl;
+    if (event.recordingKey) patch.recordingKey = event.recordingKey;
+    if (event.recording.recordingDuration) {
+      patch.recordingSeconds = event.recording.recordingDuration;
+    }
   }
   if (Object.keys(patch).length) await ctx.db.patch("meetingSessions", session._id, patch);
+  if (event.summary && !session.summary) {
+    const members = await ctx.db
+      .query("meetingMembers")
+      .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meeting._id))
+      .take(1000);
+    await notify(
+      ctx,
+      members.map((m) => m.userId),
+      {
+        kind: "recapReady",
+        title: meeting.title,
+        meetingCode: meeting.code,
+        sessionId: session._id,
+      },
+    );
+  }
+};
+
+const meetingNames = async (ctx: QueryCtx, memberIds: string[]) => {
+  const names = await Promise.all(
+    memberIds.map(async (memberId) => {
+      const id = ctx.db.normalizeId("meetingMembers", memberId);
+      const member = id ? await ctx.db.get("meetingMembers", id) : null;
+      const user = member ? await getViewer(ctx, member.userId) : null;
+      return user?.name ?? null;
+    }),
+  );
+  return names.filter((name) => name !== null);
+};
+
+export const requireSessionAccess = async (
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  sessionId: Id<"meetingSessions">,
+) => {
+  const session = await ctx.db.get("meetingSessions", sessionId);
+  if (!session) throw new ConvexError("This recap doesn't exist");
+  const { meeting } = await requireMeetingMember(ctx, session.meetingId, userId);
+  return { meeting, session };
+};
+
+export const getRecap = async (
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  sessionId: Id<"meetingSessions">,
+) => {
+  const { meeting, session } = await requireSessionAccess(ctx, userId, sessionId);
+  return {
+    meeting: { title: meeting.title, code: meeting.code, kind: meeting.kind },
+    startedAt: session.startedAt,
+    endedAt: session.endedAt ?? null,
+    attendees: await meetingNames(ctx, session.attendeeIds),
+    summary: session.summary ?? null,
+    transcriptUrl: session.transcriptId ? await ctx.storage.getUrl(session.transcriptId) : null,
+    hasRecording: Boolean(session.recordingKey || session.recordingUrl),
+    recordingSeconds: session.recordingSeconds ?? null,
+  };
 };

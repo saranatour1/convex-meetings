@@ -71,6 +71,11 @@ export const realtimeKit = {
       "POST",
       {},
     ),
+  sessionTranscriptUrl: (sessionId: string) =>
+    call<{ transcript_download_url: string }>(
+      `/sessions/${sessionId}/transcript?format=JSON`,
+      "GET",
+    ),
   listPresets: () => call<{ name: string }[]>("/presets", "GET"),
   createPreset: (preset: unknown) => call<{ id: string }>("/presets", "POST", preset),
   createWebhook: (webhook: { name: string; url: string; events: string[] }) =>
