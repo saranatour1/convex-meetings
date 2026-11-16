@@ -18,6 +18,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as InviteSecretRouteImport } from './routes/invite.$secret'
+import { Route as JoinSecretRouteImport } from './routes/join.$secret'
 import { Route as AppMeetingsIndexRouteImport } from './routes/_app/meetings.index'
 import { Route as AppMeetingsCodeRouteImport } from './routes/_app/meetings.$code'
 import { Route as AppOrgsNewRouteImport } from './routes/_app/orgs.new'
@@ -70,6 +71,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const InviteSecretRoute = InviteSecretRouteImport.update({
   id: '/invite/$secret',
   path: '/invite/$secret',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinSecretRoute = JoinSecretRouteImport.update({
+  id: '/join/$secret',
+  path: '/join/$secret',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppMeetingsIndexRoute = AppMeetingsIndexRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof AppScheduleRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/invite/$secret': typeof InviteSecretRoute
+  '/join/$secret': typeof JoinSecretRoute
   '/meetings/$code': typeof AppMeetingsCodeRoute
   '/orgs/new': typeof AppOrgsNewRoute
   '/settings/account': typeof AppSettingsAccountRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
   '/invite/$secret': typeof InviteSecretRoute
+  '/join/$secret': typeof JoinSecretRoute
   '/': typeof AppIndexRoute
   '/meetings/$code': typeof AppMeetingsCodeRoute
   '/orgs/new': typeof AppOrgsNewRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/invite/$secret': typeof InviteSecretRoute
+  '/join/$secret': typeof JoinSecretRoute
   '/_app/': typeof AppIndexRoute
   '/_app/meetings/$code': typeof AppMeetingsCodeRoute
   '/_app/orgs/new': typeof AppOrgsNewRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/invite/$secret'
+    | '/join/$secret'
     | '/meetings/$code'
     | '/orgs/new'
     | '/settings/account'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/schedule'
     | '/invite/$secret'
+    | '/join/$secret'
     | '/'
     | '/meetings/$code'
     | '/orgs/new'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/_app/schedule'
     | '/_app/settings'
     | '/invite/$secret'
+    | '/join/$secret'
     | '/_app/'
     | '/_app/meetings/$code'
     | '/_app/orgs/new'
@@ -241,6 +253,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   SignInRoute: typeof SignInRoute
   InviteSecretRoute: typeof InviteSecretRoute
+  JoinSecretRoute: typeof JoinSecretRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$secret'
       fullPath: '/invite/$secret'
       preLoaderRoute: typeof InviteSecretRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join/$secret': {
+      id: '/join/$secret'
+      path: '/join/$secret'
+      fullPath: '/join/$secret'
+      preLoaderRoute: typeof JoinSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/meetings/': {
@@ -426,6 +446,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
   InviteSecretRoute: InviteSecretRoute,
+  JoinSecretRoute: JoinSecretRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

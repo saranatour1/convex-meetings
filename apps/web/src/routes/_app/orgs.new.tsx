@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CreateOrgForm } from "#/features/orgs/create-org-form.tsx";
+import { JoinableOrgs } from "#/features/orgs/joinable-orgs.tsx";
 
 const NewOrgPage = () => {
   const navigate = Route.useNavigate();
   return (
-    <main className="grid place-items-center p-4 lg:p-6">
+    <main className="flex flex-col items-center gap-4 p-4 lg:p-6">
+      <JoinableOrgs onJoined={(orgId) => void navigate({ to: "/", search: { org: orgId } })} />
       <CreateOrgForm
         title="New organization"
         description="Start a separate space with its own members and meetings."

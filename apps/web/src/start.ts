@@ -7,6 +7,9 @@ const securityHeaders = createMiddleware().server(({ next }) => {
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "X-Frame-Options": "DENY",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "Permissions-Policy":
+        "camera=(self), microphone=(self), display-capture=(self), fullscreen=(self), picture-in-picture=(self), geolocation=(), payment=(), usb=()",
     }),
   );
   return next();

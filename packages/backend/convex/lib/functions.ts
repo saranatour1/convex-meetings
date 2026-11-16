@@ -40,7 +40,7 @@ const orgMember = customCtxAndArgs({
       if (!permissions.has(permission)) throw new ConvexError("Not allowed");
     };
     const can = (permission: Permission) => permissions.has(permission);
-    return { ctx: { userId, member, requirePermission, can }, args: { orgId } };
+    return { ctx: { userId, member, permissions, requirePermission, can }, args: { orgId } };
   },
 });
 

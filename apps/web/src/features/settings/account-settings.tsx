@@ -1,7 +1,15 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
 import { useAddPasskey, useRemovePasskey } from "@convex-dev/auth/methods/username-passkey/react";
-import { BadgeCheckIcon, CameraIcon, KeyRoundIcon, PlusIcon, TrashIcon } from "lucide-react";
+import {
+  BadgeCheckIcon,
+  CameraIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+  MonitorIcon,
+  PlusIcon,
+  TrashIcon,
+} from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
@@ -22,6 +30,7 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { describeAuthError } from "#/features/auth/auth-errors.ts";
 import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
+import { formatAgo } from "#/lib/schedule.ts";
 
 type Viewer = NonNullable<ReturnType<typeof useViewer>>;
 const useViewer = () => useQuery(api.users.viewer);
@@ -331,6 +340,42 @@ const PasswordCard = () => {
   );
 };
 
+const SessionsCard = () => {
+  const sessions = useQuery(api.users.sessions);
+  const signOutEverywhere = useMutation(api.users.signOutEverywhere);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Where you're signed in</CardTitle>
+        <CardDescription>
+          Each line is a browser or device. If you don't recognize one, sign out everywhere and
+          change how you sign in.
+        </CardDescription>
+      </CardHeader>
+      <CardPanel>
+        <ul className="flex flex-col divide-y">
+          {sessions?.map((session) => (
+            <li key={session._id} className="flex items-center gap-3 py-2 text-sm">
+              <MonitorIcon className="size-4 opacity-60" />
+              <span className="flex-1">
+                Signed in {formatAgo(session.startedAt)} · active {formatAgo(session.lastActiveAt)}
+              </span>
+              {session.current && <Badge variant="outline">This device</Badge>}
+            </li>
+          ))}
+        </ul>
+      </CardPanel>
+      <CardFooter>
+        <Button variant="destructive-outline" onClick={() => void signOutEverywhere({})}>
+          <LogOutIcon />
+          Sign out everywhere
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+
 const OAUTH_LABEL = { google: "Google", github: "GitHub" } as const;
 
 export const AccountSettings = () => {
@@ -351,6 +396,7 @@ export const AccountSettings = () => {
           </CardHeader>
         </Card>
       )}
+      <SessionsCard />
     </div>
   );
 };

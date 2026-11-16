@@ -6,7 +6,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { emailWorkpool } from "../lib/workpools";
 import { zInvite } from "../tables/invites";
-import { addMember } from "./members";
+import { addMember, findMember } from "./members";
 import { getViewer } from "./users";
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -21,13 +21,22 @@ const newSecret = () => toHex(crypto.getRandomValues(new Uint8Array(32)));
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-const issueToken = async (ctx: MutationCtx) => {
+export const issueToken = async (ctx: MutationCtx, ttlMs = INVITE_TTL_MS) => {
   const secret = newSecret();
   const tokenId = await ctx.db.insert("tokens", {
     value: await hashSecret(secret),
-    expiresAt: Date.now() + INVITE_TTL_MS,
+    expiresAt: Date.now() + ttlMs,
   });
   return { secret, tokenId };
+};
+
+export const findLiveToken = async (ctx: QueryCtx, secret: string) => {
+  const value = await hashSecret(secret);
+  const token = await ctx.db
+    .query("tokens")
+    .withIndex("by_value", (q) => q.eq("value", value))
+    .unique();
+  return token && token.expiresAt > Date.now() ? token : null;
 };
 
 const enqueueSend = (ctx: MutationCtx, inviteId: Id<"invites">, secret: string) =>
@@ -70,6 +79,37 @@ export const createInvite = async (
   return inviteId;
 };
 
+const isMemberByEmail = async (ctx: QueryCtx, orgId: Id<"organizations">, email: string) => {
+  const users = await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .take(10);
+  const memberships = await Promise.all(users.map((user) => findMember(ctx, orgId, user._id)));
+  return memberships.some((member) => member !== null);
+};
+
+export const inviteMany = async (
+  ctx: MutationCtx,
+  invite: {
+    orgId: Id<"organizations">;
+    roleId: Id<"roles">;
+    invitedBy: Id<"users">;
+    emails: string[];
+  },
+) => {
+  const sent: string[] = [];
+  const skipped: string[] = [];
+  for (const email of new Set(invite.emails.map(normalizeEmail))) {
+    if (await isMemberByEmail(ctx, invite.orgId, email)) {
+      skipped.push(email);
+      continue;
+    }
+    await createInvite(ctx, { ...invite, email });
+    sent.push(email);
+  }
+  return { sent, skipped };
+};
+
 export const resendInvite = async (
   ctx: MutationCtx,
   orgId: Id<"organizations">,
@@ -86,15 +126,15 @@ export const revokeInvite = async (
   ctx: MutationCtx,
   orgId: Id<"organizations">,
   inviteId: Id<"invites">,
-) => deleteInvite(ctx, await ownInvite(ctx, orgId, inviteId));
+) => {
+  const invite = await ownInvite(ctx, orgId, inviteId);
+  await deleteInvite(ctx, invite);
+  return invite;
+};
 
 const findLiveInvite = async (ctx: QueryCtx, secret: string) => {
-  const value = await hashSecret(secret);
-  const live = await ctx.db
-    .query("tokens")
-    .withIndex("by_value", (q) => q.eq("value", value))
-    .unique();
-  if (!live || live.expiresAt <= Date.now()) return null;
+  const live = await findLiveToken(ctx, secret);
+  if (!live) return null;
   return ctx.db
     .query("invites")
     .withIndex("by_token", (q) => q.eq("tokenId", live._id))

@@ -46,7 +46,7 @@ const orgWithOwner = async () => {
 const sendInvite = async (setup: Awaited<ReturnType<typeof orgWithOwner>>, email: string) => {
   await setup.owner.asUser.mutation(api.api.invites.create, {
     orgId: setup.orgId,
-    email,
+    emails: [email],
     roleId: setup.memberRoleId,
   });
   await setup.t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -117,7 +117,7 @@ test("members without the invite permission can't invite", async () => {
   await expect(
     bea.asUser.mutation(api.api.invites.create, {
       orgId: setup.orgId,
-      email: "friend@example.com",
+      emails: ["friend@example.com"],
       roleId: setup.memberRoleId,
     }),
   ).rejects.toThrow("Not allowed");

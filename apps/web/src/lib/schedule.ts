@@ -270,3 +270,5 @@ export const clockShifts = (people: Person[], starts: number[]) => {
   }
   return shifts;
 };
+
+export const formatAgo = (ms: number) => DateTime.fromMillis(ms).toRelative() ?? "just now";

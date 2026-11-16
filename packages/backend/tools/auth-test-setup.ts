@@ -1,5 +1,6 @@
 import { sessionIdentity, registerCore } from "@convex-dev/auth/test";
 import { register as registerWorkpool } from "@convex-dev/workpool/test";
+import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test";
 import { register as registerEmail } from "@sarant/cloudflare-email-component/test";
 import { convexTest } from "convex-test";
 import { vi } from "vite-plus/test";
@@ -16,6 +17,7 @@ export const testBackend = () => {
   registerWorkpool(t, "avatarWorkpool");
   registerWorkpool(t, "emailWorkpool");
   registerEmail(t);
+  registerRateLimiter(t);
   return t;
 };
 

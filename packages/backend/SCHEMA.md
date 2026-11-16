@@ -29,6 +29,8 @@ erDiagram
   organizations {
     id _id PK
     string name
+    string joinDomain "optional"
+    id joinRoleId FK "roles, optional"
   }
   members {
     id _id PK
@@ -60,6 +62,24 @@ erDiagram
     id tokenId FK "tokens"
     string email
     string emailError "optional"
+  }
+  joinLinks {
+    id _id PK
+    id orgId FK "organizations"
+    id roleId FK "roles"
+    id createdBy FK "users"
+    id tokenId FK "tokens"
+    number maxUses "optional"
+    number uses
+    number revokedAt "optional"
+  }
+  auditEvents {
+    id _id PK
+    id orgId FK "organizations"
+    id actorId FK "users"
+    enum action
+    id targetUserId FK "users, optional"
+    string detail "optional"
   }
   groups {
     id _id PK
@@ -142,6 +162,7 @@ erDiagram
   }
   users }o--o| _storage : imageId
   userSettings }o--|| users : userId
+  organizations }o--o| roles : joinRoleId
   members }o--|| organizations : orgId
   members }o--|| users : userId
   roles }o--|| organizations : orgId
@@ -152,6 +173,13 @@ erDiagram
   invites }o--|| roles : roleId
   invites }o--|| users : invitedBy
   invites }o--|| tokens : tokenId
+  joinLinks }o--|| organizations : orgId
+  joinLinks }o--|| roles : roleId
+  joinLinks }o--|| users : createdBy
+  joinLinks }o--|| tokens : tokenId
+  auditEvents }o--|| organizations : orgId
+  auditEvents }o--|| users : actorId
+  auditEvents }o--o| users : targetUserId
   groups }o--|| organizations : orgId
   groupMembers }o--|| organizations : orgId
   groupMembers }o--|| groups : groupId
@@ -175,7 +203,9 @@ erDiagram
 
 | Table | Index | Fields |
 | --- | --- | --- |
+| users | by_email | email |
 | userSettings | by_user | userId |
+| organizations | by_join_domain | joinDomain |
 | members | by_org_and_user | orgId, userId |
 | members | by_user | userId |
 | roles | by_org_and_name | orgId, name |
@@ -186,6 +216,9 @@ erDiagram
 | invites | by_org | orgId |
 | invites | by_token | tokenId |
 | invites | by_org_and_email | orgId, email |
+| joinLinks | by_org | orgId |
+| joinLinks | by_token | tokenId |
+| auditEvents | by_org | orgId |
 | groups | by_org | orgId |
 | groupMembers | by_group_and_user | groupId, userId |
 | groupMembers | by_org_and_user | orgId, userId |

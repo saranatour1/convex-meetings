@@ -3,6 +3,7 @@ import { usePaginatedQuery } from "convex/react";
 import { api, type Id } from "@meetings/backend";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { CreateOrgForm } from "./create-org-form.tsx";
+import { JoinableOrgs } from "./joinable-orgs.tsx";
 
 type Org = { _id: Id<"organizations">; name: string };
 type ActiveOrg = { orgId: Id<"organizations">; name: string; orgs: Org[] };
@@ -27,7 +28,8 @@ export const OrgGate = ({ requested, onCreated, children }: OrgGateProps) => {
   const active = results.find((org) => org._id === requested) ?? results[0];
   if (!active) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-sidebar p-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-sidebar p-4">
+        <JoinableOrgs onJoined={onCreated} />
         <CreateOrgForm
           title="Create your organization"
           description="Everyone you meet with joins an organization. You can invite them next."
