@@ -179,6 +179,7 @@ export const occurrencesBetween = (
   first: First,
   from: number,
   to: number,
+  until?: number,
 ): Occurrence[] => {
   const parsed = parseRule(rule, first.timeZone);
   if (!parsed) {
@@ -186,7 +187,7 @@ export const occurrencesBetween = (
       ? [{ start: first.startsAt, end: first.endsAt }]
       : [];
   }
-  const limit = endOf(parsed, first);
+  const limit = until ?? endOf(parsed, first);
   const firstDay = calendarDay(first.startsAt, first.timeZone);
   const windowDay = calendarDay(from - (first.endsAt - first.startsAt), first.timeZone);
   const startDay = windowDay < firstDay ? firstDay : windowDay;

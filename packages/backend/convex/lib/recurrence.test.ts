@@ -76,6 +76,19 @@ test("COUNT stops after that many occurrences", () => {
   expect(lastOccurrenceEnd("FREQ=DAILY;COUNT=3", first)).toBe(first.endsAt + 2 * DAY);
 });
 
+test("a stored repeat end is used instead of recomputing it", () => {
+  const first = meetingAt("2026-11-16T09:00");
+  const to = first.startsAt + 10 * DAY;
+  const counted = "FREQ=DAILY;COUNT=3";
+  expect(
+    occurrencesBetween(counted, first, first.startsAt, to, lastOccurrenceEnd(counted, first)),
+  ).toEqual(occurrencesBetween(counted, first, first.startsAt, to));
+  expect(occurrencesBetween("FREQ=DAILY", first, first.startsAt, to, first.endsAt + DAY)).toEqual([
+    { start: first.startsAt, end: first.endsAt },
+    { start: first.startsAt + DAY, end: first.endsAt + DAY },
+  ]);
+});
+
 test("UNTIL excludes later dates", () => {
   const first = meetingAt("2026-11-16T09:00");
   expect(localStarts("FREQ=DAILY;UNTIL=20261118", first, first.startsAt + 10 * DAY)).toEqual([

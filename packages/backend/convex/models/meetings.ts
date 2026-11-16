@@ -405,7 +405,7 @@ export const busyForOrg = async (
     times
       .filter((time) => time.startsAt < to)
       .map(async (time) => {
-        const occurrences = occurrencesBetween(time.rrule, time, from, to);
+        const occurrences = occurrencesBetween(time.rrule, time, from, to, time.repeatUntil);
         if (occurrences.length === 0) return;
         const invited = await ctx.db
           .query("meetingMembers")
