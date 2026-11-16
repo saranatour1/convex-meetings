@@ -209,33 +209,36 @@ const LinksList = () => {
 
   return (
     <ul className="flex flex-col divide-y">
-      {links.results.map((link) => (
-        <li key={link._id} className="flex items-center gap-3 py-2 text-sm">
-          <LinkIcon className="size-4 shrink-0 opacity-60" />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate">
-              Joins as {link.role ?? "a deleted role"} · {link.uses}
-              {link.maxUses ? ` of ${link.maxUses}` : ""} used
+      {links.results.map((link) => {
+        const active = link.open && link.expiresAt > Date.now();
+        return (
+          <li key={link._id} className="flex items-center gap-3 py-2 text-sm">
+            <LinkIcon className="size-4 shrink-0 opacity-60" />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate">
+                Joins as {link.role ?? "a deleted role"} · {link.uses}
+                {link.maxUses ? ` of ${link.maxUses}` : ""} used
+              </span>
+              <span className="truncate text-muted-foreground text-xs">
+                By {link.createdBy} {formatAgo(link._creationTime)} · until{" "}
+                {formatLongDate(link.expiresAt, zone)}
+              </span>
             </span>
-            <span className="truncate text-muted-foreground text-xs">
-              By {link.createdBy} {formatAgo(link._creationTime)} · until{" "}
-              {formatLongDate(link.expiresAt, zone)}
-            </span>
-          </span>
-          {link.active ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => void revoke({ orgId, linkId: link._id }).catch(showError)}
-            >
-              <XIcon />
-              Turn off
-            </Button>
-          ) : (
-            <Badge variant="outline">Off</Badge>
-          )}
-        </li>
-      ))}
+            {active ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void revoke({ orgId, linkId: link._id }).catch(showError)}
+              >
+                <XIcon />
+                Turn off
+              </Button>
+            ) : (
+              <Badge variant="outline">Off</Badge>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 };

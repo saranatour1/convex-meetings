@@ -502,12 +502,10 @@ export const listSessionMessages = async (
   const { session } = await requireSessionAccess(ctx, userId, sessionId);
   const result = await ctx.db
     .query("messages")
-    .withIndex("by_meeting", (q) =>
-      q
-        .eq("meetingId", session.meetingId)
-        .gte("_creationTime", session.startedAt)
-        .lte("_creationTime", session.endedAt ?? Date.now()),
-    )
+    .withIndex("by_meeting", (q) => {
+      const range = q.eq("meetingId", session.meetingId).gte("_creationTime", session.startedAt);
+      return session.endedAt === undefined ? range : range.lte("_creationTime", session.endedAt);
+    })
     .paginate(paginationOpts);
   const loaders = createChatLoaders(ctx);
   return {

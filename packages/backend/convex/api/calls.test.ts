@@ -193,6 +193,26 @@ test("protected meetings never record and keep snapshots and downloads to hosts"
   expect(seen?.sessions[0]).not.toHaveProperty("recordingUrl");
 });
 
+test("a live session's recap chat shows messages sent after it was first read", async () => {
+  const { t, host, guest, meetingId, hostMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  const sessionId = await t.run(
+    async (ctx) => (await ctx.db.query("meetingSessions").first())!._id,
+  );
+  const before = await host.asUser.query(api.api.meetings.recapChat, {
+    sessionId,
+    paginationOpts: page,
+  });
+  expect(before.page).toEqual([]);
+  await guest.asUser.mutation(api.api.messages.send, { meetingId, body: "Still here" });
+  const after = await host.asUser.query(api.api.meetings.recapChat, {
+    sessionId,
+    paginationOpts: page,
+  });
+  expect(after.page).toMatchObject([{ body: "Still here" }]);
+});
+
 test("one person on two devices stays present until both leave, and can switch here", async () => {
   vi.useFakeTimers();
   const { t, host, orgId, meetingId, hostMember, event } = await setup();
