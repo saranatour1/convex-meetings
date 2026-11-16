@@ -1,8 +1,10 @@
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { env, internalAction, internalMutation, internalQuery } from "../_generated/server";
 import { allPresets } from "../lib/presets";
 import { realtimeKit } from "../lib/realtimekit";
 import { forgetDevices } from "../models/calls";
+import { endEmptyMeeting } from "../models/meetings";
 import {
   claimRtkMeeting,
   joinDetails as readJoinDetails,
@@ -48,6 +50,16 @@ export const deactivate = internalAction({
   args: { rtkMeetingId: v.string() },
   handler: async (_ctx, { rtkMeetingId }) => {
     await realtimeKit.deactivateMeeting(rtkMeetingId);
+  },
+});
+
+export const endIfEmpty = internalMutation({
+  args: { meetingId: v.id("meetings") },
+  handler: async (ctx, { meetingId }) => {
+    const rtkMeetingId = await endEmptyMeeting(ctx, meetingId);
+    if (rtkMeetingId) {
+      await ctx.scheduler.runAfter(0, internal.internal.realtime.deactivate, { rtkMeetingId });
+    }
   },
 });
 

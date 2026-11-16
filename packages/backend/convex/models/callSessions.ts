@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zCallPeer } from "../tables/callPeers";
 import { clearStrokes } from "./annotations";
-import { canControlCall } from "./calls";
+import { canControlCall, endWhenEmpty } from "./calls";
 import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
 import { notify } from "./notifications";
 import { getViewer } from "./users";
@@ -15,6 +15,7 @@ export const joinDetails = async (
   meetingId: Id<"meetings">,
 ) => {
   const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
+  if (meeting.endedAt) throw new ConvexError("This meeting has ended");
   if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
   const user = await getViewer(ctx, userId);
   return {
@@ -110,6 +111,7 @@ const trackPeers = async (
   if (event.event === "meeting.participantLeft" && peerId) {
     const peer = await peerOf(ctx, session._id, peerId);
     if (peer) await ctx.db.delete("callPeers", peer._id);
+    await endWhenEmpty(ctx, session.meetingId);
   }
   if (event.event === "meeting.ended") {
     const peers = await ctx.db
@@ -117,6 +119,7 @@ const trackPeers = async (
       .withIndex("by_session_and_peer", (q) => q.eq("sessionId", session._id))
       .take(1000);
     for (const peer of peers) await ctx.db.delete("callPeers", peer._id);
+    await endWhenEmpty(ctx, session.meetingId);
   }
 };
 

@@ -29,7 +29,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const setup = async (extra: { protected?: boolean } = {}) => {
+const setup = async (extra: { protected?: boolean; rrule?: string } = {}) => {
   const t = testBackend();
   const host = await signIn(t, "Host");
   const guest = await signIn(t, "Guest");
@@ -260,4 +260,62 @@ test("a new session forgets devices from one that never ended", async () => {
   await event("meeting.participantJoined", hostMember, "laptop", "session-a");
   await event("meeting.participantJoined", hostMember, "phone", "session-b");
   expect((await host.asUser.query(api.api.meetings.get, { code }))?.me.devicesInCall).toBe(1);
+});
+
+const meetingDoc = (t: Awaited<ReturnType<typeof setup>>["t"], meetingId: Id<"meetings">) =>
+  t.run((ctx) => ctx.db.get("meetings", meetingId));
+
+test("a meeting ends once its call has been empty for two minutes", async () => {
+  vi.useFakeTimers();
+  const { t, host, guest, meetingId, hostMember, guestMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  await event("meeting.participantJoined", guestMember);
+  await event("meeting.participantLeft", guestMember);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect((await meetingDoc(t, meetingId))?.endedAt).toBeUndefined();
+
+  await event("meeting.participantLeft", hostMember);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+  expect((await meetingDoc(t, meetingId))?.endedAt).toBeTypeOf("number");
+  expect(calls.at(-1)).toMatchObject({
+    url: expect.stringMatching(/\/meetings\/rtk-meeting$/),
+    body: { status: "INACTIVE" },
+  });
+  await expect(guest.asUser.action(api.api.meetings.join, { meetingId })).rejects.toThrow(
+    "This meeting has ended",
+  );
+});
+
+test("rejoining within two minutes keeps the meeting open", async () => {
+  vi.useFakeTimers();
+  const { t, host, meetingId, hostMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember, "peer-1");
+  await event("meeting.participantLeft", hostMember, "peer-1");
+  vi.advanceTimersByTime(60_000);
+  await event("meeting.participantJoined", hostMember, "peer-2");
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+  expect((await meetingDoc(t, meetingId))?.endedAt).toBeUndefined();
+});
+
+test("ending a repeating meeting drops its later occurrences", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.UTC(2026, 10, 18, 9, 10));
+  const { t, host, orgId, meetingId, hostMember, event } = await setup({ rrule: "FREQ=WEEKLY" });
+  const weeks = { from: Date.UTC(2026, 10, 18), to: Date.UTC(2026, 11, 16) };
+  const busy = async () =>
+    (await host.asUser.query(api.api.meetings.busy, { orgId, ...weeks }))[host.userId];
+  expect(await busy()).toHaveLength(4);
+
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  await event("meeting.participantLeft", hostMember);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+  expect(await busy()).toEqual([
+    { start: Date.UTC(2026, 10, 18, 9, 0), end: Date.UTC(2026, 10, 18, 9, 30) },
+  ]);
 });
