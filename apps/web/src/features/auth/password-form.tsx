@@ -1,9 +1,6 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
-import {
-  useSignInWithUsernamePassword,
-  useSignUpWithUsernamePassword,
-} from "@convex-dev/auth/methods/username-password/react";
+import { useSignInWithUsernamePassword } from "@convex-dev/auth/methods/username-password/react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { Input } from "@meetings/ui/components/input";
@@ -11,17 +8,15 @@ import { Label } from "@meetings/ui/components/label";
 import { describeAuthError } from "./auth-errors.ts";
 import { FormError } from "#/components/form-error.tsx";
 
-export const PasswordForm = ({ mode }: { mode: "signin" | "signup" }) => {
+export const PasswordForm = () => {
   const signIn = useSignInWithUsernamePassword(api.auth).signIn;
-  const signUp = useSignUpWithUsernamePassword(api.auth).signUp;
-  const isSignUp = mode === "signup";
   const form = useForm({
     defaultValues: { username: "", password: "" },
     validators: {
       onSubmitAsync: async ({ value }) => {
-        const result = await (isSignUp ? signUp : signIn)(value);
+        const result = await signIn(value);
         if (result.status === "error") return describeAuthError(result.userError.error);
-        track(isSignUp ? "signed_up" : "signed_in", { method: "password" });
+        track("signed_in", { method: "password" });
         return undefined;
       },
     },
@@ -58,7 +53,7 @@ export const PasswordForm = ({ mode }: { mode: "signin" | "signup" }) => {
               type="password"
               value={field.state.value}
               onChange={(event) => field.handleChange(event.target.value)}
-              autoComplete={isSignUp ? "new-password" : "current-password"}
+              autoComplete="current-password"
               required
             />
           </div>
@@ -70,7 +65,7 @@ export const PasswordForm = ({ mode }: { mode: "signin" | "signup" }) => {
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(pending) => (
           <Button type="submit" className="w-full" disabled={pending}>
-            {isSignUp ? "Sign up" : "Sign in"}
+            Sign in
           </Button>
         )}
       </form.Subscribe>

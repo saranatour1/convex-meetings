@@ -13,9 +13,7 @@ import { OAuthButtons } from "./oauth-buttons.tsx";
 import { PasskeyForm } from "./passkey-form.tsx";
 import { PasswordForm } from "./password-form.tsx";
 
-type SignInCardProps = { method: "passkey" | "password"; mode: "signin" | "signup" };
-
-export const SignInCard = ({ method, mode }: SignInCardProps) => {
+export const SignInCard = ({ method }: { method: "passkey" | "password" }) => {
   const withPassword = method === "password";
 
   return (
@@ -23,26 +21,11 @@ export const SignInCard = ({ method, mode }: SignInCardProps) => {
       <CardHeader>
         <CardTitle>Sign in to Meetings</CardTitle>
         <CardDescription>
-          {withPassword
-            ? "Use your username and password."
-            : "Enter a username. New usernames create an account with a passkey."}
+          New here? Continue with Google or GitHub to create your account, then add a passkey.
         </CardDescription>
       </CardHeader>
       <CardPanel className="flex flex-col gap-2">
-        {withPassword ? <PasswordForm key={mode} mode={mode} /> : <PasskeyForm />}
-        {withPassword && (
-          <Button
-            variant="link"
-            render={
-              <Link
-                to="/sign-in"
-                search={{ with: "password", mode: mode === "signup" ? undefined : "signup" }}
-              />
-            }
-          >
-            {mode === "signup" ? "Have an account? Sign in" : "No account? Sign up"}
-          </Button>
-        )}
+        <OAuthButtons />
       </CardPanel>
       <CardFooter className="flex flex-col gap-3">
         <div className="flex w-full items-center gap-3 text-muted-foreground text-xs">
@@ -50,7 +33,7 @@ export const SignInCard = ({ method, mode }: SignInCardProps) => {
           or
           <Separator className="flex-1" />
         </div>
-        <OAuthButtons />
+        <div className="w-full">{withPassword ? <PasswordForm /> : <PasskeyForm />}</div>
         <Button
           variant="link"
           size="sm"
