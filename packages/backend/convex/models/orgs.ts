@@ -17,7 +17,6 @@ export const ALL_PERMISSIONS = {
   inviteMembers: true,
   removeMembers: true,
   manageRoles: true,
-  manageGroups: true,
   createMeetings: true,
   manageMeetings: true,
   manageOrganization: true,

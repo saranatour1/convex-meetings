@@ -82,17 +82,6 @@ erDiagram
     id targetUserId FK "users, optional"
     string detail "optional"
   }
-  groups {
-    id _id PK
-    id orgId FK "organizations"
-    string name
-  }
-  groupMembers {
-    id _id PK
-    id orgId FK "organizations"
-    id groupId FK "groups"
-    id userId FK "users"
-  }
   meetings {
     id _id PK
     id orgId FK "organizations"
@@ -227,10 +216,6 @@ erDiagram
   auditEvents }o--|| organizations : orgId
   auditEvents }o--|| users : actorId
   auditEvents }o--o| users : targetUserId
-  groups }o--|| organizations : orgId
-  groupMembers }o--|| organizations : orgId
-  groupMembers }o--|| groups : groupId
-  groupMembers }o--|| users : userId
   meetings }o--|| organizations : orgId
   meetings }o--|| users : userId
   meetingTimes }o--|| meetings : meetingId
@@ -283,9 +268,6 @@ erDiagram
 | joinLinks | by_org | orgId |
 | joinLinks | by_token | tokenId |
 | auditEvents | by_org | orgId |
-| groups | by_org | orgId |
-| groupMembers | by_group_and_user | groupId, userId |
-| groupMembers | by_org_and_user | orgId, userId |
 | meetings | by_org_and_user_and_title | orgId, userId, title |
 | meetings | by_rtk_meeting | rtkMeetingId |
 | meetings | by_code | code |

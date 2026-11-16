@@ -6,7 +6,6 @@ export const PERMISSIONS: { key: Permission; label: string }[] = [
   { key: "inviteMembers", label: "Invite people" },
   { key: "removeMembers", label: "Remove people" },
   { key: "manageRoles", label: "Manage roles" },
-  { key: "manageGroups", label: "Manage teams" },
   { key: "createMeetings", label: "Schedule meetings" },
   { key: "manageMeetings", label: "Manage everyone's meetings and calls" },
   { key: "manageOrganization", label: "Organization settings, links and activity" },

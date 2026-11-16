@@ -6,7 +6,6 @@ export const zPermission = z.enum([
   "inviteMembers",
   "removeMembers",
   "manageRoles",
-  "manageGroups",
   "createMeetings",
   "manageMeetings",
   "manageOrganization",

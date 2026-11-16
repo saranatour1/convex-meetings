@@ -1,13 +1,6 @@
-import {
-  Fragment,
-  useMemo,
-  useRef,
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useMemo, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ChartGanttIcon,
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   GlobeIcon,
@@ -58,14 +51,12 @@ import {
   type Plan,
   type Status,
   type StatusKind,
-  type Team,
 } from "#/lib/schedule.ts";
 
 export type ScheduleDisplay = {
   view?: "list";
   zone?: string;
   zones?: string[];
-  openTeam?: string;
 };
 
 export type MeetingTime = { start: number; minutes: number };
@@ -98,7 +89,6 @@ type Drag = {
 type FindATimeProps = {
   organizer: Person;
   people: Person[];
-  teams: Team[];
   zone: string;
   day: Day;
   onDayChange: (day: Day) => void;
@@ -112,7 +102,6 @@ type FindATimeProps = {
 export const FindATime = ({
   organizer,
   people,
-  teams,
   zone,
   day,
   onDayChange,
@@ -128,7 +117,7 @@ export const FindATime = ({
   const view = display.view ?? "timeline";
   const extraZones = (display.zones ?? []).filter((z) => z !== zone);
 
-  const everyone = [organizer, ...people, ...teams.flatMap((t) => t.members)];
+  const everyone = [organizer, ...people];
   const total = everyone.length;
   const start = time.start;
   const end = start + time.minutes * MINUTE;
@@ -153,21 +142,6 @@ export const FindATime = ({
         ? `${person.city} (${firstName(person)})`
         : cityOf(z);
   };
-
-  const teamCells = useMemo(
-    () =>
-      new Map(
-        teams.map((t) => [
-          t.id,
-          plan.slots.map(
-            (s) =>
-              t.members.filter((m) => statusAt(m, s.start, s.start + 30 * MINUTE).kind === "free")
-                .length,
-          ),
-        ]),
-      ),
-    [teams, plan],
-  );
 
   const ticks: number[] = [];
   for (let t = plan.from; t < plan.to; t += HOUR) ticks.push(t);
@@ -359,62 +333,6 @@ export const FindATime = ({
           </div>
         </div>
       </div>
-    );
-  };
-
-  const teamRow = (t: Team) => {
-    const isOpen = display.openTeam === t.id;
-    const cells = teamCells.get(t.id) ?? [];
-    const freeNow = t.members.filter((m) => status(m).kind === "free").length;
-    return (
-      <Fragment key={t.id}>
-        <div className="flex min-h-16 border-b bg-muted/40">
-          <div className="flex w-68 shrink-0 items-start gap-2.5 py-2.5 pe-3">
-            <Button
-              size="icon-sm"
-              variant="outline"
-              aria-expanded={isOpen}
-              aria-label={`${isOpen ? "Hide" : "Show"} the people in ${t.name}`}
-              onClick={() => onDisplayChange({ openTeam: isOpen ? undefined : t.id })}
-            >
-              <ChevronDownIcon className={cn("transition-transform", !isOpen && "-rotate-90")} />
-            </Button>
-            <div className="flex min-w-0 flex-col gap-px">
-              <span className="font-medium text-sm">
-                {t.name}{" "}
-                <span className="font-normal text-muted-foreground">
-                  · {t.members.length} people
-                </span>
-              </span>
-              <span className="text-muted-foreground text-xs">
-                {[...new Set(t.members.map((m) => m.city))].join(", ")}
-              </span>
-              <span className="text-xs tabular-nums">
-                {freeNow} of {t.members.length} free at {formatTime(start, zone)}
-              </span>
-            </div>
-          </div>
-          <div aria-hidden="true" className="flex flex-1 flex-col justify-center gap-1 py-1.5">
-            <div className="grid h-7 overflow-hidden rounded-md" style={columns}>
-              {cells.map((n, i) => (
-                <span
-                  key={plan.slots[i].start}
-                  className="grid place-items-center border-background border-e text-[11px] tabular-nums"
-                  style={{
-                    backgroundColor: `color-mix(in srgb, var(--success) ${Math.round(4 + (32 * n) / t.members.length)}%, transparent)`,
-                  }}
-                >
-                  {n}
-                </span>
-              ))}
-            </div>
-            <span className="text-[11px] text-muted-foreground leading-3.5">
-              Free per half hour, out of {t.members.length}
-            </span>
-          </div>
-        </div>
-        {isOpen && t.members.map((m) => personRow(m, true))}
-      </Fragment>
     );
   };
 
@@ -697,7 +615,6 @@ export const FindATime = ({
                     className="absolute inset-y-0 start-68 end-0 z-10 cursor-crosshair"
                   />
                   {[organizer, ...people].map((p) => personRow(p))}
-                  {teams.map(teamRow)}
                 </div>
               </div>
             </div>
