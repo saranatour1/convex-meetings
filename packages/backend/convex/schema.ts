@@ -3,6 +3,7 @@ import { groupMembers } from "./tables/groupMembers";
 import { groups } from "./tables/groups";
 import { invites } from "./tables/invites";
 import { meetingMembers } from "./tables/meetingMembers";
+import { meetingSessions } from "./tables/meetingSessions";
 import { meetings } from "./tables/meetings";
 import { meetingTimes } from "./tables/meetingTimes";
 import { memberRoles } from "./tables/memberRoles";
@@ -27,6 +28,7 @@ export default defineSchema({
   meetings,
   meetingTimes,
   meetingMembers,
+  meetingSessions,
   messages,
   schedules,
 });

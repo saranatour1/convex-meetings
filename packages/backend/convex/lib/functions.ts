@@ -3,13 +3,14 @@ import { NoOp, customCtx, customCtxAndArgs } from "convex-helpers/server/customF
 import {
   type ZCustomCtx,
   convexToZod,
+  zCustomAction,
   zCustomMutation,
   zCustomQuery,
 } from "convex-helpers/server/zod4";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
-import { mutation, query, type QueryCtx } from "../_generated/server";
+import { action, mutation, query, type ActionCtx, type QueryCtx } from "../_generated/server";
 import { grantedPermissions, type Permission } from "../models/roles";
 
 const requireUserId = async (ctx: Pick<QueryCtx, "auth" | "runQuery">) => {
@@ -47,6 +48,12 @@ export const zPaginationOpts = convexToZod(paginationOptsValidator);
 export const publicQuery = zCustomQuery(query, NoOp);
 export const authedQuery = zCustomQuery(query, signedInUser);
 export const authedMutation = zCustomMutation(mutation, signedInUser);
+export const authedAction = zCustomAction(
+  action,
+  customCtx(async (ctx: ActionCtx) => ({
+    userId: await requireUserId(ctx as unknown as Pick<QueryCtx, "auth" | "runQuery">),
+  })),
+);
 export const orgQuery = zCustomQuery(query, orgMember);
 export const orgMutation = zCustomMutation(mutation, orgMember);
 

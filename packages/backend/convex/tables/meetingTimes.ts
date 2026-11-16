@@ -10,6 +10,9 @@ export const zMeetingTime = z
     start: zTimeOfDay,
     end: zTimeOfDay,
     timeZone: zTimeZone,
+    startsAt: z.number(),
+    endsAt: z.number(),
+    rrule: z.string().max(500).optional(),
   })
   .refine(({ start, end }) => start < end, { message: "End must be after start" });
 
