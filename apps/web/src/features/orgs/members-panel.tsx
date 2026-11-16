@@ -58,7 +58,7 @@ import {
 import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { canGrant } from "#/lib/roles.ts";
 import { cityOf, formatAgo, formatLongDate, formatTime } from "#/lib/schedule.ts";
@@ -428,13 +428,15 @@ const PendingInvites = () => {
               )}
             </div>
             <RowMenu>
-              <MenuItem onClick={() => void resend({ orgId, inviteId: invite._id })}>
+              <MenuItem
+                onClick={() => void resend({ orgId, inviteId: invite._id }).catch(showError)}
+              >
                 <RotateCwIcon />
                 Resend invite
               </MenuItem>
               <MenuItem
                 variant="destructive"
-                onClick={() => void revoke({ orgId, inviteId: invite._id })}
+                onClick={() => void revoke({ orgId, inviteId: invite._id }).catch(showError)}
               >
                 <XIcon />
                 Revoke invite

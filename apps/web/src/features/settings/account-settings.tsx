@@ -28,7 +28,7 @@ import { Textarea } from "@meetings/ui/components/textarea";
 import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { describeAuthError } from "#/features/auth/auth-errors.ts";
-import { describeError } from "#/lib/errors.ts";
+import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { formatAgo } from "#/lib/schedule.ts";
 
@@ -227,7 +227,7 @@ const PasskeysCard = () => {
                 onBlur={(event) => {
                   const name = event.target.value.trim();
                   if (name && name !== passkey.name) {
-                    void rename({ passkeyId: passkey.passkeyId, name });
+                    void rename({ passkeyId: passkey.passkeyId, name }).catch(showError);
                   }
                 }}
               />
@@ -243,7 +243,7 @@ const PasskeysCard = () => {
                 title={
                   passkeys.length < 2 ? "Add another passkey before removing this one" : undefined
                 }
-                onClick={() => void removePasskey(passkey.passkeyId)}
+                onClick={() => void removePasskey(passkey.passkeyId).catch(showError)}
               >
                 <TrashIcon />
               </Button>
@@ -254,7 +254,7 @@ const PasskeysCard = () => {
           variant="outline"
           className="self-start"
           disabled={adding}
-          onClick={() => void addPasskey()}
+          onClick={() => void addPasskey().catch(showError)}
         >
           <PlusIcon />
           {adding ? "Waiting for your passkey…" : "Add a passkey"}
@@ -367,7 +367,10 @@ const SessionsCard = () => {
         </ul>
       </CardPanel>
       <CardFooter>
-        <Button variant="destructive-outline" onClick={() => void signOutEverywhere({})}>
+        <Button
+          variant="destructive-outline"
+          onClick={() => void signOutEverywhere({}).catch(showError)}
+        >
           <LogOutIcon />
           Sign out everywhere
         </Button>

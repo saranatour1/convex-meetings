@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@meetings/ui/components/sidebar";
+import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { applyTheme, storedTheme, type ThemePreference } from "#/lib/theme.ts";
 
@@ -110,7 +111,7 @@ export const NavUser = () => {
                 onValueChange={(value) => {
                   const next = value as ThemePreference;
                   applyTheme(next);
-                  void saveSettings({ theme: next });
+                  void saveSettings({ theme: next }).catch(showError);
                 }}
               >
                 {THEMES.map((option) => (

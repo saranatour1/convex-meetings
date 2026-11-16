@@ -21,10 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@meetings/ui/components/select";
-import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { copyWithToast, describeError, showError } from "#/lib/errors.ts";
 import { canGrant } from "#/lib/roles.ts";
 import { formatAgo, formatLongDate } from "#/lib/schedule.ts";
 import { useActiveOrg } from "./active-org.tsx";
@@ -35,9 +34,6 @@ const useOrg = () => {
   const { orgId } = useActiveOrg();
   return useQuery(api.orgs.get, { orgId });
 };
-
-const showError = (error: unknown) =>
-  toastManager.add({ title: describeError(error), type: "error" });
 
 const RolePicker = ({
   roles,
@@ -190,11 +186,7 @@ const NewLinkForm = ({ org }: { org: OrgView }) => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(link)
-                      .then(() => toastManager.add({ title: "Link copied", type: "success" }))
-                  }
+                  onClick={() => void copyWithToast(link, "Link copied")}
                 >
                   <CopyIcon />
                   Copy

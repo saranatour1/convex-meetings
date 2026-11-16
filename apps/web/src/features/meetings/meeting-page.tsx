@@ -13,10 +13,9 @@ import {
   CardPanel,
   CardTitle,
 } from "@meetings/ui/components/card";
-import { toastManager } from "@meetings/ui/components/toast";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
@@ -24,9 +23,6 @@ import { JoinCallCard, MeetingCall } from "./call-entry.tsx";
 import { InviteToMeeting, MeetingDoor, MeetingSettingsCard } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
-
-const showError = (error: unknown) =>
-  toastManager.add({ title: describeError(error), type: "error" });
 
 const RESPONSE_LABEL = { accepted: "Going", declined: "Not going", pending: "No reply yet" };
 
@@ -105,7 +101,10 @@ export const MeetingPage = ({
           )}
           <div className="flex flex-wrap gap-2">
             {isHost ? (
-              <Button variant="ghost" onClick={() => void cancel({ meetingId }).then(onCancelled)}>
+              <Button
+                variant="ghost"
+                onClick={() => void cancel({ meetingId }).then(onCancelled).catch(showError)}
+              >
                 <XIcon />
                 Cancel meeting
               </Button>
@@ -113,14 +112,14 @@ export const MeetingPage = ({
               <>
                 <Button
                   variant={meeting.me.response === "accepted" ? "default" : "outline"}
-                  onClick={() => void respond({ meetingId, response: "accepted" })}
+                  onClick={() => void respond({ meetingId, response: "accepted" }).catch(showError)}
                 >
                   <CheckIcon />
                   Going
                 </Button>
                 <Button
                   variant={meeting.me.response === "declined" ? "default" : "outline"}
-                  onClick={() => void respond({ meetingId, response: "declined" })}
+                  onClick={() => void respond({ meetingId, response: "declined" }).catch(showError)}
                 >
                   Not going
                 </Button>

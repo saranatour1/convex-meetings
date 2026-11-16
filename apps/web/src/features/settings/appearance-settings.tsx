@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@meetings/ui/components/card";
 import { cn } from "@meetings/ui/lib/utils";
+import { showError } from "#/lib/errors.ts";
 import { applyTheme, storedTheme, type ThemePreference } from "#/lib/theme.ts";
 
 const OPTIONS: { value: ThemePreference; label: string; icon: typeof SunIcon }[] = [
@@ -40,7 +41,7 @@ export const AppearanceSettings = () => {
               aria-checked={theme === option.value}
               onClick={() => {
                 applyTheme(option.value);
-                void save({ theme: option.value });
+                void save({ theme: option.value }).catch(showError);
               }}
               className={cn(
                 "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm transition-colors hover:bg-accent/50",
