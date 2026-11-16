@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import {
   RealtimeKitProvider,
   useRealtimeKitClient,
@@ -49,6 +49,7 @@ const CallView = ({ title, kind, onBack, onRejoin, rejoining, ...room }: CallVie
 
 export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: MeetingCallProps) => {
   const join = useAction(api.meetings.join);
+  const settings = useQuery(api.settings.getMine);
   const [meeting, initMeeting] = useRealtimeKitClient();
   const form = useForm({
     defaultValues: {},
@@ -56,7 +57,14 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
       onSubmitAsync: async () => {
         try {
           const { token } = await join({ meetingId });
-          await initMeeting({ authToken: token, defaults: { plugins: [whiteboardPlugin(token)] } });
+          await initMeeting({
+            authToken: token,
+            defaults: {
+              audio: !settings?.joinMuted,
+              video: !settings?.joinCameraOff,
+              plugins: [whiteboardPlugin(token)],
+            },
+          });
           onInCallChange(true);
           return undefined;
         } catch (error) {

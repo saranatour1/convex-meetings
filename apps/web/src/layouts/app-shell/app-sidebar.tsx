@@ -1,12 +1,5 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import {
-  CalendarDaysIcon,
-  HouseIcon,
-  InboxIcon,
-  SettingsIcon,
-  UsersIcon,
-  VideoIcon,
-} from "lucide-react";
+import { CalendarDaysIcon, HouseIcon, InboxIcon, UsersIcon, VideoIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,7 +18,6 @@ const LINKS = [
   { title: "Home", to: "/", icon: HouseIcon },
   { title: "Calendar", to: "/calendar", icon: CalendarDaysIcon },
   { title: "Members", to: "/members", icon: UsersIcon },
-  { title: "Settings", to: "/settings", icon: SettingsIcon },
 ] as const;
 
 const PLANNED_NAV_ITEMS = [

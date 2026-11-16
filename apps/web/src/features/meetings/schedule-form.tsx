@@ -70,6 +70,7 @@ export type ScheduleFormProps = {
   onSchedule: (meeting: NewMeeting) => Promise<string | undefined>;
   invitees: { organizer: Person; people: Person[]; teams: Team[] };
   homeZone: string;
+  defaults: { kind: MeetingKind; minutes: number; recap: boolean };
   alsoShow: string[];
   onInvite: (meetingTitle: string) => void;
   onClose: () => void;
@@ -80,6 +81,7 @@ export type ScheduleFormProps = {
 
 export const ScheduleForm = ({
   invitees,
+  defaults,
   onSchedule,
   homeZone,
   alsoShow,
@@ -93,15 +95,15 @@ export const ScheduleForm = ({
   const form = useForm({
     defaultValues: {
       title: "",
-      kind: "groupCall" as MeetingKind,
-      recap: true,
+      kind: defaults.kind,
+      recap: defaults.recap,
       rrule: undefined as string | undefined,
       isPrivate: false,
       day: initialTime?.start
         ? dayOf(initialTime.start, zone)
         : nextWorkday(dayOf(Date.now(), zone)),
       start: initialTime?.start ?? null,
-      durationMinutes: initialTime?.minutes ?? 30,
+      durationMinutes: initialTime?.minutes ?? defaults.minutes,
       removed: [] as string[],
     },
     validators: {

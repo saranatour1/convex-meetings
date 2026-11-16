@@ -1,6 +1,7 @@
 import { provideRtkDesignSystem } from "@cloudflare/realtimekit-react-ui";
+import { resolveTheme } from "#/lib/theme.ts";
 
-const CALL_THEME = {
+const LIGHT = {
   theme: "light",
   fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
   borderRadius: "rounded",
@@ -18,6 +19,21 @@ const CALL_THEME = {
   },
 } as const;
 
+const DARK = {
+  ...LIGHT,
+  theme: "dark",
+  colors: {
+    brand: { 300: "#e4e4e7", 400: "#d4d4d8", 500: "#fafafa", 600: "#f4f4f5", 700: "#ffffff" },
+    background: { 1000: "#09090b", 900: "#18181b", 800: "#27272a", 700: "#3f3f46", 600: "#52525b" },
+    text: "#fafafa",
+    "text-on-brand": "#09090b",
+    "video-bg": "#27272a",
+    danger: "#ef4444",
+    success: "#22c55e",
+    warning: "#f59e0b",
+  },
+} as const;
+
 export const applyCallTheme = (element: HTMLElement | null) => {
-  if (element) provideRtkDesignSystem(element, CALL_THEME);
+  if (element) provideRtkDesignSystem(element, resolveTheme() === "dark" ? DARK : LIGHT);
 };

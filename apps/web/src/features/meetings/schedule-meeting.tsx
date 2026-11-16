@@ -13,7 +13,7 @@ const DAY_MS = 86_400_000;
 
 type ScheduleMeetingProps = Omit<
   ScheduleFormProps,
-  "invitees" | "homeZone" | "alsoShow" | "onSchedule"
+  "invitees" | "homeZone" | "alsoShow" | "onSchedule" | "defaults"
 > & { onScheduled: (code: string) => void };
 
 export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps) => {
@@ -24,7 +24,13 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
   const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
   const viewer = useQuery(api.users.viewer);
   const schedule = useQuery(api.schedules.getMine);
-  if (members.status === "LoadingFirstPage" || viewer === undefined || schedule === undefined) {
+  const settings = useQuery(api.settings.getMine);
+  if (
+    members.status === "LoadingFirstPage" ||
+    viewer === undefined ||
+    schedule === undefined ||
+    settings === undefined
+  ) {
     return <LoadingScreen />;
   }
 
@@ -63,6 +69,11 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
       }}
       invitees={{ organizer, people: people.filter((p) => p.id !== organizer.id), teams: [] }}
       homeZone={homeZone}
+      defaults={{
+        kind: settings.defaultKind,
+        minutes: settings.defaultMinutes,
+        recap: settings.defaultRecap,
+      }}
       alsoShow={schedule?.alsoShow ?? []}
     />
   );
