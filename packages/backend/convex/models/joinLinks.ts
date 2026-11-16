@@ -106,7 +106,7 @@ export const listJoinLinks = async (
         uses: link.uses,
         maxUses: link.maxUses ?? null,
         expiresAt,
-        active: !link.revokedAt && !usedUp && expiresAt > Date.now(),
+        open: !link.revokedAt && !usedUp,
       };
     }),
   );

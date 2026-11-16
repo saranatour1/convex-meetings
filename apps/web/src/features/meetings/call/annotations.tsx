@@ -5,7 +5,7 @@ import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
-import { describeError } from "#/lib/errors.ts";
+import { showError } from "#/lib/errors.ts";
 import { useGuestPass } from "../guest-pass.ts";
 import { PEN_COLORS, type PenColor } from "./pen-colors.ts";
 
@@ -19,9 +19,6 @@ const INK: Record<PenColor, string> = {
 
 const MAX_COORDS = 1000;
 const MIN_STEP = 0.003;
-
-const showError = (error: unknown) =>
-  toastManager.add({ title: describeError(error), type: "error" });
 
 const toPolyline = (points: number[]) =>
   points

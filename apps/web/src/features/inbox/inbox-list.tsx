@@ -16,7 +16,7 @@ import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
 import { EmptyState } from "#/components/empty-state.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
 
@@ -49,7 +49,7 @@ const Row = ({ notification }: { notification: Notification }) => {
   const Icon = ICONS[notification.kind];
   const zone = browserTimeZone();
   const markRead = () => {
-    if (!notification.readAt) void read({ notificationId: notification._id });
+    if (!notification.readAt) void read({ notificationId: notification._id }).catch(showError);
   };
   const reply = (response: "accepted" | "declined") => {
     markRead();
@@ -142,7 +142,7 @@ export const InboxList = () => {
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-semibold text-xl">Inbox</h1>
         {hasUnread && (
-          <Button size="sm" variant="ghost" onClick={() => void readAll({})}>
+          <Button size="sm" variant="ghost" onClick={() => void readAll({}).catch(showError)}>
             <CheckCheckIcon />
             Mark all read
           </Button>

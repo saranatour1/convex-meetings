@@ -21,10 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@meetings/ui/components/select";
-import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { copyWithToast, describeError, showError } from "#/lib/errors.ts";
 import { canGrant } from "#/lib/roles.ts";
 import { formatAgo, formatLongDate } from "#/lib/schedule.ts";
 import { useActiveOrg } from "./active-org.tsx";
@@ -35,9 +34,6 @@ const useOrg = () => {
   const { orgId } = useActiveOrg();
   return useQuery(api.orgs.get, { orgId });
 };
-
-const showError = (error: unknown) =>
-  toastManager.add({ title: describeError(error), type: "error" });
 
 const RolePicker = ({
   roles,
@@ -190,11 +186,7 @@ const NewLinkForm = ({ org }: { org: OrgView }) => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(link)
-                      .then(() => toastManager.add({ title: "Link copied", type: "success" }))
-                  }
+                  onClick={() => void copyWithToast(link, "Link copied")}
                 >
                   <CopyIcon />
                   Copy
@@ -217,33 +209,36 @@ const LinksList = () => {
 
   return (
     <ul className="flex flex-col divide-y">
-      {links.results.map((link) => (
-        <li key={link._id} className="flex items-center gap-3 py-2 text-sm">
-          <LinkIcon className="size-4 shrink-0 opacity-60" />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate">
-              Joins as {link.role ?? "a deleted role"} · {link.uses}
-              {link.maxUses ? ` of ${link.maxUses}` : ""} used
+      {links.results.map((link) => {
+        const active = link.open && link.expiresAt > Date.now();
+        return (
+          <li key={link._id} className="flex items-center gap-3 py-2 text-sm">
+            <LinkIcon className="size-4 shrink-0 opacity-60" />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate">
+                Joins as {link.role ?? "a deleted role"} · {link.uses}
+                {link.maxUses ? ` of ${link.maxUses}` : ""} used
+              </span>
+              <span className="truncate text-muted-foreground text-xs">
+                By {link.createdBy} {formatAgo(link._creationTime)} · until{" "}
+                {formatLongDate(link.expiresAt, zone)}
+              </span>
             </span>
-            <span className="truncate text-muted-foreground text-xs">
-              By {link.createdBy} {formatAgo(link._creationTime)} · until{" "}
-              {formatLongDate(link.expiresAt, zone)}
-            </span>
-          </span>
-          {link.active ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => void revoke({ orgId, linkId: link._id }).catch(showError)}
-            >
-              <XIcon />
-              Turn off
-            </Button>
-          ) : (
-            <Badge variant="outline">Off</Badge>
-          )}
-        </li>
-      ))}
+            {active ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void revoke({ orgId, linkId: link._id }).catch(showError)}
+              >
+                <XIcon />
+                Turn off
+              </Button>
+            ) : (
+              <Badge variant="outline">Off</Badge>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 };

@@ -25,7 +25,7 @@ import { toastManager } from "@meetings/ui/components/toast";
 import { EmptyState } from "#/components/empty-state.tsx";
 import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
-import { describeError } from "#/lib/errors.ts";
+import { copyWithToast, describeError, showError } from "#/lib/errors.ts";
 
 type Access = "invited" | "org" | "link";
 type Inviters = "hosts" | "everyone";
@@ -52,9 +52,6 @@ const INVITERS: { value: Inviters; label: string }[] = [
   { value: "hosts", label: "Only hosts" },
   { value: "everyone", label: "Everyone in the meeting" },
 ];
-
-const showError = (error: unknown) =>
-  toastManager.add({ title: describeError(error), type: "error" });
 
 const meetingLink = (code: string) => `${window.location.origin}/m/${code}`;
 
@@ -90,11 +87,7 @@ export const MeetingSettingsCard = ({
         <Button
           size="sm"
           variant="outline"
-          onClick={() =>
-            void navigator.clipboard
-              .writeText(meetingLink(code))
-              .then(() => toastManager.add({ title: "Meeting link copied", type: "success" }))
-          }
+          onClick={() => void copyWithToast(meetingLink(code), "Meeting link copied")}
         >
           <CopyIcon />
           Copy link

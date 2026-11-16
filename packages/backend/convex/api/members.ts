@@ -1,9 +1,10 @@
 import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 import { orgMutation, orgQuery, zPaginationOpts } from "../lib/functions";
 import { audit } from "../models/audit";
 import { kickFromOrgCalls } from "../models/calls";
-import { listMembers, removeMember, setMemberRole } from "../models/members";
+import { listMembers, membersLastActive, removeMember, setMemberRole } from "../models/members";
 import {
   OWNER_ROLE,
   actorOf,
@@ -16,8 +17,15 @@ import { signOutEverywhere as revokeAll } from "../models/sessions";
 
 export const list = orgQuery({
   args: { paginationOpts: zPaginationOpts },
-  handler: (ctx, { orgId, paginationOpts }) =>
-    listMembers(ctx, orgId, paginationOpts, ctx.can("manageOrganization")),
+  handler: (ctx, { orgId, paginationOpts }) => listMembers(ctx, orgId, paginationOpts),
+});
+
+export const lastActive = orgQuery({
+  args: { userIds: z.array(zid("users")).max(100) },
+  handler: (ctx, { orgId, userIds }) => {
+    ctx.requirePermission("manageOrganization");
+    return membersLastActive(ctx, orgId, userIds);
+  },
 });
 
 export const remove = orgMutation({

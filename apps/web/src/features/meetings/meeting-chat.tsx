@@ -20,11 +20,10 @@ import {
   ComposerInput,
   ComposerSubmit,
 } from "@meetings/ui/components/composer";
-import { toastManager } from "@meetings/ui/components/toast";
 import { getComposerText } from "@meetings/ui/lib/composer-editor";
 import { cn } from "@meetings/ui/lib/utils";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { dayOf, formatLongDate, formatTime } from "#/lib/schedule.ts";
 import { useGuestPass } from "./guest-pass.ts";
@@ -58,9 +57,7 @@ const useReact = () => {
   const react = useMutation(api.messages.react);
   const pass = useGuestPass();
   return (messageId: ChatLine["_id"], emoji: string) =>
-    void react({ messageId, emoji: emoji as ReactionEmoji, ...pass }).catch((error: unknown) =>
-      toastManager.add({ title: describeError(error), type: "error" }),
-    );
+    void react({ messageId, emoji: emoji as ReactionEmoji, ...pass }).catch(showError);
 };
 
 const Reactions = ({ message }: { message: ChatLine }) => {
@@ -217,9 +214,7 @@ export const MeetingChat = ({ meetingId, since, className }: MeetingChatProps) =
           if (!body) return;
           void send({ meetingId, body, ...pass })
             .then(() => composer.current?.reset())
-            .catch((error: unknown) =>
-              toastManager.add({ title: describeError(error), type: "error" }),
-            );
+            .catch(showError);
         }}
       >
         <ComposerInput aria-label="Message" placeholder="Message everyone in this meeting" />

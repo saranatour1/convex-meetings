@@ -108,12 +108,10 @@ export const listSessionSnapshots = async (
   const { session } = await requireSessionAccess(ctx, userId, sessionId);
   const snapshots = await ctx.db
     .query("annotationSnapshots")
-    .withIndex("by_meeting", (q) =>
-      q
-        .eq("meetingId", session.meetingId)
-        .gte("_creationTime", session.startedAt)
-        .lte("_creationTime", session.endedAt ?? Date.now()),
-    )
+    .withIndex("by_meeting", (q) => {
+      const range = q.eq("meetingId", session.meetingId).gte("_creationTime", session.startedAt);
+      return session.endedAt === undefined ? range : range.lte("_creationTime", session.endedAt);
+    })
     .take(100);
   return Promise.all(
     snapshots.map(async (snapshot) => {

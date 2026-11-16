@@ -58,7 +58,7 @@ import {
 import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { canGrant } from "#/lib/roles.ts";
 import { cityOf, formatAgo, formatLongDate, formatTime } from "#/lib/schedule.ts";
@@ -93,6 +93,7 @@ const MemberRow = ({
   canManageRoles,
   canRemove,
   canSignOut,
+  lastActiveAt,
   roles,
   onConfirm,
 }: {
@@ -101,6 +102,7 @@ const MemberRow = ({
   canManageRoles: boolean;
   canRemove: boolean;
   canSignOut: boolean;
+  lastActiveAt: number | null;
   roles: (Doc<"roles"> & { grantable: boolean })[];
   onConfirm: (confirm: MemberConfirm) => void;
 }) => {
@@ -129,7 +131,7 @@ const MemberRow = ({
           </span>
           <span className="truncate text-muted-foreground text-xs">
             {member.email ?? "No email yet"}
-            {member.lastActiveAt && ` · active ${formatAgo(member.lastActiveAt)}`}
+            {lastActiveAt && ` · active ${formatAgo(lastActiveAt)}`}
           </span>
         </div>
       </div>
@@ -428,13 +430,15 @@ const PendingInvites = () => {
               )}
             </div>
             <RowMenu>
-              <MenuItem onClick={() => void resend({ orgId, inviteId: invite._id })}>
+              <MenuItem
+                onClick={() => void resend({ orgId, inviteId: invite._id }).catch(showError)}
+              >
                 <RotateCwIcon />
                 Resend invite
               </MenuItem>
               <MenuItem
                 variant="destructive"
-                onClick={() => void revoke({ orgId, inviteId: invite._id })}
+                onClick={() => void revoke({ orgId, inviteId: invite._id }).catch(showError)}
               >
                 <XIcon />
                 Revoke invite
@@ -460,6 +464,12 @@ export const MembersPanel = ({
   const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
   const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
   const can = (permission: string) => org?.permissions.includes(permission as never) ?? false;
+  const lastActive = useQuery(
+    api.members.lastActive,
+    can("manageOrganization")
+      ? { orgId, userIds: members.results.slice(0, 100).map((m) => m.userId) }
+      : "skip",
+  );
   const grantableRoles = roles.results.map((role) => ({ ...role, grantable: canGrant(role, org) }));
   const query = search.trim().toLowerCase();
   const shown = members.results.filter(
@@ -517,6 +527,7 @@ export const MembersPanel = ({
                 canManageRoles={can("manageRoles")}
                 canRemove={can("removeMembers")}
                 canSignOut={org?.isOwner ?? false}
+                lastActiveAt={lastActive?.[member.userId] ?? null}
                 roles={grantableRoles}
                 onConfirm={onConfirmChange}
               />

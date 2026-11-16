@@ -139,6 +139,24 @@ test("invites follow who-can-invite, add org members, and email guests a persona
   });
 });
 
+test("inviting the same outside email twice keeps one guest", async () => {
+  vi.useFakeTimers();
+  const { t, host, create } = await setup();
+  const { meetingId, code } = await create("Review");
+  await host.asUser.mutation(api.api.meetings.invite, {
+    meetingId,
+    emails: ["client@example.com"],
+  });
+  const again = await host.asUser.mutation(api.api.meetings.invite, {
+    meetingId,
+    emails: ["client@example.com"],
+  });
+  expect(again).toMatchObject({ guests: [], skipped: ["client@example.com"] });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const meeting = await host.asUser.query(api.api.meetings.get, { code });
+  expect(meeting?.people.filter((p) => p.isGuest)).toHaveLength(1);
+});
+
 test("an invited guest names themselves, and a removed guest stays out", async () => {
   const { t, host, create } = await setup();
   const { meetingId, code } = await create("Interview");

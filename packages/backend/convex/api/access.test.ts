@@ -162,6 +162,19 @@ test("members can't create links for roles above them or read the audit log", as
   ).rejects.toThrow("Not allowed");
 });
 
+test("only org managers see when members were last active", async () => {
+  const { owner, ada, bea, orgId } = await setup();
+  const seen = await owner.asUser.query(api.api.members.lastActive, {
+    orgId,
+    userIds: [ada.userId, bea.userId],
+  });
+  expect(seen[ada.userId]).toBeTypeOf("number");
+  expect(seen[bea.userId]).toBeTypeOf("number");
+  await expect(
+    bea.asUser.query(api.api.members.lastActive, { orgId, userIds: [ada.userId] }),
+  ).rejects.toThrow("Not allowed");
+});
+
 test("domain join needs a verified email on a private domain, and is explicit", async () => {
   const { t, owner, orgId } = await setup();
   const erin = await signIn(t, "Erin");

@@ -25,15 +25,11 @@ import {
 import { Input } from "@meetings/ui/components/input";
 import { Label } from "@meetings/ui/components/label";
 import { Switch } from "@meetings/ui/components/switch";
-import { toastManager } from "@meetings/ui/components/toast";
 import { FormError } from "#/components/form-error.tsx";
-import { describeError } from "#/lib/errors.ts";
+import { describeError, showError } from "#/lib/errors.ts";
 import { BUILT_IN_ROLES, LOCKED_ROLES, PERMISSIONS, canGrant } from "#/lib/roles.ts";
 import { ActivityCard, InviteLinksCard, JoinDomainCard } from "./access-settings.tsx";
 import { useActiveOrg } from "./active-org.tsx";
-
-const showError = (error: unknown) =>
-  toastManager.add({ title: describeError(error), type: "error" });
 
 const NameCard = ({ canEdit }: { canEdit: boolean }) => {
   const { orgId, name } = useActiveOrg();

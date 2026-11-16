@@ -48,7 +48,7 @@ const lastActive = async (ctx: QueryCtx, userId: Id<"users">) => {
   );
 };
 
-const describeMember = async (ctx: QueryCtx, member: Doc<"members">, withActivity: boolean) => {
+const describeMember = async (ctx: QueryCtx, member: Doc<"members">) => {
   const [user, roles, schedule] = await Promise.all([
     getViewer(ctx, member.userId),
     rolesOf(ctx, member._id),
@@ -64,7 +64,6 @@ const describeMember = async (ctx: QueryCtx, member: Doc<"members">, withActivit
     seenTimeZone: user?.seenTimeZone ?? null,
     roles: roles.map((role) => ({ _id: role._id, name: role.name })),
     schedule: schedule ? { timeZone: schedule.timeZone, weeklyHours: schedule.weeklyHours } : null,
-    lastActiveAt: withActivity ? await lastActive(ctx, member.userId) : null,
   };
 };
 
@@ -72,7 +71,6 @@ export const listMembers = async (
   ctx: QueryCtx,
   orgId: Id<"organizations">,
   paginationOpts: PaginationOptions,
-  withActivity = false,
 ) => {
   const result = await ctx.db
     .query("members")
@@ -80,8 +78,23 @@ export const listMembers = async (
     .paginate(paginationOpts);
   return {
     ...result,
-    page: await Promise.all(result.page.map((m) => describeMember(ctx, m, withActivity))),
+    page: await Promise.all(result.page.map((m) => describeMember(ctx, m))),
   };
+};
+
+export const membersLastActive = async (
+  ctx: QueryCtx,
+  orgId: Id<"organizations">,
+  userIds: Id<"users">[],
+) => {
+  const entries = await Promise.all(
+    userIds.map(async (userId) =>
+      (await findMember(ctx, orgId, userId))
+        ? ([userId, await lastActive(ctx, userId)] as const)
+        : null,
+    ),
+  );
+  return Object.fromEntries(entries.filter((entry) => entry !== null));
 };
 
 const isLastHolder = async (ctx: QueryCtx, roleId: Id<"roles">) => {
