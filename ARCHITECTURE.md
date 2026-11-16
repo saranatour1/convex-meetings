@@ -50,6 +50,7 @@ Rules:
 
 - One table per file in `tables/`, each exporting its Zod schema and table. Field rules are reached through `.shape` (for example `zUser.shape.bio`).
 - Tables and public `args` are validated with Zod, via `convex-helpers/server/zod4`. Time values use the Luxon-backed validators in `lib/time.ts`. Convex `v` validators appear only where a library requires them: middleware arguments and the Convex Auth callbacks.
+- Convex tables only enforce field types. Model functions call `parseOrThrow(zTable, value)` from `lib/validate.ts` before every `insert`, `patch` or `replace`, so trimming, length and format rules always apply.
 - Public queries and mutations have no `returns`. Internal functions declare `returns` only where a library needs it (the Convex Auth `createUser` callbacks).
 - List queries paginate with Convex's `paginationOptsValidator`, `.paginate()` on the server, and `usePaginatedQuery` on the client. Single-document reads stay plain.
 - Function builders in `lib/functions.ts`:
