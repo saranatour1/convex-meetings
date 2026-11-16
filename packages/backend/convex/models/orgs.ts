@@ -6,6 +6,7 @@ import { parseOrThrow } from "../lib/validate";
 import { zOrganization } from "../tables/organizations";
 import { zRole } from "../tables/roles";
 import { addMember } from "./members";
+import { saveSettings } from "./settings";
 import { grantedPermissions, type Permission } from "./roles";
 
 export const OWNER_ROLE = "Owner";
@@ -29,12 +30,39 @@ const insertRole = (
   permissions: Partial<typeof ALL_PERMISSIONS>,
 ) => ctx.db.insert("roles", parseOrThrow(zRole, { orgId, name, permissions }));
 
+const sameName = (a: string, b: string) =>
+  a.trim().localeCompare(b.trim(), undefined, { sensitivity: "base" }) === 0;
+
+const requireUnusedName = async (
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  name: string,
+  except?: Id<"organizations">,
+) => {
+  const memberships = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .take(200);
+  for (const membership of memberships) {
+    if (membership.orgId === except) continue;
+    const org = await ctx.db.get("organizations", membership.orgId);
+    if (org && sameName(org.name, name)) {
+      throw new ConvexError(`You're already in an organization called ${org.name}`);
+    }
+  }
+};
+
+export const activateOrg = (ctx: MutationCtx, userId: Id<"users">, orgId: Id<"organizations">) =>
+  saveSettings(ctx, userId, { activeOrgId: orgId });
+
 export const createOrg = async (ctx: MutationCtx, userId: Id<"users">, name: string) => {
+  await requireUnusedName(ctx, userId, name);
   const orgId = await ctx.db.insert("organizations", parseOrThrow(zOrganization, { name }));
   const ownerRoleId = await insertRole(ctx, orgId, OWNER_ROLE, ALL_PERMISSIONS);
   await insertRole(ctx, orgId, ADMIN_ROLE, ALL_PERMISSIONS);
   await insertRole(ctx, orgId, MEMBER_ROLE, { createMeetings: true });
   await addMember(ctx, orgId, userId, ownerRoleId);
+  await activateOrg(ctx, userId, orgId);
   return orgId;
 };
 
@@ -70,7 +98,13 @@ export const findRole = async (ctx: QueryCtx, orgId: Id<"organizations">, name: 
     .withIndex("by_org_and_name", (q) => q.eq("orgId", orgId).eq("name", name))
     .unique();
 
-export const renameOrg = async (ctx: MutationCtx, orgId: Id<"organizations">, name: string) => {
+export const renameOrg = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  orgId: Id<"organizations">,
+  name: string,
+) => {
+  await requireUnusedName(ctx, userId, name, orgId);
   await ctx.db.patch("organizations", orgId, parseOrThrow(zOrganization, { name }));
 };
 

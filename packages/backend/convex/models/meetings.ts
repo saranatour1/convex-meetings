@@ -188,6 +188,7 @@ export const listMyMeetings = async (
         lastSession: lastSession
           ? {
               _id: lastSession._id,
+              number: lastSession.number,
               startedAt: lastSession.startedAt,
               hasSummary: Boolean(lastSession.summary),
               hasRecording: Boolean(lastSession.recordingKey || lastSession.recordingUrl),
@@ -260,6 +261,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     people,
     sessions: sessions.map((s) => ({
       _id: s._id,
+      number: s.number,
       startedAt: s.startedAt,
       endedAt: s.endedAt ?? null,
       attendees: s.attendeeIds.length,
@@ -489,6 +491,21 @@ export type RealtimeEvent = {
 const toMillis = (value: string | undefined, fallback: number) =>
   value ? Date.parse(value) || fallback : fallback;
 
+const nextSessionNumber = async (ctx: QueryCtx, meetingId: Id<"meetings">) => {
+  const last = await ctx.db
+    .query("meetingSessions")
+    .withIndex("by_meeting_and_number", (q) => q.eq("meetingId", meetingId))
+    .order("desc")
+    .first();
+  return (last?.number ?? 0) + 1;
+};
+
+export const findSessionByNumber = (ctx: QueryCtx, meetingId: Id<"meetings">, number: number) =>
+  ctx.db
+    .query("meetingSessions")
+    .withIndex("by_meeting_and_number", (q) => q.eq("meetingId", meetingId).eq("number", number))
+    .unique();
+
 export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent) => {
   const rtkMeetingId = event.meeting?.id;
   const rtkSessionId = event.meeting?.sessionId;
@@ -510,6 +527,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
       await ctx.db.insert("meetingSessions", {
         meetingId: meeting._id,
         orgId: meeting.orgId,
+        number: await nextSessionNumber(ctx, meeting._id),
         rtkSessionId,
         startedAt: toMillis(event.meeting?.startedAt, now),
         attendeeIds: [],
@@ -593,6 +611,7 @@ export const getRecap = async (
   const { meeting, session } = await requireSessionAccess(ctx, userId, sessionId);
   const { member } = await requireMeetingMember(ctx, meeting._id, userId);
   return {
+    sessionId: session._id,
     meeting: { title: meeting.title, code: meeting.code, kind: meeting.kind },
     canDownload: !meeting.protected || (await canControlCall(ctx, meeting, member)),
     startedAt: session.startedAt,

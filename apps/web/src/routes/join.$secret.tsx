@@ -7,10 +7,7 @@ const JoinPage = () => {
 
   return (
     <div className="grid min-h-dvh place-items-center bg-sidebar p-4">
-      <JoinLinkCard
-        secret={secret}
-        onJoined={(orgId) => void navigate({ to: "/", search: { org: orgId } })}
-      />
+      <JoinLinkCard secret={secret} onJoined={() => void navigate({ to: "/" })} />
     </div>
   );
 };

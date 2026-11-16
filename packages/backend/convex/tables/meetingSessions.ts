@@ -6,6 +6,7 @@ export const zMeetingSession = z.object({
   meetingId: zid("meetings"),
   orgId: zid("organizations").optional(),
   rtkSessionId: z.string(),
+  number: z.number().int().min(1),
   startedAt: z.number(),
   endedAt: z.number().optional(),
   attendeeIds: z.array(z.string()).max(1000),
@@ -20,5 +21,6 @@ export const zMeetingSession = z.object({
 
 export const meetingSessions = defineTable(zodToConvexFields(zMeetingSession.shape))
   .index("by_meeting", ["meetingId"])
+  .index("by_meeting_and_number", ["meetingId", "number"])
   .index("by_rtk_session", ["rtkSessionId"])
   .index("by_org_and_ended", ["orgId", "endedAt"]);

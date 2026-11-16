@@ -8,10 +8,12 @@ import {
   zPaginationOpts,
 } from "../lib/functions";
 import { enforceRateLimit } from "../lib/rateLimits";
+import { findMember } from "../models/members";
 import { audit } from "../models/audit";
 import { joinByDomain, joinableOrgs, setJoinDomain as saveJoinDomain } from "../models/domains";
 import {
   MEMBER_ROLE,
+  activateOrg,
   actorOf,
   createOrg,
   findRole,
@@ -58,7 +60,7 @@ export const rename = orgMutation({
   args: { name: zOrganization.shape.name },
   handler: async (ctx, { orgId, name }) => {
     ctx.requirePermission("manageOrganization");
-    await renameOrg(ctx, orgId, name);
+    await renameOrg(ctx, ctx.userId, orgId, name);
     await audit(ctx, orgId, ctx.userId, "orgRenamed", { detail: name });
   },
 });
@@ -76,6 +78,14 @@ export const setJoinDomain = orgMutation({
   },
 });
 
+export const setActive = authedMutation({
+  args: { orgId: zid("organizations") },
+  handler: async (ctx, { orgId }) => {
+    if (!(await findMember(ctx, orgId, ctx.userId))) throw new ConvexError("Not a member");
+    await activateOrg(ctx, ctx.userId, orgId);
+  },
+});
+
 export const joinable = authedQuery({
   args: {},
   handler: (ctx) => joinableOrgs(ctx, ctx.userId),
@@ -88,5 +98,6 @@ export const joinWithDomain = authedMutation({
     if (await joinByDomain(ctx, ctx.userId, orgId)) {
       await audit(ctx, orgId, ctx.userId, "memberJoined", { detail: "Email domain" });
     }
+    await activateOrg(ctx, ctx.userId, orgId);
   },
 });

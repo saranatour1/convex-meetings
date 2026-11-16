@@ -171,8 +171,14 @@ test("protected meetings never record and keep snapshots and downloads to hosts"
   const sessionId = await t.run(
     async (ctx) => (await ctx.db.query("meetingSessions").first())!._id,
   );
-  expect((await guest.asUser.query(api.api.meetings.recap, { sessionId })).canDownload).toBe(false);
-  expect((await host.asUser.query(api.api.meetings.recap, { sessionId })).canDownload).toBe(true);
+  const code = (await t.run((ctx) => ctx.db.get("meetings", meetingId)))!.code;
+  expect(await guest.asUser.query(api.api.meetings.recap, { code, number: 1 })).toMatchObject({
+    sessionId,
+    canDownload: false,
+  });
+  expect((await host.asUser.query(api.api.meetings.recap, { code, number: 1 }))?.canDownload).toBe(
+    true,
+  );
   const chat = await host.asUser.query(api.api.meetings.recapChat, {
     sessionId,
     paginationOpts: page,

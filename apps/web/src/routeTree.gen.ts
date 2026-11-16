@@ -29,7 +29,7 @@ import { Route as AppSettingsAccountRouteImport } from './routes/_app/settings.a
 import { Route as AppSettingsGeneralRouteImport } from './routes/_app/settings.general'
 import { Route as AppSettingsMeetingsRouteImport } from './routes/_app/settings.meetings'
 import { Route as AppSettingsOrgRouteImport } from './routes/_app/settings.org'
-import { Route as AppMeetingsCodeRecapsSessionIdRouteImport } from './routes/_app/meetings.$code_.recaps.$sessionId'
+import { Route as AppMeetingsCodeRecapsNumberRouteImport } from './routes/_app/meetings.$code_.recaps.$number'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -130,10 +130,10 @@ const AppSettingsOrgRoute = AppSettingsOrgRouteImport.update({
   path: '/org',
   getParentRoute: () => AppSettingsRoute,
 } as any)
-const AppMeetingsCodeRecapsSessionIdRoute =
-  AppMeetingsCodeRecapsSessionIdRouteImport.update({
-    id: '/meetings/$code_/recaps/$sessionId',
-    path: '/meetings/$code/recaps/$sessionId',
+const AppMeetingsCodeRecapsNumberRoute =
+  AppMeetingsCodeRecapsNumberRouteImport.update({
+    id: '/meetings/$code_/recaps/$number',
+    path: '/meetings/$code/recaps/$number',
     getParentRoute: () => AppRoute,
   } as any)
 
@@ -157,7 +157,7 @@ export interface FileRoutesByFullPath {
   '/settings/org': typeof AppSettingsOrgRoute
   '/meetings/': typeof AppMeetingsIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
-  '/meetings/$code/recaps/$sessionId': typeof AppMeetingsCodeRecapsSessionIdRoute
+  '/meetings/$code/recaps/$number': typeof AppMeetingsCodeRecapsNumberRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
@@ -178,7 +178,7 @@ export interface FileRoutesByTo {
   '/settings/org': typeof AppSettingsOrgRoute
   '/meetings': typeof AppMeetingsIndexRoute
   '/settings': typeof AppSettingsIndexRoute
-  '/meetings/$code/recaps/$sessionId': typeof AppMeetingsCodeRecapsSessionIdRoute
+  '/meetings/$code/recaps/$number': typeof AppMeetingsCodeRecapsNumberRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -202,7 +202,7 @@ export interface FileRoutesById {
   '/_app/settings/org': typeof AppSettingsOrgRoute
   '/_app/meetings/': typeof AppMeetingsIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
-  '/_app/meetings/$code_/recaps/$sessionId': typeof AppMeetingsCodeRecapsSessionIdRoute
+  '/_app/meetings/$code_/recaps/$number': typeof AppMeetingsCodeRecapsNumberRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -226,7 +226,7 @@ export interface FileRouteTypes {
     | '/settings/org'
     | '/meetings/'
     | '/settings/'
-    | '/meetings/$code/recaps/$sessionId'
+    | '/meetings/$code/recaps/$number'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -247,7 +247,7 @@ export interface FileRouteTypes {
     | '/settings/org'
     | '/meetings'
     | '/settings'
-    | '/meetings/$code/recaps/$sessionId'
+    | '/meetings/$code/recaps/$number'
   id:
     | '__root__'
     | '/_app'
@@ -270,7 +270,7 @@ export interface FileRouteTypes {
     | '/_app/settings/org'
     | '/_app/meetings/'
     | '/_app/settings/'
-    | '/_app/meetings/$code_/recaps/$sessionId'
+    | '/_app/meetings/$code_/recaps/$number'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -424,11 +424,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsOrgRouteImport
       parentRoute: typeof AppSettingsRoute
     }
-    '/_app/meetings/$code_/recaps/$sessionId': {
-      id: '/_app/meetings/$code_/recaps/$sessionId'
-      path: '/meetings/$code/recaps/$sessionId'
-      fullPath: '/meetings/$code/recaps/$sessionId'
-      preLoaderRoute: typeof AppMeetingsCodeRecapsSessionIdRouteImport
+    '/_app/meetings/$code_/recaps/$number': {
+      id: '/_app/meetings/$code_/recaps/$number'
+      path: '/meetings/$code/recaps/$number'
+      fullPath: '/meetings/$code/recaps/$number'
+      preLoaderRoute: typeof AppMeetingsCodeRecapsNumberRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -464,7 +464,7 @@ interface AppRouteChildren {
   AppMeetingsCodeRoute: typeof AppMeetingsCodeRoute
   AppOrgsNewRoute: typeof AppOrgsNewRoute
   AppMeetingsIndexRoute: typeof AppMeetingsIndexRoute
-  AppMeetingsCodeRecapsSessionIdRoute: typeof AppMeetingsCodeRecapsSessionIdRoute
+  AppMeetingsCodeRecapsNumberRoute: typeof AppMeetingsCodeRecapsNumberRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -477,7 +477,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMeetingsCodeRoute: AppMeetingsCodeRoute,
   AppOrgsNewRoute: AppOrgsNewRoute,
   AppMeetingsIndexRoute: AppMeetingsIndexRoute,
-  AppMeetingsCodeRecapsSessionIdRoute: AppMeetingsCodeRecapsSessionIdRoute,
+  AppMeetingsCodeRecapsNumberRoute: AppMeetingsCodeRecapsNumberRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

@@ -43,8 +43,8 @@ export const MeetingRow = ({ meeting, past }: { meeting: MyMeeting; past?: boole
       </Link>
       {recap ? (
         <Link
-          to="/meetings/$code/recaps/$sessionId"
-          params={{ code: meeting.code, sessionId: recap._id }}
+          to="/meetings/$code/recaps/$number"
+          params={{ code: meeting.code, number: recap.number }}
           className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:bg-accent"
         >
           <FileTextIcon className="size-3.5" />

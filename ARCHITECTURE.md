@@ -122,7 +122,9 @@ Rules:
   - Imperative navigation (`navigate`) belongs to routes. Features receive it as callbacks (`onClose`, `onInvite`).
 - Server data comes from Convex `useQuery` / `useMutation`.
 - Times are UTC milliseconds plus an IANA zone name, converted with Luxon in `lib/schedule.ts`. No hand-written UTC offsets. Its tests sit next to it (`schedule.test.ts`) and run with `pnpm test`.
-- The active organization is `?org=` on every signed-in route, kept across links by `retainSearchParams`. `OrgGate` falls back to the first org, or asks to create one. Features read it with `useActiveOrg()`.
+- URLs carry no table ids. Meetings are `/meetings/<code>`, and a recap is `/meetings/<code>/recaps/<n>`, the nth call of that meeting (`meetingSessions.number`). Secret links (`/invite`, `/join`, `/guest`) are the only long tokens.
+- The active organization is a saved preference (`userSettings.activeOrgId`), not part of the URL. `orgs.setActive` switches it (optimistically, through `useSwitchOrg`); creating or joining an org makes it active. `OrgGate` falls back to the first org, or asks to create one. Features read it with `useActiveOrg()`.
+- Org names: nobody can be in two orgs with the same name (case-insensitive), so the switcher never shows duplicates. Names don't need to be unique across everyone.
 - Find a time shows the org's members (`features/orgs/people.ts` maps them to `Person`). Busy times come from `meetings.busy`, and the calendar and Home read `meetings.mine`.
 - Search-param updates that only change what is shown pass `resetScroll: false`, so the page doesn't jump to the top.
 - Form state comes from TanStack Form (`useForm`). Server errors come back through `validators.onSubmitAsync`.

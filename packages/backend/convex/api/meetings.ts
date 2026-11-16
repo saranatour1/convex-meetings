@@ -23,6 +23,7 @@ import {
   createMeeting,
   findMeetingByCode,
   getMeeting,
+  findSessionByNumber,
   getRecap,
   listSessionMessages,
   requireSessionAccess,
@@ -156,8 +157,12 @@ export const join = meetingAction({
 });
 
 export const recap = authedQuery({
-  args: { sessionId: zid("meetingSessions") },
-  handler: (ctx, { sessionId }) => getRecap(ctx, ctx.userId, sessionId),
+  args: { code: z.string(), number: z.number().int().min(1) },
+  handler: async (ctx, { code, number }) => {
+    const meeting = await findMeetingByCode(ctx, code);
+    const session = meeting && (await findSessionByNumber(ctx, meeting._id, number));
+    return session ? getRecap(ctx, ctx.userId, session._id) : null;
+  },
 });
 
 export const recordingUrl = authedQuery({

@@ -8,6 +8,6 @@ export const getMine = authedQuery({
 });
 
 export const setMine = authedMutation({
-  args: zUserSettings.omit({ userId: true }).partial().shape,
+  args: zUserSettings.omit({ userId: true, activeOrgId: true }).partial().shape,
   handler: (ctx, changes) => saveSettings(ctx, ctx.userId, changes),
 });

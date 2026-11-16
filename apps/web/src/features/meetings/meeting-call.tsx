@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useAction, useQuery } from "convex/react";
 import {
@@ -76,6 +77,14 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
     },
   });
 
+  const openLobby = useCallback(
+    (element: HTMLDivElement | null) => {
+      const { isSubmitting, submissionAttempts } = form.state;
+      if (element && !isSubmitting && submissionAttempts === 0) void form.handleSubmit();
+    },
+    [form],
+  );
+
   if (meeting && inCall) {
     return (
       <div ref={applyCallTheme} className="fixed inset-0 z-50 bg-background">
@@ -101,8 +110,13 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
     );
   }
 
+  const settled = settings !== undefined || pass.guest !== undefined;
+
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-4">
+    <div
+      ref={inCall && settled ? openLobby : undefined}
+      className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-4"
+    >
       <span className="grid size-10 place-items-center rounded-full bg-muted">
         <VideoIcon className="size-5" />
       </span>

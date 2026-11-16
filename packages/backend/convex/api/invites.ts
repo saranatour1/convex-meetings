@@ -9,7 +9,7 @@ import {
 } from "../lib/functions";
 import { enforceRateLimit } from "../lib/rateLimits";
 import { audit } from "../models/audit";
-import { actorOf, requireGrantableRole } from "../models/orgs";
+import { activateOrg, actorOf, requireGrantableRole } from "../models/orgs";
 import {
   acceptInvite,
   inviteMany,
@@ -74,6 +74,7 @@ export const accept = authedMutation({
   handler: async (ctx, { secret }) => {
     await enforceRateLimit(ctx, "accept", ctx.userId);
     const orgId = await acceptInvite(ctx, ctx.userId, secret);
+    await activateOrg(ctx, ctx.userId, orgId);
     await audit(ctx, orgId, ctx.userId, "memberJoined", { detail: "Email invite" });
     return orgId;
   },

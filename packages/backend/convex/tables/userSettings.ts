@@ -13,6 +13,7 @@ export const zUserSettings = z.object({
   defaultRecap: z.boolean(),
   autoRecord: z.boolean(),
   invitesFrom: z.enum(["everyone", "managers"]),
+  activeOrgId: zid("organizations").optional(),
 });
 
 export const userSettings = defineTable(zodToConvexFields(zUserSettings.shape)).index("by_user", [
