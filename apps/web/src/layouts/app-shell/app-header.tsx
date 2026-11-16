@@ -14,11 +14,7 @@ export const AppHeader = () => {
         <VideoIcon />
         Start meeting
       </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        render={<Link to="/" search={(prev) => ({ ...prev, schedule: true })} />}
-      >
+      <Button size="sm" variant="outline" render={<Link to="/schedule" />}>
         <PlusIcon />
         Schedule
       </Button>

@@ -2,11 +2,11 @@
 
 ## Workspace
 
-| Package                                  | Owns                                          |
-| ---------------------------------------- | --------------------------------------------- |
-| `apps/web` (`@meetings/web`)             | TanStack Start app: routes, layouts, features |
-| `packages/backend` (`@meetings/backend`) | Convex schema and functions, typed client API |
-| `packages/ui` (`@meetings/ui`)           | COSS UI components, hooks, theme CSS          |
+| Package                                  | Owns                                                |
+| ---------------------------------------- | --------------------------------------------------- |
+| `apps/web` (`@meetings/web`)             | TanStack Start app: routes, layouts, features       |
+| `packages/backend` (`@meetings/backend`) | Convex schema and functions, typed client API       |
+| `packages/ui` (`@meetings/ui`)           | COSS UI components, Kloq calendar, hooks, theme CSS |
 
 Rules:
 
@@ -15,6 +15,7 @@ Rules:
 - `#/…` imports are package-local and always include the file extension (`#/lib/utils.ts`).
 - Functions are arrow functions assigned to `const`, enforced by the `func-style` lint rule. Vendored COSS files are exempt. Route components are defined above `export const Route` because `const` isn't hoisted.
 - First-party code has no comments. Names, types and this file carry the meaning. Vendored COSS files and generated files stay as shipped.
+- Kloq (`packages/ui/src/components/kloq`) is the coss calendar, copied from its registry (`https://coss.com/kloq/r/kloq.json`, MIT). It stays as shipped and is excluded from format and lint, so it can be replaced wholesale on update. Import it through `@meetings/ui/kloq`, `@meetings/ui/kloq/rrule`, `@meetings/ui/kloq/timezone` and `@meetings/ui/kloq/rrule-builder`.
 
 ## Backend (`packages/backend/convex`)
 
@@ -89,11 +90,14 @@ Layers depend downward only: `routes` → `layouts` → `features` → `componen
 
 Rules:
 
-- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/?schedule=true&inviteFor=…`, `/sign-in?with=password&mode=signup`.
+- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/schedule?zone=…&zones=…&view=list&inviteFor=…`, `/calendar?zones=…`, `/sign-in?with=password&mode=signup`.
 - Changing URL state:
   - Declarative navigation is a `<Link>` anywhere: features, layouts or routes.
   - Imperative navigation (`navigate`) belongs to routes. Features receive it as callbacks (`onClose`, `onInvite`).
 - Server data comes from Convex `useQuery` / `useMutation`.
+- Times are stored as UTC milliseconds plus an IANA zone name and converted with `Intl` in `lib/schedule.ts`. No hand-written UTC offsets. Its tests sit next to it (`schedule.test.ts`) and run with `pnpm test`.
+- Until invitees and meetings come from Convex, `features/meetings/sample-invitees.ts` and `features/calendar/sample-meetings.ts` stand in for them with the same `Person`, `Team` and Kloq `CalEvent` shapes.
+- Search-param updates that only change what is shown pass `resetScroll: false`, so the page doesn't jump to the top.
 - Form state comes from TanStack Form (`useForm`). Server errors come back through `validators.onSubmitAsync`.
 - No `useEffect`. Scroll, layout and visibility use CSS or declarative components (`<Authenticated>`, `<Navigate>`). For example, the invite chat stays scrolled to the newest message because its scroll container is `flex-col-reverse`.
 - Allowed `useState`, until the data lives in Convex:

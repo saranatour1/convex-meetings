@@ -13,7 +13,7 @@ const RootComponent = () => {
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
   return (
-    <html lang="en">
+    <html lang="en" className="light">
       <head>
         <HeadContent />
       </head>

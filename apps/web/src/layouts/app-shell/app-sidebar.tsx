@@ -15,7 +15,6 @@ import { NavUser } from "#/features/auth/nav-user.tsx";
 
 const PLANNED_NAV_ITEMS = [
   { title: "Meetings", icon: VideoIcon },
-  { title: "Calendar", icon: CalendarDaysIcon },
   { title: "Inbox", icon: InboxIcon },
 ];
 
@@ -48,6 +47,16 @@ export const AppSidebar = () => {
               >
                 <HouseIcon />
                 <span>Home</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={Boolean(matchRoute({ to: "/calendar" }))}
+                tooltip="Calendar"
+                render={<Link to="/calendar" />}
+              >
+                <CalendarDaysIcon />
+                <span>Calendar</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             {PLANNED_NAV_ITEMS.map((item) => (

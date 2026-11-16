@@ -9,7 +9,12 @@
     "./components/*": "./src/components/ui/*.tsx",
     "./hooks/*": "./src/hooks/*.ts",
     "./lib/*": "./src/lib/*.ts",
-    "./styles.css": "./src/styles.css"
+    "./kloq": "./src/components/kloq/index.ts",
+    "./kloq/rrule": "./src/components/kloq/lib/rrule.ts",
+    "./kloq/timezone": "./src/components/kloq/lib/timezone.ts",
+    "./kloq/rrule-builder": "./src/components/kloq/calendar/rrule-builder.tsx",
+    "./styles.css": "./src/styles.css",
+    "./kloq.css": "./src/components/kloq/styles/kloq.css"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

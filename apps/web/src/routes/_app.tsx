@@ -6,7 +6,7 @@ import { AppSidebar } from "#/layouts/app-shell/app-sidebar.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { InvitePanel } from "#/features/meetings/invite-panel.tsx";
 
-type AppSearch = { schedule?: true; inviteFor?: string };
+type AppSearch = { inviteFor?: string };
 
 const AppLayout = () => {
   const { inviteFor } = Route.useSearch();
@@ -43,7 +43,6 @@ const AppLayout = () => {
 
 export const Route = createFileRoute("/_app")({
   validateSearch: (search: Record<string, unknown>): AppSearch => ({
-    schedule: search.schedule === true ? true : undefined,
     inviteFor: typeof search.inviteFor === "string" ? search.inviteFor : undefined,
   }),
   component: AppLayout,
