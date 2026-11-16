@@ -147,8 +147,7 @@ export const MeetingSettingsCard = ({
               Protected meeting
             </span>
             <span className="text-muted-foreground text-xs">
-              Marks every screen with the viewer's name and email, turns recording off and keeps
-              downloads to hosts. It can't stop screenshots.
+              Turns recording off and keeps downloads and saved annotations to hosts.
             </span>
           </span>
           <Switch checked={isProtected} onCheckedChange={(on) => save({ protected: on })} />

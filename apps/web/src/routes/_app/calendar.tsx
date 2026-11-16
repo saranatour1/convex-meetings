@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MeetingsCalendar } from "#/features/calendar/meetings-calendar.tsx";
-import { parseZones } from "#/lib/schedule.ts";
+import { parseZones } from "#/lib/zones.ts";
 
 const CalendarPage = () => {
   const { zones } = Route.useSearch();

@@ -1,4 +1,4 @@
-import { PEN_COLORS, type PenColor } from "./annotations.tsx";
+import { PEN_COLORS, type PenColor } from "./pen-colors.ts";
 import type { CallSide } from "./call-ui.ts";
 
 const SIDES: CallSide[] = ["chat", "participants", "polls", "plugins", "ai"];

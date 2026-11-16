@@ -101,24 +101,8 @@ type CallRoomProps = {
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   canControl: boolean;
-  watermark: string | null;
+  isProtected: boolean;
 };
-
-const Watermark = ({ text }: { text: string }) => (
-  <div
-    aria-hidden
-    className="pointer-events-none absolute inset-0 z-10 grid select-none grid-cols-3 content-around overflow-hidden opacity-[0.08]"
-  >
-    {Array.from({ length: 12 }, (_, index) => (
-      <span
-        key={index}
-        className="-rotate-[24deg] whitespace-nowrap text-center font-semibold text-foreground text-sm"
-      >
-        {text}
-      </span>
-    ))}
-  </div>
-);
 
 export const CallRoom = ({
   meetingId,
@@ -129,7 +113,7 @@ export const CallRoom = ({
   expanded,
   onExpandedChange,
   canControl,
-  watermark,
+  isProtected,
 }: CallRoomProps) => {
   const { meeting } = useRealtimeKitMeeting();
   const end = useMutation(api.calls.end);
@@ -231,8 +215,8 @@ export const CallRoom = ({
       <div className="flex min-h-0 flex-1">
         <div
           className="relative min-w-0 flex-1 bg-muted/40 p-2"
-          onContextMenu={watermark ? (event) => event.preventDefault() : undefined}
-          onDragStart={watermark ? (event) => event.preventDefault() : undefined}
+          onContextMenu={isProtected ? (event) => event.preventDefault() : undefined}
+          onDragStart={isProtected ? (event) => event.preventDefault() : undefined}
         >
           {sharing ? (
             <ShareStage
@@ -240,13 +224,12 @@ export const CallRoom = ({
               sharerId={remoteSharer}
               expanded={expanded}
               onExpandedChange={onExpandedChange}
-              canSnapshot={!watermark || canControl}
+              canSnapshot={!isProtected || canControl}
               canClearAll={canControl}
             />
           ) : (
             <RtkGrid meeting={meeting} className="size-full" />
           )}
-          {watermark && <Watermark text={watermark} />}
         </div>
         <RtkSidebar
           meeting={meeting}
@@ -304,7 +287,7 @@ export const CallRoom = ({
               <PictureInPicture2Icon />
             </Tool>
           )}
-          {canRecord && !watermark && (
+          {canRecord && !isProtected && (
             <Tool
               label={isRecording ? "Stop recording" : "Record"}
               active={isRecording}

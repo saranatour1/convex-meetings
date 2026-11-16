@@ -1,4 +1,4 @@
-import { DateTime, IANAZone } from "luxon";
+import { DateTime } from "luxon";
 
 export type Day = string;
 export type Interval = { start: number; end: number };
@@ -66,14 +66,6 @@ export const addDays = (day: Day, n: number): Day =>
 export const isWeekend = (day: Day) => isoWeekday(day) >= 6;
 
 export const nextWorkday = (day: Day): Day => (isWeekend(day) ? nextWorkday(addDays(day, 1)) : day);
-
-export const isTimeZone = (value: unknown): value is string =>
-  typeof value === "string" && IANAZone.isValidZone(value);
-
-export const parseZones = (value: unknown) => {
-  const zones = (Array.isArray(value) ? value : [value]).filter(isTimeZone);
-  return zones.length ? [...new Set(zones)] : undefined;
-};
 
 export const mondayOf = (day: Day): Day => calendarDay(day).startOf("week").toISODate() ?? day;
 

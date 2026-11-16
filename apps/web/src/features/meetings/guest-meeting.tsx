@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { UserIcon } from "lucide-react";
 import { api } from "@meetings/backend";
@@ -18,14 +18,11 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
+import { JoinCallCard, MeetingCall } from "./call-entry.tsx";
 import type { CallSearch } from "./call/call-search.ts";
 import { GuestPassContext } from "./guest-pass.ts";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
-
-const MeetingCall = lazy(() =>
-  import("./meeting-call.tsx").then((module) => ({ default: module.MeetingCall })),
-);
 
 type GuestMeetingProps = {
   secret: string;
@@ -48,6 +45,13 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
     );
   }
   const zone = browserTimeZone();
+  const onInCallChange = (inCall: boolean) =>
+    onSearchChange({
+      call: inCall || undefined,
+      side: undefined,
+      expand: undefined,
+      draw: undefined,
+    });
 
   return (
     <GuestPassContext value={secret}>
@@ -85,30 +89,25 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
               <p className="text-muted-foreground text-sm">
                 The host removed you from this meeting.
               </p>
-            ) : (
+            ) : search.call === true ? (
               <Suspense fallback={<Button disabled>Loading call…</Button>}>
                 <MeetingCall
                   meetingId={meeting._id}
                   title={meeting.title}
                   kind={meeting.kind}
-                  inCall={search.call === true}
-                  onInCallChange={(inCall) =>
-                    onSearchChange({
-                      call: inCall || undefined,
-                      side: undefined,
-                      expand: undefined,
-                      draw: undefined,
-                    })
-                  }
+                  inCall
+                  onInCallChange={onInCallChange}
                   side={search.side}
                   onSideChange={(side) => onSearchChange({ side })}
                   expanded={search.expand === true}
                   onExpandedChange={(expand) => onSearchChange({ expand: expand || undefined })}
                   canControl={false}
                   devicesInCall={meeting.me.devicesInCall}
-                  watermark={meeting.protected ? pass.name : null}
+                  isProtected={meeting.protected}
                 />
               </Suspense>
+            ) : (
+              <JoinCallCard kind={meeting.kind} onJoin={() => onInCallChange(true)} />
             )}
           </CardPanel>
         </Card>
