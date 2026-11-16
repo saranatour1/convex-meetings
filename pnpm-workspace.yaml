@@ -30,3 +30,5 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: "*"
+minimumReleaseAgeExclude:
+  - "@sarant/cloudflare-email-component@0.4.0"

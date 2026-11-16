@@ -1,6 +1,7 @@
 import { defineTable } from "convex/server";
 import { zid, zodToConvexFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
+import { zTimeZone } from "../lib/time";
 
 export const zUser = z.object({
   name: z.string().optional(),
@@ -9,6 +10,7 @@ export const zUser = z.object({
   imageId: zid("_storage").optional(),
   method: z.enum(["usernamePasskey", "usernamePassword", "google", "github"]),
   isVerified: z.boolean(),
+  seenTimeZone: zTimeZone.optional(),
 });
 
 export const users = defineTable(zodToConvexFields(zUser.shape));

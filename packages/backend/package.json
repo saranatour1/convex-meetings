@@ -12,6 +12,7 @@
   "dependencies": {
     "@convex-dev/auth": "catalog:",
     "@convex-dev/workpool": "^0.4.16",
+    "@sarant/cloudflare-email-component": "0.4.0",
     "convex": "catalog:",
     "convex-helpers": "^0.1.135",
     "luxon": "^3.7.2",

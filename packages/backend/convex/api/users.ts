@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "../_generated/server";
 import { authedMutation } from "../lib/functions";
-import { getViewer, setBio } from "../models/users";
+import { getViewer, setBio, setSeenTimeZone } from "../models/users";
 import { zUser } from "../tables/users";
 
 export const viewer = query({
@@ -17,4 +17,9 @@ export const updateBio = authedMutation({
   handler: async (ctx, { bio }) => {
     await setBio(ctx, ctx.userId, bio);
   },
+});
+
+export const reportTimeZone = authedMutation({
+  args: { timeZone: zUser.shape.seenTimeZone.unwrap() },
+  handler: (ctx, { timeZone }) => setSeenTimeZone(ctx, ctx.userId, timeZone),
 });
