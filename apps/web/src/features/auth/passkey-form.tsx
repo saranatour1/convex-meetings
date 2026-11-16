@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
@@ -21,6 +22,7 @@ export const PasskeyForm = () => {
         const result = await finish({ response: assertion.response });
         if (result.status === "error") return describeAuthError(result.userError.error);
         await setSession(result.tokens);
+        track("signed_in", { method: "passkey" });
         return undefined;
       },
     },

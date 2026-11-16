@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
@@ -316,6 +317,7 @@ const InviteForm = ({ roles }: { roles: (Doc<"roles"> & { grantable: boolean })[
         if (emails.length > 50) return "Invite up to 50 people at a time";
         try {
           const { sent, skipped } = await invite({ orgId, emails, roleId });
+          track("members_invited", { count: sent.length });
           formApi.reset();
           toastManager.add({
             title: `Sent ${sent.length} ${sent.length === 1 ? "invite" : "invites"}`,

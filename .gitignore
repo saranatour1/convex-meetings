@@ -14,3 +14,4 @@ __unconfig*
 .env.*
 *.local
 !.env.example
+!apps/web/.env.production

@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import { useMutation, usePaginatedQuery } from "convex/react";
@@ -54,9 +55,9 @@ const Row = ({ notification }: { notification: Notification }) => {
   const reply = (response: "accepted" | "declined") => {
     markRead();
     if (!notification.meetingCode) return;
-    void respond({ code: notification.meetingCode, response }).catch((error: unknown) =>
-      toastManager.add({ title: describeError(error), type: "error" }),
-    );
+    void respond({ code: notification.meetingCode, response })
+      .then(() => track("meeting_responded", { response }))
+      .catch((error: unknown) => toastManager.add({ title: describeError(error), type: "error" }));
   };
   const body = (
     <>

@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useSignInWithUsernamePassword } from "@convex-dev/auth/methods/username-password/react";
 import { api } from "@meetings/backend";
@@ -14,7 +15,9 @@ export const PasswordForm = () => {
     validators: {
       onSubmitAsync: async ({ value }) => {
         const result = await signIn(value);
-        return result.status === "error" ? describeAuthError(result.userError.error) : undefined;
+        if (result.status === "error") return describeAuthError(result.userError.error);
+        track("signed_in", { method: "password" });
+        return undefined;
       },
     },
   });

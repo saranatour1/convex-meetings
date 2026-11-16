@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api, type Id } from "@meetings/backend";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
@@ -62,6 +63,7 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
             orgId,
             inviteeIds: meeting.inviteeIds as Id<"users">[],
           });
+          track("meeting_scheduled", { kind: meeting.kind, repeats: Boolean(meeting.rrule) });
           onScheduled(code);
           return undefined;
         } catch (error) {

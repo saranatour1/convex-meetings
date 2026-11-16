@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useMutation, useQuery } from "convex/react";
 import { BuildingIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
@@ -36,7 +37,10 @@ export const JoinableOrgs = ({ onJoined }: { onJoined: (orgId: Id<"organizations
                 variant="outline"
                 onClick={() =>
                   void join({ orgId: org._id })
-                    .then(() => onJoined(org._id))
+                    .then(() => {
+                      track("organization_joined", { via: "domain" });
+                      onJoined(org._id);
+                    })
                     .catch((error: unknown) =>
                       toastManager.add({ title: describeError(error), type: "error" }),
                     )
