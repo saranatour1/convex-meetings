@@ -1,4 +1,3 @@
-import { sessionIdentity } from "@convex-dev/auth/test";
 import { expect, test } from "vite-plus/test";
 import { newSession, signIn, testBackend } from "../../tools/auth-test-setup";
 import { createAuthenticator } from "../../tools/passkey-authenticator";
@@ -114,18 +113,16 @@ test("someone else's passkey doesn't verify the session", async () => {
   expect(await aliceLater.query(api.api.passkeys.step, {})).toBe("verify");
 });
 
-test("signing in with only a passkey gives a verified session", async () => {
+test("an account that didn't sign up with Google or GitHub is refused", async () => {
   const t = testBackend();
-  const alice = await signIn(t, "Alice", { passkeyVerified: false });
-  const { authenticator } = await enroll(alice.asUser);
+  const legacy = await signIn(t, "Legacy");
+  await t.run((ctx) => ctx.db.patch("users", legacy.userId, { method: "usernamePasskey" }));
 
-  const { options } = await t.mutation(api.api.auth.startAutofillSignInWithUsernamePasskey, {});
-  const result = await t.mutation(api.api.passkeys.finishSignIn, {
-    response: await authenticator.assert(options),
-  });
-  if (result.status !== "complete") throw new Error(`Sign-in failed: ${result.userError.error}`);
-  const passkeySession = t.withIdentity(sessionIdentity(result.tokens));
-
-  expect(await passkeySession.query(api.api.passkeys.step, {})).toBe("done");
-  await passkeySession.mutation(api.api.orgs.create, { name: "Acme" });
+  expect(await legacy.asUser.query(api.api.passkeys.step, {})).toBe("oauth");
+  await expect(legacy.asUser.mutation(api.api.orgs.create, { name: "Acme" })).rejects.toThrow(
+    "Sign in with Google or GitHub",
+  );
+  await expect(legacy.asUser.mutation(api.api.passkeys.start, {})).rejects.toThrow(
+    "Sign in with Google or GitHub",
+  );
 });

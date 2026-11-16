@@ -17,10 +17,18 @@ const SUPPORTED_ALGORITHMS = [-7, -257];
 
 const rpId = () => new URL(env.SITE_URL).hostname;
 
-export const requireSignedIn = async (ctx: Pick<QueryCtx, "auth" | "runQuery">) => {
+const signedUpWithOAuth = async (ctx: QueryCtx, userId: Id<"users">) => {
+  const method = (await ctx.db.get("users", userId))?.method;
+  return method === "google" || method === "github";
+};
+
+export const requireSignedIn = async (ctx: QueryCtx) => {
   const userId = await getAuthUserId(ctx);
   const identity = await ctx.auth.getUserIdentity();
   if (userId === null || identity === null) throw new ConvexError("Unauthenticated");
+  if (!(await signedUpWithOAuth(ctx, userId))) {
+    throw new ConvexError("Sign in with Google or GitHub");
+  }
   return { userId, sessionId: identity.subject };
 };
 
@@ -48,6 +56,7 @@ export const passkeyStep = async (ctx: QueryCtx) => {
   const userId = await getAuthUserId(ctx);
   const identity = await ctx.auth.getUserIdentity();
   if (userId === null || identity === null) return null;
+  if (!(await signedUpWithOAuth(ctx, userId))) return "oauth";
   if (await isVerified(ctx, identity.subject)) return "done";
   return (await passkeyCount(ctx, userId)) === 0 ? "enroll" : "verify";
 };

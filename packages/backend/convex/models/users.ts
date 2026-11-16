@@ -13,7 +13,6 @@ export const isStorableAvatar = ({ type, size }: Pick<Blob, "type" | "size">) =>
   type.startsWith("image/") && size > 0 && size <= MAX_AVATAR_BYTES;
 
 type NewUser = WithoutSystemFields<Doc<"users">>;
-type UsernameMethod = Extract<Doc<"users">["method"], "usernamePasskey" | "usernamePassword">;
 
 export const insertUser = async (ctx: MutationCtx, user: NewUser, avatarUrl?: string) => {
   const userId = await ctx.db.insert("users", parseOrThrow(zUser, user));
@@ -25,9 +24,6 @@ export const insertUser = async (ctx: MutationCtx, user: NewUser, avatarUrl?: st
   }
   return userId;
 };
-
-export const insertUsernameUser = (ctx: MutationCtx, method: UsernameMethod) =>
-  insertUser(ctx, { method, isVerified: false });
 
 export const getViewer = async (ctx: QueryCtx, userId: Id<"users">) => {
   const user = await ctx.db.get("users", userId);
