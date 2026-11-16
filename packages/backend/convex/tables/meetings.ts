@@ -16,6 +16,7 @@ export const zMeeting = z.object({
   kind: zMeetingKind,
   recap: z.boolean(),
   record: z.boolean().optional(),
+  protected: z.boolean().optional(),
   rtkMeetingId: z.string().optional(),
 });
 

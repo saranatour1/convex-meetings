@@ -1,4 +1,5 @@
-import { type ComponentProps, type ReactNode, useRef } from "react";
+import { type ComponentProps, useRef } from "react";
+import { useMutation } from "convex/react";
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
 import {
   RtkDialogManager,
@@ -24,9 +25,14 @@ import {
   UsersIcon,
   XIcon,
 } from "lucide-react";
+import { api, type Id } from "@meetings/backend";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/menu";
+import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
+import { describeError } from "#/lib/errors.ts";
+import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 import { RTK_SECTIONS, emitCallUi, type CallSide } from "./call-ui.ts";
 import { MediaControls } from "./media-controls.tsx";
@@ -85,25 +91,47 @@ const Elapsed = () => {
 };
 
 type CallRoomProps = {
+  meetingId: Id<"meetings">;
   title: string;
   kind: MeetingKind;
   side?: CallSide;
   onSideChange: (side: CallSide | undefined) => void;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
-  chat: ReactNode;
+  canControl: boolean;
+  watermark: string | null;
 };
 
+const Watermark = ({ text }: { text: string }) => (
+  <div
+    aria-hidden
+    className="pointer-events-none absolute inset-0 z-10 grid select-none grid-cols-3 content-around overflow-hidden opacity-[0.08]"
+  >
+    {Array.from({ length: 12 }, (_, index) => (
+      <span
+        key={index}
+        className="-rotate-[24deg] whitespace-nowrap text-center font-semibold text-foreground text-sm"
+      >
+        {text}
+      </span>
+    ))}
+  </div>
+);
+
 export const CallRoom = ({
+  meetingId,
   title,
   kind,
   side,
   onSideChange,
   expanded,
   onExpandedChange,
-  chat,
+  canControl,
+  watermark,
 }: CallRoomProps) => {
   const { meeting } = useRealtimeKitMeeting();
+  const end = useMutation(api.calls.end);
+  const startedAt = useRealtimeKitSelector((m) => m.meta.meetingStartedTimestamp);
   const root = useRef<HTMLDivElement | null>(null);
   const people = useRealtimeKitSelector((m) => m.participants.joined.size + 1);
   const recording = useRealtimeKitSelector((m) => m.recording.recordingState);
@@ -187,18 +215,29 @@ export const CallRoom = ({
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1 bg-muted/40 p-2">
+        <div
+          className="relative min-w-0 flex-1 bg-muted/40 p-2"
+          onContextMenu={watermark ? (event) => event.preventDefault() : undefined}
+          onDragStart={watermark ? (event) => event.preventDefault() : undefined}
+        >
           {sharing ? (
             <ShareStage
+              meetingId={meetingId}
               sharerId={remoteSharer}
               expanded={expanded}
               onExpandedChange={onExpandedChange}
+              canSnapshot={!watermark || canControl}
+              canClearAll={canControl}
             />
           ) : (
             <RtkGrid meeting={meeting} className="size-full" />
           )}
+          {watermark && <Watermark text={watermark} />}
         </div>
-        <RtkSidebar meeting={meeting} className="shrink-0" />
+        <RtkSidebar
+          meeting={meeting}
+          className={cn("shrink-0 border-s", !(side && RTK_SECTIONS.includes(side)) && "hidden")}
+        />
         {side === "chat" && (
           <aside className="flex w-80 shrink-0 flex-col border-s">
             <div className="flex items-center justify-between border-b px-3 py-2">
@@ -212,7 +251,12 @@ export const CallRoom = ({
                 <XIcon />
               </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">{chat}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              <MeetingChat
+                meetingId={meetingId}
+                since={startedAt ? new Date(startedAt).getTime() : undefined}
+              />
+            </div>
           </aside>
         )}
       </div>
@@ -247,7 +291,7 @@ export const CallRoom = ({
               <PictureInPicture2Icon />
             </Tool>
           )}
-          {canRecord && (
+          {canRecord && !watermark && (
             <Tool
               label={isRecording ? "Stop recording" : "Record"}
               active={isRecording}
@@ -273,14 +317,42 @@ export const CallRoom = ({
                 <panel.icon />
               </Tool>
             ))}
-          <Button
-            variant="destructive"
-            className="ms-2 rounded-full"
-            onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
-          >
-            <PhoneOffIcon />
-            Leave
-          </Button>
+          {canControl ? (
+            <Menu>
+              <MenuTrigger render={<Button variant="destructive" className="ms-2 rounded-full" />}>
+                <PhoneOffIcon />
+                Leave
+              </MenuTrigger>
+              <MenuPopup align="end" side="top">
+                <MenuItem
+                  onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
+                >
+                  <PhoneOffIcon />
+                  Leave the call
+                </MenuItem>
+                <MenuItem
+                  variant="destructive"
+                  onClick={() =>
+                    void end({ meetingId }).catch((error: unknown) =>
+                      toastManager.add({ title: describeError(error), type: "error" }),
+                    )
+                  }
+                >
+                  <UsersIcon />
+                  End for everyone
+                </MenuItem>
+              </MenuPopup>
+            </Menu>
+          ) : (
+            <Button
+              variant="destructive"
+              className="ms-2 rounded-full"
+              onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
+            >
+              <PhoneOffIcon />
+              Leave
+            </Button>
+          )}
         </div>
       </footer>
 

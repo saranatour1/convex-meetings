@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as api_annotations from "../api/annotations.js";
 import type * as api_audit from "../api/audit.js";
 import type * as api_auth from "../api/auth.js";
+import type * as api_calls from "../api/calls.js";
 import type * as api_inbox from "../api/inbox.js";
 import type * as api_invites from "../api/invites.js";
 import type * as api_joinLinks from "../api/joinLinks.js";
@@ -34,7 +36,9 @@ import type * as lib_time from "../lib/time.js";
 import type * as lib_validate from "../lib/validate.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
 import type * as lib_workpools from "../lib/workpools.js";
+import type * as models_annotations from "../models/annotations.js";
 import type * as models_audit from "../models/audit.js";
+import type * as models_calls from "../models/calls.js";
 import type * as models_domains from "../models/domains.js";
 import type * as models_invites from "../models/invites.js";
 import type * as models_joinLinks from "../models/joinLinks.js";
@@ -47,6 +51,7 @@ import type * as models_schedules from "../models/schedules.js";
 import type * as models_sessions from "../models/sessions.js";
 import type * as models_settings from "../models/settings.js";
 import type * as models_users from "../models/users.js";
+import type * as tables_annotations from "../tables/annotations.js";
 import type * as tables_auditEvents from "../tables/auditEvents.js";
 import type * as tables_groupMembers from "../tables/groupMembers.js";
 import type * as tables_groups from "../tables/groups.js";
@@ -74,8 +79,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "api/annotations": typeof api_annotations;
   "api/audit": typeof api_audit;
   "api/auth": typeof api_auth;
+  "api/calls": typeof api_calls;
   "api/inbox": typeof api_inbox;
   "api/invites": typeof api_invites;
   "api/joinLinks": typeof api_joinLinks;
@@ -100,7 +107,9 @@ declare const fullApi: ApiFromModules<{
   "lib/validate": typeof lib_validate;
   "lib/webhooks": typeof lib_webhooks;
   "lib/workpools": typeof lib_workpools;
+  "models/annotations": typeof models_annotations;
   "models/audit": typeof models_audit;
+  "models/calls": typeof models_calls;
   "models/domains": typeof models_domains;
   "models/invites": typeof models_invites;
   "models/joinLinks": typeof models_joinLinks;
@@ -113,6 +122,7 @@ declare const fullApi: ApiFromModules<{
   "models/sessions": typeof models_sessions;
   "models/settings": typeof models_settings;
   "models/users": typeof models_users;
+  "tables/annotations": typeof tables_annotations;
   "tables/auditEvents": typeof tables_auditEvents;
   "tables/groupMembers": typeof tables_groupMembers;
   "tables/groups": typeof tables_groups;

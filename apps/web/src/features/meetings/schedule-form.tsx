@@ -59,6 +59,7 @@ export type NewMeeting = {
   title: string;
   kind: MeetingKind;
   recap: boolean;
+  protected: boolean;
   startsAt: number;
   minutes: number;
   timeZone: string;
@@ -97,6 +98,7 @@ export const ScheduleForm = ({
       title: "",
       kind: defaults.kind,
       recap: defaults.recap,
+      protected: false,
       rrule: undefined as string | undefined,
       isPrivate: false,
       day: initialTime?.start
@@ -114,6 +116,7 @@ export const ScheduleForm = ({
           title: value.title,
           kind: value.kind,
           recap: value.recap,
+          protected: value.protected,
           startsAt: value.start ?? 0,
           minutes: value.durationMinutes,
           timeZone: zone,
@@ -235,6 +238,17 @@ export const ScheduleForm = ({
                 <Label className="gap-2">
                   <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                   Transcript and summary
+                </Label>
+              )}
+            </form.Field>
+            <form.Field name="protected">
+              {(field) => (
+                <Label
+                  className="ms-2 gap-2"
+                  title="Watermarks screens with each viewer's name, turns recording off"
+                >
+                  <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                  Protected
                 </Label>
               )}
             </form.Field>

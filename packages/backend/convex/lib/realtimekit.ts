@@ -76,6 +76,12 @@ export const realtimeKit = {
       `/sessions/${sessionId}/transcript?format=JSON`,
       "GET",
     ),
+  kick: (meetingId: string, customParticipantIds: string[]) =>
+    call<unknown>(`/meetings/${meetingId}/active-session/kick`, "POST", {
+      custom_participant_ids: customParticipantIds,
+    }),
+  kickAll: (meetingId: string) =>
+    call<unknown>(`/meetings/${meetingId}/active-session/kick-all`, "POST", {}),
   listPresets: () => call<{ name: string }[]>("/presets", "GET"),
   createPreset: (preset: unknown) => call<{ id: string }>("/presets", "POST", preset),
   createWebhook: (webhook: { name: string; url: string; events: string[] }) =>

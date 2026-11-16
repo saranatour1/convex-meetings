@@ -1,7 +1,9 @@
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
 import { RtkParticipantTile, RtkScreenshareView } from "@cloudflare/realtimekit-react-ui";
 import { Maximize2Icon, Minimize2Icon, MonitorUpIcon } from "lucide-react";
+import type { Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
+import { AnnotationLayer } from "./annotations.tsx";
 
 const SelfShare = () => {
   const { meeting } = useRealtimeKitMeeting();
@@ -36,15 +38,28 @@ const SelfShare = () => {
 };
 
 type ShareStageProps = {
+  meetingId: Id<"meetings">;
   sharerId: string | null;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  canSnapshot: boolean;
+  canClearAll: boolean;
 };
 
-export const ShareStage = ({ sharerId, expanded, onExpandedChange }: ShareStageProps) => {
+export const ShareStage = ({
+  meetingId,
+  sharerId,
+  expanded,
+  onExpandedChange,
+  canSnapshot,
+  canClearAll,
+}: ShareStageProps) => {
   const { meeting } = useRealtimeKitMeeting();
   const others = useRealtimeKitSelector((m) => m.participants.joined.toArray());
+  const selfTrack = useRealtimeKitSelector((m) => m.self.screenShareTracks?.video);
   const sharer = sharerId ? meeting.participants.joined.get(sharerId) : undefined;
+  const shareId = sharer ? sharer.customParticipantId : meeting.self.customParticipantId;
+  const track = sharer ? sharer.screenShareTracks?.video : selfTrack;
 
   return (
     <div className="flex size-full gap-2">
@@ -54,10 +69,20 @@ export const ShareStage = ({ sharerId, expanded, onExpandedChange }: ShareStageP
         ) : (
           <SelfShare />
         )}
+        {shareId && (
+          <AnnotationLayer
+            key={shareId}
+            meetingId={meetingId}
+            shareId={shareId}
+            track={track}
+            canClear={canClearAll || !sharer}
+            canSnapshot={canSnapshot}
+          />
+        )}
         <Button
           size="sm"
           variant="secondary"
-          className="absolute end-3 top-3 rounded-full"
+          className="absolute end-3 top-3 z-20 rounded-full"
           onClick={() => onExpandedChange(!expanded)}
         >
           {expanded ? <Minimize2Icon /> : <Maximize2Icon />}

@@ -12,6 +12,7 @@ import {
   zPaginationOpts,
 } from "../lib/functions";
 import { presetName } from "../lib/presets";
+import { enforceRateLimit } from "../lib/rateLimits";
 import { r2Configured, signedRecordingUrl } from "../lib/r2";
 import { realtimeKit } from "../lib/realtimekit";
 import { zTimeZone } from "../lib/time";
@@ -22,11 +23,13 @@ import {
   findMeetingByCode,
   getMeeting,
   getRecap,
+  listSessionMessages,
   requireSessionAccess,
   listMyMeetings,
   respond as respondToMeeting,
   type JoinDetails,
 } from "../models/meetings";
+import { requireCallControl } from "../models/calls";
 import { getSettings } from "../models/settings";
 import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
@@ -41,6 +44,7 @@ export const create = orgMutation({
     timeZone: zTimeZone,
     rrule: z.string().max(500).optional(),
     inviteeIds: z.array(zid("users")).max(100),
+    protected: z.boolean().optional(),
   },
   handler: (ctx, { orgId, ...meeting }) => {
     ctx.requirePermission("createMeetings");
@@ -89,6 +93,7 @@ export const busy = orgQuery({
 export const join = authedAction({
   args: { meetingId: zid("meetings") },
   handler: async (ctx, { meetingId }): Promise<{ token: string }> => {
+    await enforceRateLimit(ctx, "join", ctx.userId);
     const details: JoinDetails = await ctx.runQuery(internal.internal.realtime.joinDetails, {
       userId: ctx.userId,
       meetingId,
@@ -163,4 +168,18 @@ export const startNow = orgMutation({
       canManageMeetings: ctx.can("manageMeetings"),
     });
   },
+});
+
+export const setProtected = authedMutation({
+  args: { meetingId: zid("meetings"), protected: z.boolean() },
+  handler: async (ctx, { meetingId, protected: on }) => {
+    await requireCallControl(ctx, meetingId, ctx.userId);
+    await ctx.db.patch("meetings", meetingId, { protected: on || undefined });
+  },
+});
+
+export const recapChat = authedQuery({
+  args: { sessionId: zid("meetingSessions"), paginationOpts: zPaginationOpts },
+  handler: (ctx, { sessionId, paginationOpts }) =>
+    listSessionMessages(ctx, ctx.userId, sessionId, paginationOpts),
 });
