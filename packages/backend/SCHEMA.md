@@ -14,6 +14,10 @@ erDiagram
     boolean isVerified
     string seenTimeZone "optional"
   }
+  verifiedSessions {
+    id _id PK
+    string sessionId
+  }
   userSettings {
     id _id PK
     id userId FK "users"
@@ -252,6 +256,7 @@ erDiagram
 | Table | Index | Fields |
 | --- | --- | --- |
 | users | by_email | email |
+| verifiedSessions | by_sessionId | sessionId |
 | userSettings | by_user | userId |
 | organizations | by_join_domain | joinDomain |
 | members | by_org_and_user | orgId, userId |

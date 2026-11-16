@@ -19,6 +19,7 @@
     "@databuddy/sdk": "^3.5.3",
     "@meetings/backend": "workspace:*",
     "@meetings/ui": "workspace:*",
+    "@simplewebauthn/browser": "^14.0.0",
     "@tailwindcss/vite": "^4.3.5",
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-router": "1.170.46",

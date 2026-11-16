@@ -1,21 +1,27 @@
 import { useForm } from "@tanstack/react-form";
-import { useSignInWithUsernamePasskey } from "@convex-dev/auth/methods/username-passkey/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
 import { KeyRoundIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
-import { Input } from "@meetings/ui/components/input";
-import { Label } from "@meetings/ui/components/label";
 import { describeAuthError } from "./auth-errors.ts";
+import { authenticateWithPasskey } from "./webauthn.ts";
 import { FormError } from "#/components/form-error.tsx";
 
 export const PasskeyForm = () => {
-  const passkey = useSignInWithUsernamePasskey(api.auth);
+  const { setSession } = useAuthActions();
+  const start = useMutation(api.auth.startAutofillSignInWithUsernamePasskey);
+  const finish = useMutation(api.passkeys.finishSignIn);
   const form = useForm({
-    defaultValues: { username: "" },
     validators: {
-      onSubmitAsync: async ({ value }) => {
-        const result = await passkey.signIn(value);
-        return result.status === "error" ? describeAuthError(result.userError.error) : undefined;
+      onSubmitAsync: async () => {
+        const { options } = await start({});
+        const assertion = await authenticateWithPasskey(options);
+        if ("error" in assertion) return describeAuthError(assertion.error);
+        const result = await finish({ response: assertion.response });
+        if (result.status === "error") return describeAuthError(result.userError.error);
+        await setSession(result.tokens);
+        return undefined;
       },
     },
   });
@@ -28,30 +34,14 @@ export const PasskeyForm = () => {
         void form.handleSubmit();
       }}
     >
-      <form.Field name="username">
-        {(field) => (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={field.name}>Username</Label>
-            <Input
-              id={field.name}
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              autoComplete="username webauthn"
-              required
-            />
-          </div>
-        )}
-      </form.Field>
       <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
         {(error) => <FormError error={error} />}
       </form.Subscribe>
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <Button type="submit" className="w-full" disabled={isSubmitting || passkey.pending}>
+          <Button type="submit" variant="outline" className="w-full" disabled={isSubmitting}>
             <KeyRoundIcon />
-            {isSubmitting || passkey.pending
-              ? "Waiting for your passkey…"
-              : "Continue with passkey"}
+            {isSubmitting ? "Waiting for your passkey…" : "Sign in with a passkey"}
           </Button>
         )}
       </form.Subscribe>
