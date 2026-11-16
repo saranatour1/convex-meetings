@@ -220,17 +220,13 @@ export const MeetingPage = ({
                     {session.summary}
                   </p>
                 )}
-                <div className="flex gap-3 text-sm">
-                  {session.transcriptUrl && (
-                    <a className="underline" href={session.transcriptUrl}>
-                      Transcript
-                    </a>
-                  )}
-                  {session.recordingUrl && (
-                    <a className="flex items-center gap-1 underline" href={session.recordingUrl}>
+                <div className="flex gap-3 text-muted-foreground text-xs">
+                  {session.hasTranscript && <span>Transcript</span>}
+                  {session.hasRecording && (
+                    <span className="flex items-center gap-1">
                       <VideoIcon className="size-3.5" />
                       Recording
-                    </a>
+                    </span>
                   )}
                 </div>
               </section>

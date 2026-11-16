@@ -184,6 +184,13 @@ test("protected meetings never record and keep snapshots and downloads to hosts"
     paginationOpts: page,
   });
   expect(chat.page).toMatchObject([{ body: "During the call", authorName: "Guest" }]);
+
+  await t.run((ctx) =>
+    ctx.db.patch("meetingSessions", sessionId, { recordingUrl: "https://cf.example/rec.mp4" }),
+  );
+  const seen = await guest.asUser.query(api.api.meetings.get, { code });
+  expect(seen?.sessions[0]).toMatchObject({ hasRecording: true });
+  expect(seen?.sessions[0]).not.toHaveProperty("recordingUrl");
 });
 
 test("one person on two devices stays present until both leave, and can switch here", async () => {
