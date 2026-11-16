@@ -59,7 +59,7 @@ test("creating an organization makes the creator its owner", async () => {
   const mine = await owner.asUser.query(api.api.orgs.listMine, { paginationOpts: page });
   expect(mine.page).toEqual([{ _id: orgId, name: "Acme" }]);
   const members = await owner.asUser.query(api.api.members.list, { orgId, paginationOpts: page });
-  expect(members.page[0]?.roles).toEqual(["Owner"]);
+  expect(members.page[0]?.roles.map((role) => role.name)).toEqual(["Owner"]);
 });
 
 test("an invite emails a link whose secret is stored only as a hash", async () => {
@@ -90,7 +90,7 @@ test("accepting an invite adds a verified member and uses up the link", async ()
   expect(members.page.find((m) => m.userId === bea.userId)).toMatchObject({
     email: "bea@example.com",
     isVerified: true,
-    roles: ["Member"],
+    roles: [{ name: "Member" }],
   });
   expect(await setup.t.run((ctx) => ctx.db.query("invites").collect())).toEqual([]);
   await expect(bea.asUser.mutation(api.api.invites.accept, { secret })).rejects.toThrow(

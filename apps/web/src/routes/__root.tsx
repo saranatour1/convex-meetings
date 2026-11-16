@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { THEME_SCRIPT } from "#/lib/theme.ts";
+import { ToastProvider } from "@meetings/ui/components/toast";
 import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
 import appCss from "../styles.css?url";
 
 const RootComponent = () => {
   return (
     <ConvexWithAuthProvider>
-      <Outlet />
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
     </ConvexWithAuthProvider>
   );
 };

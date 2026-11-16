@@ -14,6 +14,7 @@ import type * as api_meetings from "../api/meetings.js";
 import type * as api_members from "../api/members.js";
 import type * as api_messages from "../api/messages.js";
 import type * as api_orgs from "../api/orgs.js";
+import type * as api_roles from "../api/roles.js";
 import type * as api_schedules from "../api/schedules.js";
 import type * as api_settings from "../api/settings.js";
 import type * as api_users from "../api/users.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   "api/members": typeof api_members;
   "api/messages": typeof api_messages;
   "api/orgs": typeof api_orgs;
+  "api/roles": typeof api_roles;
   "api/schedules": typeof api_schedules;
   "api/settings": typeof api_settings;
   "api/users": typeof api_users;
