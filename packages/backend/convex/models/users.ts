@@ -6,6 +6,11 @@ import { parseOrThrow } from "../lib/validate";
 import { avatarWorkpool } from "../lib/workpools";
 import { zUser } from "../tables/users";
 
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+export const isStorableAvatar = ({ type, size }: Pick<Blob, "type" | "size">) =>
+  type.startsWith("image/") && size > 0 && size <= MAX_AVATAR_BYTES;
+
 type NewUser = WithoutSystemFields<Doc<"users">>;
 type UsernameMethod = Extract<Doc<"users">["method"], "usernamePasskey" | "usernamePassword">;
 

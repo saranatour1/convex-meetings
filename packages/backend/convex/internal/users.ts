@@ -3,7 +3,12 @@ import { vGoogleProfile } from "@convex-dev/auth/methods/google/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
-import { insertUser, insertUsernameUser, replaceImage as replaceUserImage } from "../models/users";
+import {
+  insertUser,
+  insertUsernameUser,
+  isStorableAvatar,
+  replaceImage as replaceUserImage,
+} from "../models/users";
 
 const vUsernameProfile = v.object({});
 
@@ -56,7 +61,9 @@ export const storeAvatar = internalAction({
   handler: async (ctx, { userId, url }) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Avatar fetch failed: ${response.status}`);
-    const imageId = await ctx.storage.store(await response.blob());
+    const avatar = await response.blob();
+    if (!isStorableAvatar(avatar)) return;
+    const imageId = await ctx.storage.store(avatar);
     await ctx.runMutation(internal.internal.users.replaceImage, { userId, imageId });
   },
 });
