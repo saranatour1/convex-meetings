@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useCallback } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useAction, useQuery } from "convex/react";
@@ -87,6 +88,7 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
               plugins: [whiteboardPlugin(token)],
             },
           });
+          track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });
           onInCallChange(true);
           return undefined;
         } catch (error) {

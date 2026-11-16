@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import {
   useSignInWithUsernamePassword,
@@ -19,7 +20,9 @@ export const PasswordForm = ({ mode }: { mode: "signin" | "signup" }) => {
     validators: {
       onSubmitAsync: async ({ value }) => {
         const result = await (isSignUp ? signUp : signIn)(value);
-        return result.status === "error" ? describeAuthError(result.userError.error) : undefined;
+        if (result.status === "error") return describeAuthError(result.userError.error);
+        track(isSignUp ? "signed_up" : "signed_in", { method: "password" });
+        return undefined;
       },
     },
   });

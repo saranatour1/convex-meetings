@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
@@ -30,6 +31,7 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
       onSubmitAsync: async ({ value }) => {
         try {
           onEntered(await enter({ code, name: value.name }));
+          track("guest_entered");
           return undefined;
         } catch (error) {
           return describeError(error);
