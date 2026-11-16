@@ -119,7 +119,7 @@ Rules:
 
 - Settings live behind the user menu at the bottom of the sidebar: `/settings/account`, `/settings/general` (appearance, time zone and hours), `/settings/meetings` and `/settings/org`. Per-person preferences are the `userSettings` table (`api.settings.getMine` / `setMine`, defaults in `models/settings.ts`).
 - Theme: `lib/theme.ts` puts `dark` or `light` on `<html>` (Kloq and COSS both follow it), remembers the choice locally, and an inline `THEME_SCRIPT` restores it before paint. The saved `userSettings.theme` is applied on a new device. Calls pick RealtimeKit's light or dark tokens from it.
-- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/schedule?zone=…&zones=…&view=list&inviteFor=…`, `/calendar?zones=…`, `/sign-in?with=password&mode=signup`.
+- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/schedule?zone=…&zones=…&view=list`, `/calendar?zones=…`, `/sign-in?with=password&mode=signup`.
 - Changing URL state:
   - Declarative navigation is a `<Link>` anywhere: features, layouts or routes.
   - Imperative navigation (`navigate`) belongs to routes. Features receive it as callbacks (`onClose`, `onInvite`).
