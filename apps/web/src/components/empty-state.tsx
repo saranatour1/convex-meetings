@@ -18,14 +18,14 @@ type EmptyStateProps = {
   className?: string;
 };
 
-export function EmptyState({
+export const EmptyState = ({
   icon,
   title,
   description,
   action,
   compact,
   className,
-}: EmptyStateProps) {
+}: EmptyStateProps) => {
   return (
     <Empty className={cn(compact && "gap-3", className)}>
       <EmptyHeader>
@@ -38,4 +38,4 @@ export function EmptyState({
       {action && <EmptyContent>{action}</EmptyContent>}
     </Empty>
   );
-}
+};

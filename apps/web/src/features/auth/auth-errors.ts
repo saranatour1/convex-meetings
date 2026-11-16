@@ -7,6 +7,6 @@ const messages: Partial<Record<string, string>> = {
   WEBAUTHN_UNSUPPORTED: "This browser does not support passkeys.",
 };
 
-export function describeAuthError(code: string) {
+export const describeAuthError = (code: string) => {
   return messages[code] ?? code.replaceAll("_", " ").toLowerCase();
-}
+};

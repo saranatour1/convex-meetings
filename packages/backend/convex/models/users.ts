@@ -1,17 +1,21 @@
 import type { WithoutSystemFields } from "convex/server";
-import { ConvexError, type Infer } from "convex/values";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { parseOrThrow } from "../lib/validate";
 import { avatarWorkpool } from "../lib/workpools";
-import type { vUsernameAuthMethod } from "../tables/users";
+import { zUser } from "../tables/users";
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+export const isStorableAvatar = ({ type, size }: Pick<Blob, "type" | "size">) =>
+  type.startsWith("image/") && size > 0 && size <= MAX_AVATAR_BYTES;
 
 type NewUser = WithoutSystemFields<Doc<"users">>;
+type UsernameMethod = Extract<Doc<"users">["method"], "usernamePasskey" | "usernamePassword">;
 
-const BIO_MAX_LENGTH = 280;
-
-export async function insertUser(ctx: MutationCtx, user: NewUser, avatarUrl?: string) {
-  const userId = await ctx.db.insert("users", user);
+export const insertUser = async (ctx: MutationCtx, user: NewUser, avatarUrl?: string) => {
+  const userId = await ctx.db.insert("users", parseOrThrow(zUser, user));
   if (avatarUrl) {
     await avatarWorkpool.enqueueAction(ctx, internal.internal.users.storeAvatar, {
       userId,
@@ -19,13 +23,12 @@ export async function insertUser(ctx: MutationCtx, user: NewUser, avatarUrl?: st
     });
   }
   return userId;
-}
+};
 
-export function insertUsernameUser(ctx: MutationCtx, method: Infer<typeof vUsernameAuthMethod>) {
-  return insertUser(ctx, { method, isVerified: false });
-}
+export const insertUsernameUser = (ctx: MutationCtx, method: UsernameMethod) =>
+  insertUser(ctx, { method, isVerified: false });
 
-export async function getViewer(ctx: QueryCtx, userId: Id<"users">) {
+export const getViewer = async (ctx: QueryCtx, userId: Id<"users">) => {
   const user = await ctx.db.get("users", userId);
   if (!user) return null;
   const username = user.name
@@ -36,9 +39,13 @@ export async function getViewer(ctx: QueryCtx, userId: Id<"users">) {
     name: user.name ?? username ?? "Anonymous",
     imageUrl: user.imageId ? await ctx.storage.getUrl(user.imageId) : null,
   };
-}
+};
 
-export async function replaceImage(ctx: MutationCtx, userId: Id<"users">, imageId: Id<"_storage">) {
+export const replaceImage = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  imageId: Id<"_storage">,
+) => {
   const user = await ctx.db.get("users", userId);
   if (!user) {
     await ctx.storage.delete(imageId);
@@ -46,12 +53,9 @@ export async function replaceImage(ctx: MutationCtx, userId: Id<"users">, imageI
   }
   if (user.imageId) await ctx.storage.delete(user.imageId);
   await ctx.db.patch("users", userId, { imageId });
-}
+};
 
-export async function setBio(ctx: MutationCtx, userId: Id<"users">, bio: string) {
-  const trimmed = bio.trim();
-  if (trimmed.length > BIO_MAX_LENGTH) {
-    throw new ConvexError(`Keep your bio to ${BIO_MAX_LENGTH} characters or fewer.`);
-  }
-  await ctx.db.patch("users", userId, { bio: trimmed || undefined });
-}
+export const setBio = async (ctx: MutationCtx, userId: Id<"users">, bio: string) => {
+  const parsed = parseOrThrow(zUser.shape.bio.unwrap(), bio);
+  await ctx.db.patch("users", userId, { bio: parsed || undefined });
+};

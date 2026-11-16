@@ -5,10 +5,10 @@ import { api } from "@meetings/backend";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
-export function ConvexWithAuthProvider({ children }: { children: ReactNode }) {
+export const ConvexWithAuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ConvexAuthProvider client={convex} api={api.auth}>
       {children}
     </ConvexAuthProvider>
   );
-}
+};

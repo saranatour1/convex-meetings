@@ -17,16 +17,16 @@ type ChatMessage = { id: string; text: string };
 
 type InvitePanelProps = { meetingTitle: string; onClose: () => void };
 
-export function InvitePanel({ meetingTitle, onClose }: InvitePanelProps) {
+export const InvitePanel = ({ meetingTitle, onClose }: InvitePanelProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState<ComposerValue>([]);
 
-  function send(value: ComposerValue) {
+  const send = (value: ComposerValue) => {
     const text = getComposerText(value).trim();
     if (!text) return;
     setMessages((current) => [...current, { id: crypto.randomUUID(), text }]);
     setDraft([]);
-  }
+  };
 
   return (
     <Sidebar
@@ -90,4 +90,4 @@ export function InvitePanel({ meetingTitle, onClose }: InvitePanelProps) {
       </SidebarFooter>
     </Sidebar>
   );
-}
+};

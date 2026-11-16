@@ -15,7 +15,7 @@ import { PasswordForm } from "./password-form.tsx";
 
 type SignInCardProps = { method: "passkey" | "password"; mode: "signin" | "signup" };
 
-export function SignInCard({ method, mode }: SignInCardProps) {
+export const SignInCard = ({ method, mode }: SignInCardProps) => {
   const withPassword = method === "password";
 
   return (
@@ -61,4 +61,4 @@ export function SignInCard({ method, mode }: SignInCardProps) {
       </CardFooter>
     </Card>
   );
-}
+};

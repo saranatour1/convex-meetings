@@ -10,7 +10,7 @@ import { Label } from "@meetings/ui/components/label";
 import { describeAuthError } from "./auth-errors.ts";
 import { FormError } from "#/components/form-error.tsx";
 
-export function PasswordForm({ mode }: { mode: "signin" | "signup" }) {
+export const PasswordForm = ({ mode }: { mode: "signin" | "signup" }) => {
   const signIn = useSignInWithUsernamePassword(api.auth).signIn;
   const signUp = useSignUpWithUsernamePassword(api.auth).signUp;
   const isSignUp = mode === "signup";
@@ -73,4 +73,4 @@ export function PasswordForm({ mode }: { mode: "signin" | "signup" }) {
       </form.Subscribe>
     </form>
   );
-}
+};

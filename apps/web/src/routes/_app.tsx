@@ -8,15 +8,7 @@ import { InvitePanel } from "#/features/meetings/invite-panel.tsx";
 
 type AppSearch = { schedule?: true; inviteFor?: string };
 
-export const Route = createFileRoute("/_app")({
-  validateSearch: (search: Record<string, unknown>): AppSearch => ({
-    schedule: search.schedule === true ? true : undefined,
-    inviteFor: typeof search.inviteFor === "string" ? search.inviteFor : undefined,
-  }),
-  component: AppLayout,
-});
-
-function AppLayout() {
+const AppLayout = () => {
   const { inviteFor } = Route.useSearch();
   const navigate = Route.useNavigate();
 
@@ -47,4 +39,12 @@ function AppLayout() {
       </Authenticated>
     </>
   );
-}
+};
+
+export const Route = createFileRoute("/_app")({
+  validateSearch: (search: Record<string, unknown>): AppSearch => ({
+    schedule: search.schedule === true ? true : undefined,
+    inviteFor: typeof search.inviteFor === "string" ? search.inviteFor : undefined,
+  }),
+  component: AppLayout,
+});

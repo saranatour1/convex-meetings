@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CalendarPlusIcon } from "lucide-react";
 import { EmptyState } from "#/components/empty-state.tsx";
 
-export function UpcomingMeetings({ scheduleAction }: { scheduleAction?: ReactNode }) {
+export const UpcomingMeetings = ({ scheduleAction }: { scheduleAction?: ReactNode }) => {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-semibold text-sm">Upcoming</h2>
@@ -15,4 +15,4 @@ export function UpcomingMeetings({ scheduleAction }: { scheduleAction?: ReactNod
       />
     </section>
   );
-}
+};
