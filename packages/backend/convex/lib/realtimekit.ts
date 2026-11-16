@@ -46,7 +46,7 @@ export const realtimeKit = {
         ? {
             summarization: {
               summary_type: "team_meeting",
-              text_format: "markdown",
+              text_format: "plain_text",
               word_limit: 300,
             },
           }

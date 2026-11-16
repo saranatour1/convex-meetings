@@ -16,6 +16,7 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
+import type { CallPanel } from "./call/call-room.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -25,9 +26,14 @@ const MeetingCall = lazy(() =>
 
 const RESPONSE_LABEL = { accepted: "Going", declined: "Not going", pending: "No reply yet" };
 
-type MeetingPageProps = { meetingId: Id<"meetings">; onCancelled: () => void };
+type MeetingPageProps = {
+  meetingId: Id<"meetings">;
+  onCancelled: () => void;
+  panel?: CallPanel;
+  onPanelChange: (panel: CallPanel | undefined) => void;
+};
 
-export const MeetingPage = ({ meetingId, onCancelled }: MeetingPageProps) => {
+export const MeetingPage = ({ meetingId, onCancelled, panel, onPanelChange }: MeetingPageProps) => {
   const meeting = useQuery(api.meetings.get, { meetingId });
   const respond = useMutation(api.meetings.respond);
   const cancel = useMutation(api.meetings.cancel);
@@ -57,7 +63,14 @@ export const MeetingPage = ({ meetingId, onCancelled }: MeetingPageProps) => {
         </CardHeader>
         <CardPanel className="flex flex-col gap-6">
           <Suspense fallback={<Button disabled>Loading call…</Button>}>
-            <MeetingCall meetingId={meetingId} />
+            <MeetingCall
+              meetingId={meetingId}
+              title={meeting.title}
+              kind={meeting.kind}
+              panel={panel}
+              onPanelChange={onPanelChange}
+              chat={<MeetingChat meetingId={meetingId} />}
+            />
           </Suspense>
           <div className="flex flex-wrap gap-2">
             {isHost ? (
