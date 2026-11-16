@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { CheckIcon, FileTextIcon, VideoIcon, XIcon } from "lucide-react";
-import { api, type Id } from "@meetings/backend";
+import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
@@ -12,11 +12,11 @@ import {
   CardPanel,
   CardTitle,
 } from "@meetings/ui/components/card";
+import { EmptyState } from "#/components/empty-state.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
-import type { CallPanel } from "./call/call-room.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -27,17 +27,36 @@ const MeetingCall = lazy(() =>
 const RESPONSE_LABEL = { accepted: "Going", declined: "Not going", pending: "No reply yet" };
 
 type MeetingPageProps = {
-  meetingId: Id<"meetings">;
+  code: string;
   onCancelled: () => void;
-  panel?: CallPanel;
-  onPanelChange: (panel: CallPanel | undefined) => void;
+  inCall: boolean;
+  onInCallChange: (inCall: boolean) => void;
+  chatOpen: boolean;
+  onChatOpenChange: (open: boolean) => void;
 };
 
-export const MeetingPage = ({ meetingId, onCancelled, panel, onPanelChange }: MeetingPageProps) => {
-  const meeting = useQuery(api.meetings.get, { meetingId });
+export const MeetingPage = ({
+  code,
+  onCancelled,
+  inCall,
+  onInCallChange,
+  chatOpen,
+  onChatOpenChange,
+}: MeetingPageProps) => {
+  const meeting = useQuery(api.meetings.get, { code });
   const respond = useMutation(api.meetings.respond);
   const cancel = useMutation(api.meetings.cancel);
   if (meeting === undefined) return <LoadingScreen />;
+  if (meeting === null) {
+    return (
+      <EmptyState
+        icon={<VideoIcon />}
+        title="No meeting with that code"
+        description="Check the code or link, or ask whoever invited you to send it again."
+      />
+    );
+  }
+  const meetingId = meeting._id;
 
   const zone = browserTimeZone();
   const time = meeting.time;
@@ -67,8 +86,10 @@ export const MeetingPage = ({ meetingId, onCancelled, panel, onPanelChange }: Me
               meetingId={meetingId}
               title={meeting.title}
               kind={meeting.kind}
-              panel={panel}
-              onPanelChange={onPanelChange}
+              inCall={inCall}
+              onInCallChange={onInCallChange}
+              chatOpen={chatOpen}
+              onChatOpenChange={onChatOpenChange}
               chat={<MeetingChat meetingId={meetingId} />}
             />
           </Suspense>

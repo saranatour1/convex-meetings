@@ -14,7 +14,7 @@ const DAY_MS = 86_400_000;
 type ScheduleMeetingProps = Omit<
   ScheduleFormProps,
   "invitees" | "homeZone" | "alsoShow" | "onSchedule"
-> & { onScheduled: (meetingId: Id<"meetings">) => void };
+> & { onScheduled: (code: string) => void };
 
 export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps) => {
   const { orgId } = useActiveOrg();
@@ -50,13 +50,12 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
       {...props}
       onSchedule={async (meeting) => {
         try {
-          onScheduled(
-            await create({
-              ...meeting,
-              orgId,
-              inviteeIds: meeting.inviteeIds as Id<"users">[],
-            }),
-          );
+          const { code } = await create({
+            ...meeting,
+            orgId,
+            inviteeIds: meeting.inviteeIds as Id<"users">[],
+          });
+          onScheduled(code);
           return undefined;
         } catch (error) {
           return describeError(error);

@@ -12,6 +12,7 @@ import { findMember } from "./members";
 import { getViewer } from "./users";
 
 const MAX_INVITEES = 100;
+const CODE_LETTERS = "abcdefghijkmnopqrstuvwxyz";
 const MAX_MEMBERS_READ = 200;
 const DAY_MS = 86_400_000;
 
@@ -49,6 +50,26 @@ export const meetingTime = (startsAt: number, minutes: number, timeZone: string)
   };
 };
 
+const randomCode = () => {
+  const letters = [...crypto.getRandomValues(new Uint8Array(10))].map(
+    (byte) => CODE_LETTERS[byte % CODE_LETTERS.length],
+  );
+  return `${letters.slice(0, 3).join("")}-${letters.slice(3, 7).join("")}-${letters.slice(7).join("")}`;
+};
+
+export const findMeetingByCode = (ctx: QueryCtx, code: string) =>
+  ctx.db
+    .query("meetings")
+    .withIndex("by_code", (q) => q.eq("code", code))
+    .unique();
+
+export const uniqueMeetingCode = async (ctx: QueryCtx) => {
+  for (;;) {
+    const code = randomCode();
+    if (!(await findMeetingByCode(ctx, code))) return code;
+  }
+};
+
 export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
   const inviteeIds = [...new Set(meeting.inviteeIds)].filter((id) => id !== meeting.userId);
   if (inviteeIds.length > MAX_INVITEES)
@@ -59,9 +80,11 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
     }
   }
   const time = meetingTime(meeting.startsAt, meeting.minutes, meeting.timeZone);
+  const code = await uniqueMeetingCode(ctx);
   const meetingId = await ctx.db.insert(
     "meetings",
     parseOrThrow(zMeeting, {
+      code,
       orgId: meeting.orgId,
       userId: meeting.userId,
       title: meeting.title,
@@ -84,7 +107,7 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
   for (const member of members) {
     await ctx.db.insert("meetingMembers", parseOrThrow(zMeetingMember, { ...member, meetingId }));
   }
-  return meetingId;
+  return { meetingId, code };
 };
 
 const timeOf = (ctx: QueryCtx, meetingId: Id<"meetings">) =>
@@ -128,6 +151,7 @@ export const listMyMeetings = async (
       if (!meeting || !time) return null;
       return {
         _id: meeting._id,
+        code: meeting.code,
         title: meeting.title,
         kind: meeting.kind,
         startsAt: time.startsAt,
@@ -170,6 +194,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
   );
   return {
     _id: meeting._id,
+    code: meeting.code,
     orgId: meeting.orgId,
     title: meeting.title,
     kind: meeting.kind,

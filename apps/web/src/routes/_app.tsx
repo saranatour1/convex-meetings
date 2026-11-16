@@ -29,7 +29,9 @@ const AppLayout = () => {
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-              <AppHeader />
+              <AppHeader
+                onJoinCode={(code) => void navigate({ to: "/meetings/$code", params: { code } })}
+              />
               <Outlet />
             </SidebarInset>
             {inviteFor !== undefined && (

@@ -33,8 +33,8 @@ export const UpcomingMeetings = ({ scheduleAction }: { scheduleAction?: ReactNod
           {upcoming.map((meeting) => (
             <li key={meeting._id}>
               <Link
-                to="/meetings/$meetingId"
-                params={{ meetingId: meeting._id }}
+                to="/meetings/$code"
+                params={{ code: meeting.code }}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50"
               >
                 <div className="flex min-w-0 flex-1 flex-col">

@@ -16,6 +16,7 @@ import {
   busyForOrg,
   cancelMeeting,
   createMeeting,
+  findMeetingByCode,
   getMeeting,
   listMyMeetings,
   respond as respondToMeeting,
@@ -47,8 +48,11 @@ export const mine = authedQuery({
 });
 
 export const get = authedQuery({
-  args: { meetingId: zid("meetings") },
-  handler: (ctx, { meetingId }) => getMeeting(ctx, ctx.userId, meetingId),
+  args: { code: z.string() },
+  handler: async (ctx, { code }) => {
+    const meeting = await findMeetingByCode(ctx, code);
+    return meeting ? getMeeting(ctx, ctx.userId, meeting._id) : null;
+  },
 });
 
 export const respond = authedMutation({

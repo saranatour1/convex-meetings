@@ -12,8 +12,9 @@ import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { FormError } from "#/components/form-error.tsx";
 import { describeError } from "#/lib/errors.ts";
+import { CallEnded } from "./call/call-ended.tsx";
 import { CallLobby } from "./call/call-lobby.tsx";
-import { CallRoom, type CallPanel } from "./call/call-room.tsx";
+import { CallRoom } from "./call/call-room.tsx";
 import { applyCallTheme } from "./call/call-theme.ts";
 import { kindOf, type MeetingKind } from "./meeting-kinds.ts";
 
@@ -21,36 +22,39 @@ type MeetingCallProps = {
   meetingId: Id<"meetings">;
   title: string;
   kind: MeetingKind;
-  panel?: CallPanel;
-  onPanelChange: (panel: CallPanel | undefined) => void;
+  inCall: boolean;
+  onInCallChange: (inCall: boolean) => void;
+  chatOpen: boolean;
+  onChatOpenChange: (open: boolean) => void;
   chat: ReactNode;
 };
 
-const CallView = ({
-  title,
-  kind,
-  panel,
-  onPanelChange,
-  chat,
-}: Omit<MeetingCallProps, "meetingId">) => {
-  const joined = useRealtimeKitSelector((m) => m.self.roomState === "joined");
-  return joined ? (
-    <CallRoom title={title} kind={kind} panel={panel} onPanelChange={onPanelChange} chat={chat} />
-  ) : (
-    <CallLobby title={title} kind={kind} />
-  );
+type CallViewProps = Omit<MeetingCallProps, "meetingId" | "inCall" | "onInCallChange"> & {
+  onBack: () => void;
+  onRejoin: () => void;
+  rejoining: boolean;
 };
 
-export const MeetingCall = (props: MeetingCallProps) => {
+const CallView = ({ title, kind, onBack, onRejoin, rejoining, ...room }: CallViewProps) => {
+  const state = useRealtimeKitSelector((m) => m.self.roomState);
+  if (state === "joined") return <CallRoom title={title} kind={kind} {...room} />;
+  if (state === "init" || state === "waitlisted") {
+    return <CallLobby title={title} kind={kind} onBack={onBack} />;
+  }
+  return <CallEnded title={title} onBack={onBack} onRejoin={onRejoin} rejoining={rejoining} />;
+};
+
+export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: MeetingCallProps) => {
   const join = useAction(api.meetings.join);
-  const [meeting, initMeeting] = useRealtimeKitClient({ resetOnLeave: true });
+  const [meeting, initMeeting] = useRealtimeKitClient();
   const form = useForm({
     defaultValues: {},
     validators: {
       onSubmitAsync: async () => {
         try {
-          const { token } = await join({ meetingId: props.meetingId });
+          const { token } = await join({ meetingId });
           await initMeeting({ authToken: token });
+          onInCallChange(true);
           return undefined;
         } catch (error) {
           return describeError(error);
@@ -59,12 +63,24 @@ export const MeetingCall = (props: MeetingCallProps) => {
     },
   });
 
-  if (meeting) {
+  if (meeting && inCall) {
     return (
-      <div ref={applyCallTheme}>
+      <div ref={applyCallTheme} className="fixed inset-0 z-50 bg-background">
         <RealtimeKitProvider value={meeting}>
           <RtkUiProvider meeting={meeting} showSetupScreen>
-            <CallView {...props} />
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(rejoining) => (
+                <CallView
+                  {...props}
+                  onBack={() => {
+                    if (meeting.self.roomState === "joined") void meeting.leave();
+                    onInCallChange(false);
+                  }}
+                  onRejoin={() => void form.handleSubmit()}
+                  rejoining={rejoining}
+                />
+              )}
+            </form.Subscribe>
           </RtkUiProvider>
         </RealtimeKitProvider>
       </div>

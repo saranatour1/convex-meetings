@@ -64,6 +64,7 @@ erDiagram
     id _id PK
     id orgId FK "organizations"
     id userId FK "users"
+    string code
     string title
     enum kind
     boolean recap
@@ -157,6 +158,7 @@ erDiagram
 | groupMembers | by_org_and_user | orgId, userId |
 | meetings | by_org_and_user_and_title | orgId, userId, title |
 | meetings | by_rtk_meeting | rtkMeetingId |
+| meetings | by_code | code |
 | meetingTimes | by_meeting | meetingId |
 | meetingTimes | by_date | date |
 | meetingMembers | by_meeting_and_user | meetingId, userId |

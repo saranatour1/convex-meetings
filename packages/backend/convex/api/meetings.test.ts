@@ -68,10 +68,13 @@ const schedule = (
 
 test("a scheduled meeting shows up for the host and the invitee", async () => {
   const setup = await orgWithTwoPeople();
-  const meetingId = await schedule(setup);
+  const { meetingId, code } = await schedule(setup);
   const hostView = await setup.host.asUser.query(api.api.meetings.mine, { paginationOpts: page });
   const guestView = await setup.guest.asUser.query(api.api.meetings.mine, { paginationOpts: page });
-  expect(hostView.page).toMatchObject([{ _id: meetingId, role: "host", response: "accepted" }]);
+  expect(code).toMatch(/^[a-z]{3}-[a-z]{4}-[a-z]{3}$/);
+  expect(hostView.page).toMatchObject([
+    { _id: meetingId, code, role: "host", response: "accepted" },
+  ]);
   expect(guestView.page).toMatchObject([
     {
       _id: meetingId,
@@ -81,8 +84,8 @@ test("a scheduled meeting shows up for the host and the invitee", async () => {
       endsAt: startsAt + HOUR / 2,
     },
   ]);
-  const meeting = await setup.guest.asUser.query(api.api.meetings.get, { meetingId });
-  expect(meeting.time).toMatchObject({ start: "10:00", end: "10:30", timeZone: "Europe/Berlin" });
+  const meeting = await setup.guest.asUser.query(api.api.meetings.get, { code });
+  expect(meeting?.time).toMatchObject({ start: "10:00", end: "10:30", timeZone: "Europe/Berlin" });
 });
 
 test("only org members can be invited, and meetings end on the day they start", async () => {
@@ -106,7 +109,7 @@ test("only org members can be invited, and meetings end on the day they start", 
 
 test("joining creates the call once, uses the attendee preset, then refreshes the token", async () => {
   const setup = await orgWithTwoPeople();
-  const meetingId = await schedule(setup, { kind: "webinar" });
+  const { meetingId } = await schedule(setup, { kind: "webinar" });
 
   const first = await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
   expect(first.token).toMatch(/^token-/);
@@ -128,7 +131,7 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
 
 test("people who weren't invited can't join", async () => {
   const setup = await orgWithTwoPeople();
-  const meetingId = await schedule(setup);
+  const { meetingId } = await schedule(setup);
   await expect(setup.outsider.asUser.action(api.api.meetings.join, { meetingId })).rejects.toThrow(
     "not invited",
   );
@@ -137,7 +140,7 @@ test("people who weren't invited can't join", async () => {
 
 test("busy times cover everyone who hasn't declined", async () => {
   const setup = await orgWithTwoPeople();
-  const meetingId = await schedule(setup);
+  const { meetingId } = await schedule(setup);
   const busy = await setup.host.asUser.query(api.api.meetings.busy, {
     orgId: setup.orgId,
     from: startsAt - HOUR,
@@ -191,7 +194,7 @@ test("webhook signatures are checked against the raw body", async () => {
 
 test("webhook events record one session with everyone who joined or left, once each", async () => {
   const setup = await orgWithTwoPeople();
-  const meetingId = await schedule(setup);
+  const { meetingId, code } = await schedule(setup);
   await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
   const meeting = { id: "rtk-meeting", sessionId: "session-1", startedAt: "2026-11-18T09:00:00Z" };
   const record = (event: Record<string, unknown>) =>
@@ -207,8 +210,8 @@ test("webhook events record one session with everyone who joined or left, once e
   });
   await record({ event: "meeting.summary", summary: "We agreed on the plan." });
 
-  const view = await setup.host.asUser.query(api.api.meetings.get, { meetingId });
-  expect(view.sessions).toMatchObject([
+  const view = await setup.host.asUser.query(api.api.meetings.get, { code });
+  expect(view?.sessions).toMatchObject([
     {
       attendees: 3,
       startedAt: Date.UTC(2026, 10, 18, 9, 0),
