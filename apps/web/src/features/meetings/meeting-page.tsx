@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { CheckIcon, FileTextIcon, VideoIcon, XIcon } from "lucide-react";
@@ -157,11 +158,15 @@ export const MeetingPage = ({
           <CardPanel className="flex flex-col gap-4">
             {meeting.sessions.map((session) => (
               <section key={session._id} className="flex flex-col gap-1">
-                <span className="font-medium text-sm tabular-nums">
+                <Link
+                  to="/meetings/$code/recaps/$sessionId"
+                  params={{ code: meeting.code, sessionId: session._id }}
+                  className="font-medium text-sm tabular-nums underline-offset-4 hover:underline"
+                >
                   {formatDate(session.startedAt, zone)} · {formatTime(session.startedAt, zone)}
                   {session.endedAt && `–${formatTime(session.endedAt, zone)}`} · {session.attendees}{" "}
-                  joined
-                </span>
+                  joined →
+                </Link>
                 {session.summary && (
                   <p className="whitespace-pre-wrap text-muted-foreground text-sm">
                     {session.summary}

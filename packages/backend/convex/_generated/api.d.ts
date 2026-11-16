@@ -9,6 +9,7 @@
  */
 
 import type * as api_auth from "../api/auth.js";
+import type * as api_inbox from "../api/inbox.js";
 import type * as api_invites from "../api/invites.js";
 import type * as api_meetings from "../api/meetings.js";
 import type * as api_members from "../api/members.js";
@@ -24,6 +25,7 @@ import type * as internal_realtime from "../internal/realtime.js";
 import type * as internal_users from "../internal/users.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_presets from "../lib/presets.js";
+import type * as lib_r2 from "../lib/r2.js";
 import type * as lib_realtimekit from "../lib/realtimekit.js";
 import type * as lib_time from "../lib/time.js";
 import type * as lib_validate from "../lib/validate.js";
@@ -32,6 +34,7 @@ import type * as lib_workpools from "../lib/workpools.js";
 import type * as models_invites from "../models/invites.js";
 import type * as models_meetings from "../models/meetings.js";
 import type * as models_members from "../models/members.js";
+import type * as models_notifications from "../models/notifications.js";
 import type * as models_orgs from "../models/orgs.js";
 import type * as models_roles from "../models/roles.js";
 import type * as models_schedules from "../models/schedules.js";
@@ -47,6 +50,7 @@ import type * as tables_meetings from "../tables/meetings.js";
 import type * as tables_memberRoles from "../tables/memberRoles.js";
 import type * as tables_members from "../tables/members.js";
 import type * as tables_messages from "../tables/messages.js";
+import type * as tables_notifications from "../tables/notifications.js";
 import type * as tables_organizations from "../tables/organizations.js";
 import type * as tables_roles from "../tables/roles.js";
 import type * as tables_schedules from "../tables/schedules.js";
@@ -62,6 +66,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "api/auth": typeof api_auth;
+  "api/inbox": typeof api_inbox;
   "api/invites": typeof api_invites;
   "api/meetings": typeof api_meetings;
   "api/members": typeof api_members;
@@ -77,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   "internal/users": typeof internal_users;
   "lib/functions": typeof lib_functions;
   "lib/presets": typeof lib_presets;
+  "lib/r2": typeof lib_r2;
   "lib/realtimekit": typeof lib_realtimekit;
   "lib/time": typeof lib_time;
   "lib/validate": typeof lib_validate;
@@ -85,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "models/invites": typeof models_invites;
   "models/meetings": typeof models_meetings;
   "models/members": typeof models_members;
+  "models/notifications": typeof models_notifications;
   "models/orgs": typeof models_orgs;
   "models/roles": typeof models_roles;
   "models/schedules": typeof models_schedules;
@@ -100,6 +107,7 @@ declare const fullApi: ApiFromModules<{
   "tables/memberRoles": typeof tables_memberRoles;
   "tables/members": typeof tables_members;
   "tables/messages": typeof tables_messages;
+  "tables/notifications": typeof tables_notifications;
   "tables/organizations": typeof tables_organizations;
   "tables/roles": typeof tables_roles;
   "tables/schedules": typeof tables_schedules;
@@ -143,5 +151,6 @@ export declare const components: {
   authGithub: import("@convex-dev/auth/components/github/_generated/component.js").ComponentApi<"authGithub">;
   avatarWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"avatarWorkpool">;
   emailWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"emailWorkpool">;
+  r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   cloudflareEmail: import("@sarant/cloudflare-email-component/_generated/component.js").ComponentApi<"cloudflareEmail">;
 };

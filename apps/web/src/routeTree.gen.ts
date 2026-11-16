@@ -13,10 +13,12 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as InviteSecretRouteImport } from './routes/invite.$secret'
+import { Route as AppMeetingsIndexRouteImport } from './routes/_app/meetings.index'
 import { Route as AppMeetingsCodeRouteImport } from './routes/_app/meetings.$code'
 import { Route as AppOrgsNewRouteImport } from './routes/_app/orgs.new'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
@@ -24,6 +26,7 @@ import { Route as AppSettingsAccountRouteImport } from './routes/_app/settings.a
 import { Route as AppSettingsGeneralRouteImport } from './routes/_app/settings.general'
 import { Route as AppSettingsMeetingsRouteImport } from './routes/_app/settings.meetings'
 import { Route as AppSettingsOrgRouteImport } from './routes/_app/settings.org'
+import { Route as AppMeetingsCodeRecapsSessionIdRouteImport } from './routes/_app/meetings.$code_.recaps.$sessionId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -42,6 +45,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMembersRoute = AppMembersRouteImport.update({
@@ -63,6 +71,11 @@ const InviteSecretRoute = InviteSecretRouteImport.update({
   id: '/invite/$secret',
   path: '/invite/$secret',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppMeetingsIndexRoute = AppMeetingsIndexRouteImport.update({
+  id: '/meetings/',
+  path: '/meetings/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppMeetingsCodeRoute = AppMeetingsCodeRouteImport.update({
   id: '/meetings/$code',
@@ -99,11 +112,18 @@ const AppSettingsOrgRoute = AppSettingsOrgRouteImport.update({
   path: '/org',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const AppMeetingsCodeRecapsSessionIdRoute =
+  AppMeetingsCodeRecapsSessionIdRouteImport.update({
+    id: '/meetings/$code_/recaps/$sessionId',
+    path: '/meetings/$code/recaps/$sessionId',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/sign-in': typeof SignInRoute
   '/calendar': typeof AppCalendarRoute
+  '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
   '/settings': typeof AppSettingsRouteWithChildren
@@ -114,11 +134,14 @@ export interface FileRoutesByFullPath {
   '/settings/general': typeof AppSettingsGeneralRoute
   '/settings/meetings': typeof AppSettingsMeetingsRoute
   '/settings/org': typeof AppSettingsOrgRoute
+  '/meetings/': typeof AppMeetingsIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/meetings/$code/recaps/$sessionId': typeof AppMeetingsCodeRecapsSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/calendar': typeof AppCalendarRoute
+  '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
   '/invite/$secret': typeof InviteSecretRoute
@@ -129,13 +152,16 @@ export interface FileRoutesByTo {
   '/settings/general': typeof AppSettingsGeneralRoute
   '/settings/meetings': typeof AppSettingsMeetingsRoute
   '/settings/org': typeof AppSettingsOrgRoute
+  '/meetings': typeof AppMeetingsIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/meetings/$code/recaps/$sessionId': typeof AppMeetingsCodeRecapsSessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
@@ -147,7 +173,9 @@ export interface FileRoutesById {
   '/_app/settings/general': typeof AppSettingsGeneralRoute
   '/_app/settings/meetings': typeof AppSettingsMeetingsRoute
   '/_app/settings/org': typeof AppSettingsOrgRoute
+  '/_app/meetings/': typeof AppMeetingsIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/_app/meetings/$code_/recaps/$sessionId': typeof AppMeetingsCodeRecapsSessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -155,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/calendar'
+    | '/inbox'
     | '/members'
     | '/schedule'
     | '/settings'
@@ -165,11 +194,14 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/meetings'
     | '/settings/org'
+    | '/meetings/'
     | '/settings/'
+    | '/meetings/$code/recaps/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
     | '/calendar'
+    | '/inbox'
     | '/members'
     | '/schedule'
     | '/invite/$secret'
@@ -180,12 +212,15 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/meetings'
     | '/settings/org'
+    | '/meetings'
     | '/settings'
+    | '/meetings/$code/recaps/$sessionId'
   id:
     | '__root__'
     | '/_app'
     | '/sign-in'
     | '/_app/calendar'
+    | '/_app/inbox'
     | '/_app/members'
     | '/_app/schedule'
     | '/_app/settings'
@@ -197,7 +232,9 @@ export interface FileRouteTypes {
     | '/_app/settings/general'
     | '/_app/settings/meetings'
     | '/_app/settings/org'
+    | '/_app/meetings/'
     | '/_app/settings/'
+    | '/_app/meetings/$code_/recaps/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/members': {
       id: '/_app/members'
       path: '/members'
@@ -263,6 +307,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invite/$secret'
       preLoaderRoute: typeof InviteSecretRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/meetings/': {
+      id: '/_app/meetings/'
+      path: '/meetings'
+      fullPath: '/meetings/'
+      preLoaderRoute: typeof AppMeetingsIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/meetings/$code': {
       id: '/_app/meetings/$code'
@@ -313,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsOrgRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/_app/meetings/$code_/recaps/$sessionId': {
+      id: '/_app/meetings/$code_/recaps/$sessionId'
+      path: '/meetings/$code/recaps/$sessionId'
+      fullPath: '/meetings/$code/recaps/$sessionId'
+      preLoaderRoute: typeof AppMeetingsCodeRecapsSessionIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -338,22 +396,28 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
+  AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppMeetingsCodeRoute: typeof AppMeetingsCodeRoute
   AppOrgsNewRoute: typeof AppOrgsNewRoute
+  AppMeetingsIndexRoute: typeof AppMeetingsIndexRoute
+  AppMeetingsCodeRecapsSessionIdRoute: typeof AppMeetingsCodeRecapsSessionIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
+  AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppMeetingsCodeRoute: AppMeetingsCodeRoute,
   AppOrgsNewRoute: AppOrgsNewRoute,
+  AppMeetingsIndexRoute: AppMeetingsIndexRoute,
+  AppMeetingsCodeRecapsSessionIdRoute: AppMeetingsCodeRecapsSessionIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

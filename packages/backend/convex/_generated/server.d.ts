@@ -39,6 +39,7 @@ type Env = {
   readonly EMAIL_FROM: string | undefined;
   readonly REALTIMEKIT_API_TOKEN: string | undefined;
   readonly REALTIMEKIT_APP_ID: string | undefined;
+  readonly RECORDINGS_PATH: string | undefined;
   readonly SITE_URL: string;
 };
 

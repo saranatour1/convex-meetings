@@ -1,0 +1,198 @@
+import { Suspense, use } from "react";
+import { Link } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
+import { ArrowLeftIcon, DownloadIcon, SearchIcon, SparklesIcon, UsersIcon } from "lucide-react";
+import { api, type Id } from "@meetings/backend";
+import { Badge } from "@meetings/ui/components/badge";
+import { Button } from "@meetings/ui/components/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardPanel,
+  CardTitle,
+} from "@meetings/ui/components/card";
+import { Input } from "@meetings/ui/components/input";
+import { LoadingScreen } from "#/components/loading-screen.tsx";
+import { browserTimeZone } from "#/lib/browser.ts";
+import { formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
+import { kindOf } from "./meeting-kinds.ts";
+
+type TranscriptLine = {
+  startTime: number;
+  sentence: string;
+  peerData?: { displayName?: string };
+};
+
+const transcripts = new Map<string, Promise<TranscriptLine[]>>();
+
+const loadTranscript = (url: string) => {
+  const cached = transcripts.get(url);
+  if (cached) return cached;
+  const promise = fetch(url)
+    .then((response) => response.json() as Promise<TranscriptLine[]>)
+    .catch(() => [] as TranscriptLine[]);
+  transcripts.set(url, promise);
+  return promise;
+};
+
+const clock = (ms: number) => {
+  const seconds = Math.floor(ms / 1000);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+};
+
+const Transcript = ({ url, search }: { url: string; search: string }) => {
+  const lines = use(loadTranscript(url));
+  const query = search.trim().toLowerCase();
+  const shown = lines.filter(
+    (line) =>
+      !query ||
+      line.sentence.toLowerCase().includes(query) ||
+      (line.peerData?.displayName ?? "").toLowerCase().includes(query),
+  );
+  if (!lines.length)
+    return <p className="text-muted-foreground text-sm">The transcript is empty.</p>;
+  return (
+    <ol className="flex flex-col gap-3">
+      {shown.map((line, index) => (
+        <li
+          key={`${line.startTime}-${index}`}
+          className="grid grid-cols-[3.5rem_1fr] gap-3 text-sm"
+        >
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {clock(line.startTime)}
+          </span>
+          <span>
+            <span className="font-medium">{line.peerData?.displayName ?? "Someone"}</span>{" "}
+            {line.sentence}
+          </span>
+        </li>
+      ))}
+      {shown.length === 0 && (
+        <li className="text-muted-foreground text-sm">Nothing matches “{search}”.</li>
+      )}
+    </ol>
+  );
+};
+
+const Recording = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
+  const url = useQuery(api.meetings.recordingUrl, { sessionId });
+  if (url === undefined) return null;
+  if (!url) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        The recording link has expired. New recordings are kept once R2 storage is set up.
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <video controls preload="metadata" className="w-full rounded-lg bg-black" src={url}>
+        <track kind="captions" />
+      </video>
+      <Button variant="outline" size="sm" className="self-start" render={<a href={url} download />}>
+        <DownloadIcon />
+        Download
+      </Button>
+    </div>
+  );
+};
+
+type RecapPageProps = {
+  code: string;
+  sessionId: Id<"meetingSessions">;
+  search: string;
+  onSearchChange: (search: string) => void;
+};
+
+export const RecapPage = ({ code, sessionId, search, onSearchChange }: RecapPageProps) => {
+  const recap = useQuery(api.meetings.recap, { sessionId });
+  if (recap === undefined) return <LoadingScreen />;
+  const zone = browserTimeZone();
+  const length = recap.endedAt ? recap.endedAt - recap.startedAt : null;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="self-start"
+          render={<Link to="/meetings/$code" params={{ code }} />}
+        >
+          <ArrowLeftIcon />
+          {recap.meeting.title}
+        </Button>
+        <h1 className="flex flex-wrap items-center gap-2 font-semibold text-xl">
+          Recap
+          <Badge variant="outline">{kindOf(recap.meeting.kind).label}</Badge>
+        </h1>
+        <p className="text-muted-foreground text-sm tabular-nums">
+          {formatDate(recap.startedAt, zone)} · {formatTime(recap.startedAt, zone)}
+          {recap.endedAt && `–${formatTime(recap.endedAt, zone)}`}
+          {length !== null && ` · ${formatDuration(length)}`}
+        </p>
+        <p className="flex items-center gap-1.5 text-sm">
+          <UsersIcon className="size-4 opacity-70" />
+          {recap.attendees.length ? recap.attendees.join(", ") : "No one's attendance was recorded"}
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <SparklesIcon className="size-4" />
+            Summary
+          </CardTitle>
+        </CardHeader>
+        <CardPanel>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+            {recap.summary ??
+              "No summary yet. It arrives a few minutes after a call where people spoke, if transcript and summary were on for this meeting."}
+          </p>
+        </CardPanel>
+      </Card>
+
+      {recap.hasRecording && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recording</CardTitle>
+            {recap.recordingSeconds && (
+              <CardDescription>{formatDuration(recap.recordingSeconds * 1000)}</CardDescription>
+            )}
+          </CardHeader>
+          <CardPanel>
+            <Recording sessionId={sessionId} />
+          </CardPanel>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <CardTitle>Transcript</CardTitle>
+          {recap.transcriptUrl && (
+            <div className="relative w-full sm:w-64">
+              <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 opacity-60" />
+              <Input
+                aria-label="Search the transcript"
+                className="ps-8"
+                placeholder="Search the transcript"
+                value={search}
+                onChange={(event) => onSearchChange(event.target.value)}
+              />
+            </div>
+          )}
+        </CardHeader>
+        <CardPanel>
+          {recap.transcriptUrl ? (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <Transcript url={recap.transcriptUrl} search={search} />
+            </Suspense>
+          ) : (
+            <p className="text-muted-foreground text-sm">No transcript was saved for this call.</p>
+          )}
+        </CardPanel>
+      </Card>
+    </div>
+  );
+};

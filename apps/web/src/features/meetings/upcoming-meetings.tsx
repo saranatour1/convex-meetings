@@ -1,60 +1,89 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { usePaginatedQuery } from "convex/react";
-import { CalendarPlusIcon, ChevronRightIcon } from "lucide-react";
+import { CalendarPlusIcon } from "lucide-react";
 import { api } from "@meetings/backend";
-import { Badge } from "@meetings/ui/components/badge";
+import { Button } from "@meetings/ui/components/button";
 import { EmptyState } from "#/components/empty-state.tsx";
-import { browserTimeZone } from "#/lib/browser.ts";
-import { formatDate, formatTime } from "#/lib/schedule.ts";
-import { kindOf } from "./meeting-kinds.ts";
+import { MeetingRow, type MyMeeting } from "./meeting-row.tsx";
+
+const Section = ({
+  title,
+  meetings,
+  past,
+  more,
+}: {
+  title: string;
+  meetings: MyMeeting[];
+  past?: boolean;
+  more?: ReactNode;
+}) =>
+  meetings.length ? (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-sm">{title}</h2>
+        {more}
+      </div>
+      <ul className="flex flex-col divide-y overflow-hidden rounded-xl border">
+        {meetings.map((meeting) => (
+          <MeetingRow key={meeting._id} meeting={meeting} past={past} />
+        ))}
+      </ul>
+    </section>
+  ) : null;
 
 export const UpcomingMeetings = ({ scheduleAction }: { scheduleAction?: ReactNode }) => {
-  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 50 });
+  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 100 });
   const now = Date.now();
-  const zone = browserTimeZone();
-  const upcoming = meetings.results
+  const future = meetings.results
     .filter((m) => m.endsAt > now && m.response !== "declined")
     .sort((a, b) => a.startsAt - b.startsAt);
+  const needsReply = future.filter((m) => m.response === "pending");
+  const upcoming = future.filter((m) => m.response !== "pending").slice(0, 8);
+  const recaps = meetings.results
+    .filter((m) => m.lastSession?.hasSummary)
+    .sort((a, b) => (b.lastSession?.startedAt ?? 0) - (a.lastSession?.startedAt ?? 0))
+    .slice(0, 5);
+
+  if (meetings.status === "LoadingFirstPage") return null;
+  if (!future.length && !recaps.length) {
+    return (
+      <EmptyState
+        className="rounded-xl border border-dashed py-10 md:py-12"
+        icon={<CalendarPlusIcon />}
+        title="No upcoming meetings"
+        description="Meetings you schedule or get invited to will show up here."
+        action={scheduleAction}
+      />
+    );
+  }
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="font-semibold text-sm">Upcoming</h2>
-      {upcoming.length === 0 ? (
-        <EmptyState
-          className="rounded-xl border border-dashed py-10 md:py-12"
-          icon={<CalendarPlusIcon />}
-          title="No upcoming meetings"
-          description="Meetings you schedule or get invited to will show up here."
-          action={scheduleAction}
-        />
-      ) : (
-        <ul className="flex flex-col divide-y rounded-xl border">
-          {upcoming.map((meeting) => (
-            <li key={meeting._id}>
-              <Link
-                to="/meetings/$code"
-                params={{ code: meeting.code }}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50"
-              >
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium text-sm">{meeting.title}</span>
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {formatDate(meeting.startsAt, zone)} · {formatTime(meeting.startsAt, zone)}–
-                    {formatTime(meeting.endsAt, zone)} · {kindOf(meeting.kind).label}
-                  </span>
-                </div>
-                {meeting.response === "pending" && (
-                  <Badge variant="warning" size="sm">
-                    Needs reply
-                  </Badge>
-                )}
-                <ChevronRightIcon className="size-4 opacity-60" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <div className="flex flex-col gap-6">
+      <Section title="Needs your reply" meetings={needsReply} />
+      <Section
+        title="Upcoming"
+        meetings={upcoming}
+        more={
+          <Button size="sm" variant="ghost" render={<Link to="/meetings" />}>
+            All meetings
+          </Button>
+        }
+      />
+      <Section
+        title="Recent recaps"
+        meetings={recaps}
+        past
+        more={
+          <Button
+            size="sm"
+            variant="ghost"
+            render={<Link to="/meetings" search={{ tab: "past" }} />}
+          >
+            Past meetings
+          </Button>
+        }
+      />
+    </div>
   );
 };
