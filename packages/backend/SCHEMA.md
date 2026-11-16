@@ -99,7 +99,7 @@ erDiagram
   meetingTimes {
     id _id PK
     id meetingId FK "meetings"
-    id orgId FK "organizations, optional"
+    id orgId FK "organizations"
     number date
     string start
     string end
@@ -107,7 +107,7 @@ erDiagram
     number startsAt
     number endsAt
     string rrule "optional"
-    number repeatUntil "optional"
+    number repeatUntil
   }
   meetingMembers {
     id _id PK
@@ -135,7 +135,6 @@ erDiagram
     number startedAt
     number endedAt "optional"
     array attendeeIds
-    array presentPeers "optional"
     string summary "optional"
     string transcriptUrl "optional"
     string recordingUrl "optional"
@@ -219,7 +218,7 @@ erDiagram
   meetings }o--|| organizations : orgId
   meetings }o--|| users : userId
   meetingTimes }o--|| meetings : meetingId
-  meetingTimes }o--o| organizations : orgId
+  meetingTimes }o--|| organizations : orgId
   meetingMembers }o--|| meetings : meetingId
   meetingMembers }o--|| users : userId
   meetingGuests }o--|| meetings : meetingId
@@ -272,7 +271,6 @@ erDiagram
 | meetings | by_rtk_meeting | rtkMeetingId |
 | meetings | by_code | code |
 | meetingTimes | by_meeting | meetingId |
-| meetingTimes | by_date | date |
 | meetingTimes | by_org_and_repeat_until | orgId, repeatUntil |
 | meetingMembers | by_meeting_and_user | meetingId, userId |
 | meetingMembers | by_user | userId |
