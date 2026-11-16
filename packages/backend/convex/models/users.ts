@@ -1,4 +1,5 @@
 import type { WithoutSystemFields } from "convex/server";
+import { ConvexError } from "convex/values";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -58,6 +59,19 @@ export const replaceImage = async (
 export const setBio = async (ctx: MutationCtx, userId: Id<"users">, bio: string) => {
   const parsed = parseOrThrow(zUser.shape.bio.unwrap(), bio);
   await ctx.db.patch("users", userId, { bio: parsed || undefined });
+};
+
+export const setName = async (ctx: MutationCtx, userId: Id<"users">, name: string) => {
+  await ctx.db.patch("users", userId, { name: parseOrThrow(zUser.shape.name.unwrap(), name) });
+};
+
+export const setAvatar = async (ctx: MutationCtx, userId: Id<"users">, imageId: Id<"_storage">) => {
+  const file = await ctx.db.system.get("_storage", imageId);
+  if (!file || !isStorableAvatar({ type: file.contentType ?? "", size: file.size })) {
+    if (file) await ctx.storage.delete(imageId);
+    throw new ConvexError("Use an image under 5 MB");
+  }
+  await replaceImage(ctx, userId, imageId);
 };
 
 export const setSeenTimeZone = async (ctx: MutationCtx, userId: Id<"users">, timeZone: string) => {

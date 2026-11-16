@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { THEME_SCRIPT } from "#/lib/theme.ts";
 import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
 import appCss from "../styles.css?url";
 
@@ -13,8 +14,9 @@ const RootComponent = () => {
 
 const RootDocument = ({ children }: { children: ReactNode }) => {
   return (
-    <html lang="en" className="light">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <HeadContent />
       </head>
       <body>

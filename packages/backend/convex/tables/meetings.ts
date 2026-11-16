@@ -15,6 +15,7 @@ export const zMeeting = z.object({
   title: z.string().trim().min(1).max(200),
   kind: zMeetingKind,
   recap: z.boolean(),
+  record: z.boolean().optional(),
   rtkMeetingId: z.string().optional(),
 });
 
