@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -103,7 +104,14 @@ export const MeetingPage = ({
             {isHost ? (
               <Button
                 variant="ghost"
-                onClick={() => void cancel({ meetingId }).then(onCancelled).catch(showError)}
+                onClick={() =>
+                  void cancel({ meetingId })
+                    .then(() => {
+                      track("meeting_cancelled");
+                      onCancelled();
+                    })
+                    .catch(showError)
+                }
               >
                 <XIcon />
                 Cancel meeting
@@ -112,14 +120,22 @@ export const MeetingPage = ({
               <>
                 <Button
                   variant={meeting.me.response === "accepted" ? "default" : "outline"}
-                  onClick={() => void respond({ meetingId, response: "accepted" }).catch(showError)}
+                  onClick={() =>
+                    void respond({ meetingId, response: "accepted" })
+                      .then(() => track("meeting_responded", { response: "accepted" }))
+                      .catch(showError)
+                  }
                 >
                   <CheckIcon />
                   Going
                 </Button>
                 <Button
                   variant={meeting.me.response === "declined" ? "default" : "outline"}
-                  onClick={() => void respond({ meetingId, response: "declined" }).catch(showError)}
+                  onClick={() =>
+                    void respond({ meetingId, response: "declined" })
+                      .then(() => track("meeting_responded", { response: "declined" }))
+                      .catch(showError)
+                  }
                 >
                   Not going
                 </Button>

@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useOauth, useSignInWithGoogle } from "@convex-dev/auth/methods/google/react";
 import { useSignInWithGithub } from "@convex-dev/auth/methods/github/react";
 import { api } from "@meetings/backend";
@@ -14,11 +15,25 @@ export const OAuthButtons = () => {
   return (
     <>
       <FormError error={flowError ? describeAuthError(flowError.error) : undefined} />
-      <Button variant="outline" className="w-full" onClick={() => void google.signIn()}>
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => {
+          track("sign_in_started", { method: "google" });
+          void google.signIn();
+        }}
+      >
         <GoogleIcon />
         Continue with Google
       </Button>
-      <Button variant="outline" className="w-full" onClick={() => void github.signIn()}>
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => {
+          track("sign_in_started", { method: "github" });
+          void github.signIn();
+        }}
+      >
         <GithubIcon />
         Continue with GitHub
       </Button>

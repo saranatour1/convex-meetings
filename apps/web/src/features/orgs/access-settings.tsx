@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { CopyIcon, LinkIcon, XIcon } from "lucide-react";
@@ -95,6 +96,7 @@ const NewLinkForm = ({ org }: { org: OrgView }) => {
             days: Number(value.days) as 1 | 7 | 30,
             maxUses: value.maxUses ? Number(value.maxUses) : undefined,
           });
+          track("join_link_created", { days: Number(value.days) });
           formApi.setFieldValue("link", `${window.location.origin}/join/${secret}`);
           return undefined;
         } catch (error) {

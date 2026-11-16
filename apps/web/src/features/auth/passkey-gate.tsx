@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -45,12 +46,16 @@ const PasskeyStepCard = ({ step }: { step: "enroll" | "verify" }) => {
           const created = await createPasskey(started.options);
           if ("error" in created) return describeAuthError(created.error);
           const { error } = await finishEnroll({ response: created.response });
-          return error ? describeAuthError(error) : undefined;
+          if (error) return describeAuthError(error);
+          track("passkey_added");
+          return undefined;
         }
         const asserted = await authenticateWithPasskey(started.options);
         if ("error" in asserted) return describeAuthError(asserted.error);
         const { error } = await finishVerify({ response: asserted.response });
-        return error ? describeAuthError(error) : undefined;
+        if (error) return describeAuthError(error);
+        track("signed_in", { method: "oauth" });
+        return undefined;
       },
     },
   });

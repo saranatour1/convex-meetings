@@ -1,3 +1,4 @@
+import { track } from "@databuddy/sdk";
 import { type ComponentProps, useRef } from "react";
 import { useMutation } from "convex/react";
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
@@ -329,9 +330,11 @@ export const CallRoom = ({
                 <MenuItem
                   variant="destructive"
                   onClick={() =>
-                    void end({ meetingId }).catch((error: unknown) =>
-                      toastManager.add({ title: describeError(error), type: "error" }),
-                    )
+                    void end({ meetingId })
+                      .then(() => track("call_ended"))
+                      .catch((error: unknown) =>
+                        toastManager.add({ title: describeError(error), type: "error" }),
+                      )
                   }
                 >
                   <UsersIcon />
