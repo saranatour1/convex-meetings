@@ -5,7 +5,6 @@ import {
   CalendarClockIcon,
   ClockIcon,
   EyeOffIcon,
-  PlusIcon,
   RepeatIcon,
   TriangleAlertIcon,
   XIcon,
@@ -73,7 +72,6 @@ export type ScheduleFormProps = {
   homeZone: string;
   defaults: { kind: MeetingKind; minutes: number; recap: boolean };
   alsoShow: string[];
-  onInvite: (meetingTitle: string) => void;
   onClose: () => void;
   display: ScheduleDisplay;
   onDisplayChange: (display: ScheduleDisplay) => void;
@@ -86,7 +84,6 @@ export const ScheduleForm = ({
   onSchedule,
   homeZone,
   alsoShow,
-  onInvite,
   onClose,
   display,
   onDisplayChange,
@@ -278,15 +275,6 @@ export const ScheduleForm = ({
             <span className="text-muted-foreground text-sm">
               {everyone.length} people · {zoneCount} time zones
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="ms-auto"
-              onClick={() => onInvite(form.state.values.title)}
-            >
-              <PlusIcon />
-              Add people or teams
-            </Button>
           </div>
           <ul className="flex flex-wrap gap-2">
             <li className="flex h-9 items-center gap-2 rounded-full border ps-1 pe-3">

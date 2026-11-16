@@ -24,12 +24,6 @@ const SchedulePage = () => {
             resetScroll: false,
           })
         }
-        onInvite={(meetingTitle) =>
-          void navigate({
-            search: (prev) => ({ ...prev, inviteFor: meetingTitle }),
-            resetScroll: false,
-          })
-        }
         onClose={() => void navigate({ to: "/" })}
         onScheduled={(code) => void navigate({ to: "/meetings/$code", params: { code } })}
       />

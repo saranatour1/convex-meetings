@@ -7,12 +7,9 @@ import { SidebarInset, SidebarProvider } from "@meetings/ui/components/sidebar";
 import { AppHeader } from "#/layouts/app-shell/app-header.tsx";
 import { AppSidebar } from "#/layouts/app-shell/app-sidebar.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
-import { InvitePanel } from "#/features/meetings/invite-panel.tsx";
 import { OrgGate, useActiveOrg } from "#/features/orgs/active-org.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
-
-type AppSearch = { inviteFor?: string };
 
 const Header = () => {
   const { orgId } = useActiveOrg();
@@ -37,7 +34,6 @@ const Header = () => {
 };
 
 const AppLayout = () => {
-  const { inviteFor } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   return (
@@ -56,14 +52,6 @@ const AppLayout = () => {
               <Header />
               <Outlet />
             </SidebarInset>
-            {inviteFor !== undefined && (
-              <InvitePanel
-                meetingTitle={inviteFor}
-                onClose={() =>
-                  void navigate({ search: (prev) => ({ ...prev, inviteFor: undefined }) })
-                }
-              />
-            )}
           </SidebarProvider>
         </OrgGate>
       </Authenticated>
@@ -72,8 +60,5 @@ const AppLayout = () => {
 };
 
 export const Route = createFileRoute("/_app")({
-  validateSearch: (search: Record<string, unknown>): AppSearch => ({
-    inviteFor: typeof search.inviteFor === "string" ? search.inviteFor : undefined,
-  }),
   component: AppLayout,
 });
