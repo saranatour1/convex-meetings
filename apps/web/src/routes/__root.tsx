@@ -3,14 +3,17 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import { THEME_SCRIPT } from "#/lib/theme.ts";
 import { ToastProvider } from "@meetings/ui/components/toast";
 import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
+import { AnalyticsProvider } from "#/providers/analytics.tsx";
 import appCss from "../styles.css?url";
 
 const RootComponent = () => {
   return (
     <ConvexWithAuthProvider>
-      <ToastProvider>
-        <Outlet />
-      </ToastProvider>
+      <AnalyticsProvider>
+        <ToastProvider>
+          <Outlet />
+        </ToastProvider>
+      </AnalyticsProvider>
     </ConvexWithAuthProvider>
   );
 };
