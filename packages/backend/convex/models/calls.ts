@@ -37,9 +37,16 @@ export const requireCallControl = async (
   return { meeting, member };
 };
 
-const kickLater = (ctx: MutationCtx, rtkMeetingId: string | undefined, memberIds: string[]) =>
-  rtkMeetingId && memberIds.length
-    ? ctx.scheduler.runAfter(0, internal.internal.realtime.kick, { rtkMeetingId, memberIds })
+const kickLater = (
+  ctx: MutationCtx,
+  rtkMeetingId: string | undefined,
+  member: Doc<"meetingMembers">,
+) =>
+  rtkMeetingId && member.rtkParticipantId
+    ? ctx.scheduler.runAfter(0, internal.internal.realtime.kick, {
+        rtkMeetingId,
+        participantIds: [member.rtkParticipantId],
+      })
     : null;
 
 export const removeFromCall = async (
@@ -55,7 +62,7 @@ export const removeFromCall = async (
     throw new ConvexError("Only a host can remove another host");
   }
   await ctx.db.patch("meetingMembers", target._id, { removedAt: Date.now() });
-  await kickLater(ctx, meeting.rtkMeetingId, [target._id]);
+  await kickLater(ctx, meeting.rtkMeetingId, target);
   await audit(ctx, meeting.orgId, userId, "callMemberRemoved", {
     targetUserId: target.userId,
     detail: meeting.title,
@@ -104,7 +111,7 @@ export const listLiveCalls = async (ctx: QueryCtx, orgId: Id<"organizations">) =
   const calls = await Promise.all(
     sessions.map(async (session) => {
       const meeting = await ctx.db.get("meetings", session.meetingId);
-      const present = session.presentIds ?? [];
+      const present = [...new Set((session.presentPeers ?? []).map((peer) => peer.memberId))];
       if (!meeting || present.length === 0) return null;
       const names = await Promise.all(present.slice(0, 20).map((id) => nameOf(ctx, id)));
       return {
@@ -137,8 +144,29 @@ export const kickFromOrgCalls = async (
       .unique();
     if (!meeting || !member) continue;
     await ctx.db.patch("meetingMembers", member._id, { removedAt: Date.now() });
-    if (session.presentIds?.includes(member._id)) {
-      await kickLater(ctx, meeting.rtkMeetingId, [member._id]);
+    if (session.presentPeers?.some((peer) => peer.memberId === member._id)) {
+      await kickLater(ctx, meeting.rtkMeetingId, member);
     }
+  }
+};
+
+export const forgetDevices = async (
+  ctx: MutationCtx,
+  meetingId: Id<"meetings">,
+  memberId: Id<"meetingMembers">,
+  peerId?: string,
+) => {
+  const session = await ctx.db
+    .query("meetingSessions")
+    .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
+    .order("desc")
+    .first();
+  if (!session || session.endedAt) return;
+  const peers = session.presentPeers ?? [];
+  const kept = peers.filter(
+    (peer) => peer.memberId !== memberId || (peerId !== undefined && peer.peerId !== peerId),
+  );
+  if (kept.length !== peers.length) {
+    await ctx.db.patch("meetingSessions", session._id, { presentPeers: kept });
   }
 };

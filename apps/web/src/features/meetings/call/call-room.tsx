@@ -32,10 +32,12 @@ import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/
 import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
 import { describeError } from "#/lib/errors.ts";
+import { useGuestPass } from "../guest-pass.ts";
 import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 import { RTK_SECTIONS, emitCallUi, type CallSide } from "./call-ui.ts";
 import { MediaControls } from "./media-controls.tsx";
+import { OtherDevices, listenToOwnDevices } from "./other-devices.tsx";
 import { ShareStage } from "./share-stage.tsx";
 
 type ToolProps = ComponentProps<typeof Button> & { label: string; active?: boolean };
@@ -131,6 +133,8 @@ export const CallRoom = ({
 }: CallRoomProps) => {
   const { meeting } = useRealtimeKitMeeting();
   const end = useMutation(api.calls.end);
+  const leftOnDevice = useMutation(api.calls.leftOnDevice);
+  const pass = useGuestPass();
   const startedAt = useRealtimeKitSelector((m) => m.meta.meetingStartedTimestamp);
   const root = useRef<HTMLDivElement | null>(null);
   const people = useRealtimeKitSelector((m) => m.participants.joined.size + 1);
@@ -184,7 +188,16 @@ export const CallRoom = ({
           }
         };
         element.addEventListener("rtkStateUpdate", sync);
-        return () => element.removeEventListener("rtkStateUpdate", sync);
+        const stopListening = listenToOwnDevices(meeting);
+        const peerId = meeting.self.id;
+        const reportLeft = () =>
+          void leftOnDevice({ meetingId, peerId, ...pass }).catch(() => null);
+        meeting.self.on("roomLeft", reportLeft);
+        return () => {
+          element.removeEventListener("rtkStateUpdate", sync);
+          stopListening();
+          meeting.self.off("roomLeft", reportLeft);
+        };
       }}
     >
       <header className="flex items-center gap-3 border-b px-4 py-2">
@@ -214,6 +227,7 @@ export const CallRoom = ({
         </Tool>
       </header>
 
+      <OtherDevices />
       <div className="flex min-h-0 flex-1">
         <div
           className="relative min-w-0 flex-1 bg-muted/40 p-2"

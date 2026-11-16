@@ -32,6 +32,7 @@ type MeetingCallProps = {
   onExpandedChange: (expanded: boolean) => void;
   canControl: boolean;
   watermark: string | null;
+  devicesInCall: number;
 };
 
 type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
@@ -40,11 +41,29 @@ type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
   rejoining: boolean;
 };
 
-const CallView = ({ title, kind, onBack, onRejoin, rejoining, ...room }: CallViewProps) => {
+const CallView = ({
+  title,
+  kind,
+  onBack,
+  onRejoin,
+  rejoining,
+  devicesInCall,
+  ...room
+}: CallViewProps) => {
+  const switchHere = useAction(api.calls.switchHere);
+  const pass = useGuestPass();
   const state = useRealtimeKitSelector((m) => m.self.roomState);
   if (state === "joined") return <CallRoom title={title} kind={kind} {...room} />;
   if (state === "init" || state === "waitlisted") {
-    return <CallLobby title={title} kind={kind} onBack={onBack} />;
+    return (
+      <CallLobby
+        title={title}
+        kind={kind}
+        onBack={onBack}
+        devicesInCall={devicesInCall}
+        onSwitchHere={() => switchHere({ meetingId: room.meetingId, ...pass })}
+      />
+    );
   }
   return <CallEnded title={title} onBack={onBack} onRejoin={onRejoin} rejoining={rejoining} />;
 };

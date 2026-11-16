@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { env, internalAction, internalMutation, internalQuery } from "../_generated/server";
 import { allPresets } from "../lib/presets";
 import { realtimeKit } from "../lib/realtimekit";
+import { forgetDevices } from "../models/calls";
 import {
   claimRtkMeeting,
   joinDetails as readJoinDetails,
@@ -50,10 +51,15 @@ export const deactivate = internalAction({
   },
 });
 
+export const forgetMyDevices = internalMutation({
+  args: { meetingId: v.id("meetings"), memberId: v.id("meetingMembers") },
+  handler: (ctx, { meetingId, memberId }) => forgetDevices(ctx, meetingId, memberId),
+});
+
 export const kick = internalAction({
-  args: { rtkMeetingId: v.string(), memberIds: v.array(v.string()) },
-  handler: async (_ctx, { rtkMeetingId, memberIds }) => {
-    await realtimeKit.kick(rtkMeetingId, memberIds).catch((error: unknown) => {
+  args: { rtkMeetingId: v.string(), participantIds: v.array(v.string()) },
+  handler: async (_ctx, { rtkMeetingId, participantIds }) => {
+    await realtimeKit.kick(rtkMeetingId, participantIds).catch((error: unknown) => {
       console.warn("kick skipped", String(error));
     });
   },
