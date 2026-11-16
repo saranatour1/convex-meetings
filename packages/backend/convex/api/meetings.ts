@@ -1,4 +1,5 @@
 import { zid } from "convex-helpers/server/zod4";
+import { ConvexError } from "convex/values";
 import { DateTime } from "luxon";
 import { z } from "zod";
 import { internal } from "../_generated/api";
@@ -21,6 +22,7 @@ import {
   findMeetingByCode,
   getMeeting,
   getRecap,
+  requireSessionAccess,
   listMyMeetings,
   respond as respondToMeeting,
   type JoinDetails,
@@ -122,15 +124,21 @@ export const recap = authedQuery({
   handler: (ctx, { sessionId }) => getRecap(ctx, ctx.userId, sessionId),
 });
 
-export const recordingUrl = authedAction({
+export const recordingUrl = authedQuery({
   args: { sessionId: zid("meetingSessions") },
-  handler: async (ctx, { sessionId }): Promise<string | null> => {
-    const source: { key: string | null; fallbackUrl: string | null } = await ctx.runQuery(
-      internal.internal.realtime.recordingSource,
-      { userId: ctx.userId, sessionId },
-    );
-    if (source.key && r2Configured()) return signedRecordingUrl(source.key);
-    return source.fallbackUrl;
+  handler: async (ctx, { sessionId }) => {
+    const { session } = await requireSessionAccess(ctx, ctx.userId, sessionId);
+    if (session.recordingKey && r2Configured()) return signedRecordingUrl(session.recordingKey);
+    return session.recordingUrl ?? null;
+  },
+});
+
+export const respondByCode = authedMutation({
+  args: { code: z.string(), response: zMeetingMember.shape.response },
+  handler: async (ctx, { code, response }) => {
+    const meeting = await findMeetingByCode(ctx, code);
+    if (!meeting) throw new ConvexError("This meeting was cancelled");
+    await respondToMeeting(ctx, ctx.userId, meeting._id, response);
   },
 });
 

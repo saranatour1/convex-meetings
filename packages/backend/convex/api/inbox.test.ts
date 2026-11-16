@@ -119,14 +119,14 @@ test("a finished call becomes a recap with attendees, summary, transcript and re
   ).page.filter((n) => n.kind === "recapReady");
   expect(recapNotices).toHaveLength(1);
 
-  expect(await host.asUser.action(api.api.meetings.recordingUrl, { sessionId })).toBe(
+  expect(await host.asUser.query(api.api.meetings.recordingUrl, { sessionId })).toBe(
     "https://cf.example/rec.mp4",
   );
   vi.stubEnv("R2_BUCKET", "recordings");
   vi.stubEnv("R2_ENDPOINT", "https://acct.r2.cloudflarestorage.com");
   vi.stubEnv("R2_ACCESS_KEY_ID", "key");
   vi.stubEnv("R2_SECRET_ACCESS_KEY", "secret");
-  expect(await host.asUser.action(api.api.meetings.recordingUrl, { sessionId })).toContain(
+  expect(await host.asUser.query(api.api.meetings.recordingUrl, { sessionId })).toContain(
     "recordings/rec.mp4",
   );
 });

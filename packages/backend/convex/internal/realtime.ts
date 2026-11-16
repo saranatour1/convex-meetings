@@ -4,7 +4,6 @@ import { allPresets } from "../lib/presets";
 import { realtimeKit } from "../lib/realtimekit";
 import {
   claimRtkMeeting,
-  requireSessionAccess,
   joinDetails as readJoinDetails,
   recordRealtimeEvent,
   setRtkParticipant,
@@ -63,13 +62,5 @@ export const setup = internalAction({
       events: WEBHOOK_EVENTS,
     });
     return { createdPresets: missing.map((preset) => preset.name), webhookId: webhook.id };
-  },
-});
-
-export const recordingSource = internalQuery({
-  args: { userId: v.id("users"), sessionId: v.id("meetingSessions") },
-  handler: async (ctx, { userId, sessionId }) => {
-    const { session } = await requireSessionAccess(ctx, userId, sessionId);
-    return { key: session.recordingKey ?? null, fallbackUrl: session.recordingUrl ?? null };
   },
 });

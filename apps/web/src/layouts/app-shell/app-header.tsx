@@ -8,7 +8,9 @@ import { SidebarTrigger } from "@meetings/ui/components/sidebar";
 
 const MEETING_CODE = /[a-z]{3}-[a-z]{4}-[a-z]{3}/;
 
-export const AppHeader = ({ onJoinCode }: { onJoinCode: (code: string) => void }) => {
+type AppHeaderProps = { onJoinCode: (code: string) => void; onStartMeeting: () => void };
+
+export const AppHeader = ({ onJoinCode, onStartMeeting }: AppHeaderProps) => {
   const form = useForm({
     defaultValues: { code: "" },
     onSubmit: ({ value, formApi }) => {
@@ -23,7 +25,7 @@ export const AppHeader = ({ onJoinCode }: { onJoinCode: (code: string) => void }
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3">
       <SidebarTrigger />
       <Separator orientation="vertical" className="me-1 h-4" />
-      <Button size="sm">
+      <Button size="sm" onClick={onStartMeeting}>
         <VideoIcon />
         Start meeting
       </Button>

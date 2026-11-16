@@ -7,26 +7,27 @@ import {
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@meetings/ui/components/sidebar";
+import { useQuery } from "convex/react";
+import { api } from "@meetings/backend";
 import { NavUser } from "#/features/auth/nav-user.tsx";
 import { OrgSwitcher } from "#/features/orgs/org-switcher.tsx";
 
 const LINKS = [
   { title: "Home", to: "/", icon: HouseIcon },
+  { title: "Meetings", to: "/meetings", icon: VideoIcon },
   { title: "Calendar", to: "/calendar", icon: CalendarDaysIcon },
+  { title: "Inbox", to: "/inbox", icon: InboxIcon },
   { title: "Members", to: "/members", icon: UsersIcon },
 ] as const;
 
-const PLANNED_NAV_ITEMS = [
-  { title: "Meetings", icon: VideoIcon },
-  { title: "Inbox", icon: InboxIcon },
-];
-
 export const AppSidebar = () => {
   const matchRoute = useMatchRoute();
+  const unread = useQuery(api.inbox.unreadCount) ?? 0;
 
   return (
     <Sidebar collapsible="icon">
@@ -51,14 +52,9 @@ export const AppSidebar = () => {
                   <link.icon />
                   <span>{link.title}</span>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-            {PLANNED_NAV_ITEMS.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton tooltip={item.title}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
+                {link.to === "/inbox" && unread > 0 && (
+                  <SidebarMenuBadge>{unread > 99 ? "99+" : unread}</SidebarMenuBadge>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
