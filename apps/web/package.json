@@ -13,6 +13,8 @@
     "test": "vp test run"
   },
   "dependencies": {
+    "@cloudflare/realtimekit-react": "^2.0.4",
+    "@cloudflare/realtimekit-react-ui": "^2.0.3",
     "@convex-dev/auth": "catalog:",
     "@meetings/backend": "workspace:*",
     "@meetings/ui": "workspace:*",

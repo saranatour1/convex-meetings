@@ -31,6 +31,9 @@ const SchedulePage = () => {
           })
         }
         onClose={() => void navigate({ to: "/" })}
+        onScheduled={(meetingId) =>
+          void navigate({ to: "/meetings/$meetingId", params: { meetingId } })
+        }
       />
     </main>
   );

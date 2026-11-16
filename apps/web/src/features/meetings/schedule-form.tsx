@@ -21,9 +21,18 @@ import {
 } from "@meetings/ui/components/card";
 import { Input } from "@meetings/ui/components/input";
 import { Label } from "@meetings/ui/components/label";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "@meetings/ui/components/select";
 import { Switch } from "@meetings/ui/components/switch";
 import { parseRRule } from "@meetings/ui/kloq/rrule";
 import { RRuleBuilder } from "@meetings/ui/kloq/rrule-builder";
+import { FormError } from "#/components/form-error.tsx";
+import { MEETING_KINDS, type MeetingKind } from "#/features/meetings/meeting-kinds.ts";
 import {
   FindATime,
   type MeetingTime,
@@ -46,7 +55,19 @@ import {
   type Team,
 } from "#/lib/schedule.ts";
 
+export type NewMeeting = {
+  title: string;
+  kind: MeetingKind;
+  recap: boolean;
+  startsAt: number;
+  minutes: number;
+  timeZone: string;
+  rrule?: string;
+  inviteeIds: string[];
+};
+
 export type ScheduleFormProps = {
+  onSchedule: (meeting: NewMeeting) => Promise<string | undefined>;
   invitees: { organizer: Person; people: Person[]; teams: Team[] };
   homeZone: string;
   alsoShow: string[];
@@ -59,6 +80,7 @@ export type ScheduleFormProps = {
 
 export const ScheduleForm = ({
   invitees,
+  onSchedule,
   homeZone,
   alsoShow,
   onInvite,
@@ -71,6 +93,8 @@ export const ScheduleForm = ({
   const form = useForm({
     defaultValues: {
       title: "",
+      kind: "groupCall" as MeetingKind,
+      recap: true,
       rrule: undefined as string | undefined,
       isPrivate: false,
       day: initialTime?.start
@@ -79,6 +103,22 @@ export const ScheduleForm = ({
       start: initialTime?.start ?? null,
       durationMinutes: initialTime?.minutes ?? 30,
       removed: [] as string[],
+    },
+    validators: {
+      onSubmitAsync: ({ value }) => {
+        const people = invitees.people.filter((p) => !value.removed.includes(p.id));
+        const teams = invitees.teams.filter((t) => !value.removed.includes(t.id));
+        return onSchedule({
+          title: value.title,
+          kind: value.kind,
+          recap: value.recap,
+          startsAt: value.start ?? 0,
+          minutes: value.durationMinutes,
+          timeZone: zone,
+          rrule: value.rrule,
+          inviteeIds: [...people, ...teams.flatMap((t) => t.members)].map((p) => p.id),
+        });
+      },
     },
   });
   const values = useStore(form.store, (state) => state.values);
@@ -166,6 +206,34 @@ export const ScheduleForm = ({
                   onChange={field.handleChange}
                   className="w-64"
                 />
+              )}
+            </form.Field>
+            <form.Field name="kind">
+              {(field) => (
+                <Select
+                  value={field.state.value}
+                  onValueChange={(value) => value && field.handleChange(value as MeetingKind)}
+                  items={MEETING_KINDS.map((k) => ({ value: k.value, label: k.label }))}
+                >
+                  <SelectTrigger className="w-40" aria-label="Meeting type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    {MEETING_KINDS.map((k) => (
+                      <SelectItem key={k.value} value={k.value}>
+                        {k.label}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              )}
+            </form.Field>
+            <form.Field name="recap">
+              {(field) => (
+                <Label className="gap-2">
+                  <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                  Transcript and summary
+                </Label>
               )}
             </form.Field>
             <form.Field name="isPrivate">
@@ -314,8 +382,23 @@ export const ScheduleForm = ({
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <form.Subscribe selector={(state) => !state.values.title.trim()}>
-          {(untitled) => <Button disabled={untitled}>Schedule</Button>}
+        <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+          {(error) => <FormError error={error} />}
+        </form.Subscribe>
+        <form.Subscribe
+          selector={(state) => [!state.values.title.trim(), state.isSubmitting] as const}
+        >
+          {([untitled, isSubmitting]) => (
+            <Button
+              disabled={untitled || isSubmitting}
+              onClick={() => {
+                form.setFieldValue("start", chosen);
+                void form.handleSubmit();
+              }}
+            >
+              {isSubmitting ? "Scheduling…" : "Schedule"}
+            </Button>
+          )}
         </form.Subscribe>
       </CardFooter>
     </Card>

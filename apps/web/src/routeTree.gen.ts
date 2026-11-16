@@ -17,6 +17,7 @@ import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as InviteSecretRouteImport } from './routes/invite.$secret'
+import { Route as AppMeetingsMeetingIdRouteImport } from './routes/_app/meetings.$meetingId'
 import { Route as AppOrgsNewRouteImport } from './routes/_app/orgs.new'
 
 const AppRoute = AppRouteImport.update({
@@ -58,6 +59,11 @@ const InviteSecretRoute = InviteSecretRouteImport.update({
   path: '/invite/$secret',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppMeetingsMeetingIdRoute = AppMeetingsMeetingIdRouteImport.update({
+  id: '/meetings/$meetingId',
+  path: '/meetings/$meetingId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOrgsNewRoute = AppOrgsNewRouteImport.update({
   id: '/orgs/new',
   path: '/orgs/new',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof AppScheduleRoute
   '/settings': typeof AppSettingsRoute
   '/invite/$secret': typeof InviteSecretRoute
+  '/meetings/$meetingId': typeof AppMeetingsMeetingIdRoute
   '/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRoutesByTo {
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/invite/$secret': typeof InviteSecretRoute
   '/': typeof AppIndexRoute
+  '/meetings/$meetingId': typeof AppMeetingsMeetingIdRoute
   '/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRoutesById {
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/invite/$secret': typeof InviteSecretRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/meetings/$meetingId': typeof AppMeetingsMeetingIdRoute
   '/_app/orgs/new': typeof AppOrgsNewRoute
 }
 export interface FileRouteTypes {
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/invite/$secret'
+    | '/meetings/$meetingId'
     | '/orgs/new'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/invite/$secret'
     | '/'
+    | '/meetings/$meetingId'
     | '/orgs/new'
   id:
     | '__root__'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/invite/$secret'
     | '/_app/'
+    | '/_app/meetings/$meetingId'
     | '/_app/orgs/new'
   fileRoutesById: FileRoutesById
 }
@@ -194,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/meetings/$meetingId': {
+      id: '/_app/meetings/$meetingId'
+      path: '/meetings/$meetingId'
+      fullPath: '/meetings/$meetingId'
+      preLoaderRoute: typeof AppMeetingsMeetingIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/orgs/new': {
       id: '/_app/orgs/new'
       path: '/orgs/new'
@@ -210,6 +229,7 @@ interface AppRouteChildren {
   AppScheduleRoute: typeof AppScheduleRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppMeetingsMeetingIdRoute: typeof AppMeetingsMeetingIdRoute
   AppOrgsNewRoute: typeof AppOrgsNewRoute
 }
 
@@ -219,6 +239,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppScheduleRoute: AppScheduleRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppMeetingsMeetingIdRoute: AppMeetingsMeetingIdRoute,
   AppOrgsNewRoute: AppOrgsNewRoute,
 }
 

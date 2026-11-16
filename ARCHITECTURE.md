@@ -63,6 +63,7 @@ Rules:
 - `ctx.run*`, the scheduler and workpools only target `internal.internal.*`.
 - Environment variables are declared in `convex.config.ts` and read through the typed `env` from `_generated/server`.
 - Email goes out through `@sarant/cloudflare-email-component` (`components.cloudflareEmail`) from actions on `emailWorkpool`, which never retries because Cloudflare has no idempotency key. It needs `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (Email Sending: Edit) and `EMAIL_FROM` on an onboarded domain.
+- Meetings: Convex owns every meeting, invitee, chat message and recap. Cloudflare RealtimeKit only carries audio and video. The first Join creates the RealtimeKit meeting; each person joins with a preset from `lib/presets.ts` (kind × host or participant), with RealtimeKit's own chat turned off. `internal.internal.realtime.setup` creates the presets and registers the webhook (`/realtime/webhook`, RSA-signed) once per deployment. It needs `REALTIMEKIT_APP_ID` and `REALTIMEKIT_API_TOKEN` (Realtime Admin).
 - Invites: the link carries a random secret; `tokens.value` stores only its SHA-256. Links expire after 7 days and work once. Accepting one marks the user verified with the invited address.
 - Tests sit next to the code (`*.test.ts`). Convex never deploys files with two dots in the name. Tests use `convex-test` and run with `pnpm test`.
 
@@ -101,7 +102,7 @@ Rules:
 - Server data comes from Convex `useQuery` / `useMutation`.
 - Times are UTC milliseconds plus an IANA zone name, converted with Luxon in `lib/schedule.ts`. No hand-written UTC offsets. Its tests sit next to it (`schedule.test.ts`) and run with `pnpm test`.
 - The active organization is `?org=` on every signed-in route, kept across links by `retainSearchParams`. `OrgGate` falls back to the first org, or asks to create one. Features read it with `useActiveOrg()`.
-- Find a time shows the org's members (`features/orgs/people.ts` maps them to `Person`). Until meetings live in Convex, `features/calendar/sample-meetings.ts` stands in for the calendar and is labelled Sample.
+- Find a time shows the org's members (`features/orgs/people.ts` maps them to `Person`). Busy times come from `meetings.busy`, and the calendar and Home read `meetings.mine`.
 - Search-param updates that only change what is shown pass `resetScroll: false`, so the page doesn't jump to the top.
 - Form state comes from TanStack Form (`useForm`). Server errors come back through `validators.onSubmitAsync`.
 - No `useEffect`. Scroll, layout and visibility use CSS or declarative components (`<Authenticated>`, `<Navigate>`). For example, the invite chat stays scrolled to the newest message because its scroll container is `flex-col-reverse`.
