@@ -164,6 +164,19 @@ const orgUserByEmail = async (ctx: QueryCtx, orgId: Id<"organizations">, email: 
   return null;
 };
 
+const isGuestInMeeting = async (ctx: QueryCtx, meetingId: Id<"meetings">, email: string) => {
+  const users = await ctx.db
+    .query("users")
+    .withIndex("by_email", (q) => q.eq("email", email))
+    .take(10);
+  const memberships = await Promise.all(
+    users
+      .filter((user) => user.method === "guest")
+      .map((user) => findMeetingMember(ctx, meetingId, user._id)),
+  );
+  return memberships.some((membership) => membership !== null);
+};
+
 export const inviteToMeeting = async (
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -197,6 +210,10 @@ export const inviteToMeeting = async (
         actorId: userId,
       });
       added.push(email);
+      continue;
+    }
+    if (await isGuestInMeeting(ctx, meetingId, email)) {
+      skipped.push(email);
       continue;
     }
     const { secret, guestId } = await createGuest(ctx, meetingId, {
