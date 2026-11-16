@@ -189,7 +189,7 @@ test("webhook signatures are checked against the raw body", async () => {
   expect(await isSignedBy(key, body, "not-base64!")).toBe(false);
 });
 
-test("webhook events record one session with each attendee once", async () => {
+test("webhook events record one session with everyone who joined or left, once each", async () => {
   const setup = await orgWithTwoPeople();
   const meetingId = await schedule(setup);
   await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
@@ -200,6 +200,7 @@ test("webhook events record one session with each attendee once", async () => {
   await record({ event: "meeting.participantJoined", participant: { customParticipantId: "a" } });
   await record({ event: "meeting.participantJoined", participant: { customParticipantId: "a" } });
   await record({ event: "meeting.participantJoined", participant: { customParticipantId: "b" } });
+  await record({ event: "meeting.participantLeft", participant: { customParticipantId: "host" } });
   await record({
     event: "meeting.ended",
     meeting: { ...meeting, endedAt: "2026-11-18T09:30:00Z" },
@@ -209,7 +210,7 @@ test("webhook events record one session with each attendee once", async () => {
   const view = await setup.host.asUser.query(api.api.meetings.get, { meetingId });
   expect(view.sessions).toMatchObject([
     {
-      attendees: 2,
+      attendees: 3,
       startedAt: Date.UTC(2026, 10, 18, 9, 0),
       endedAt: Date.UTC(2026, 10, 18, 9, 30),
       summary: "We agreed on the plan.",

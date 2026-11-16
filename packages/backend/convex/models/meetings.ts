@@ -374,11 +374,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
     ))!;
   const attendee = event.participant?.customParticipantId;
   const patch: Partial<Doc<"meetingSessions">> = {};
-  if (
-    event.event === "meeting.participantJoined" &&
-    attendee &&
-    !session.attendeeIds.includes(attendee)
-  ) {
+  if (attendee && !session.attendeeIds.includes(attendee)) {
     patch.attendeeIds = [...session.attendeeIds, attendee].slice(0, 1000);
   }
   if (event.event === "meeting.ended") patch.endedAt = toMillis(event.meeting?.endedAt, now);
