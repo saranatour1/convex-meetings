@@ -7,9 +7,7 @@ import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
 import { describeError } from "#/lib/errors.ts";
 import { useGuestPass } from "../guest-pass.ts";
-
-export const PEN_COLORS = ["red", "yellow", "green", "blue", "white"] as const;
-export type PenColor = (typeof PEN_COLORS)[number];
+import { PEN_COLORS, type PenColor } from "./pen-colors.ts";
 
 const INK: Record<PenColor, string> = {
   red: "#ef4444",
