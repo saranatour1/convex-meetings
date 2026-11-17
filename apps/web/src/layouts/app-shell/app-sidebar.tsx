@@ -22,6 +22,7 @@ import {
 import { useQuery } from "convex/react";
 import { api } from "@meetings/backend";
 import { NavUser } from "#/features/auth/nav-user.tsx";
+import { LiveCallsNav } from "#/features/meetings/live-calls-nav.tsx";
 import { OrgSwitcher } from "#/features/orgs/org-switcher.tsx";
 
 const LINKS = [
@@ -67,6 +68,7 @@ export const AppSidebar = () => {
             ))}
           </SidebarMenu>
         </SidebarGroup>
+        <LiveCallsNav />
       </SidebarContent>
 
       <SidebarFooter>

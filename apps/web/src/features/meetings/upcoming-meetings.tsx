@@ -25,6 +25,9 @@ import { MeetingRow, type MyMeeting } from "./meeting-row.tsx";
 
 const peopleInCall = (meeting: MyMeeting) => meeting.lastSession?.inCall ?? 0;
 
+export const isLive = (meeting: MyMeeting) =>
+  meeting.endedAt === null && meeting.response !== "declined" && peopleInCall(meeting) > 0;
+
 const Name = ({ meeting }: { meeting: MyMeeting }) => (
   <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
     <span aria-hidden className={cn("size-2 shrink-0 rounded-full", kindOf(meeting.kind).dot)} />
@@ -183,9 +186,9 @@ export const UpcomingMeetings = () => {
   const dayLabel = (day: string, ms: number) =>
     day === today ? "Today" : day === addDays(today, 1) ? "Tomorrow" : formatDayHeading(ms, zone);
 
-  const open = meetings.results.filter((m) => m.endedAt === null && m.response !== "declined");
-  const live = open.filter((m) => peopleInCall(m) > 0);
-  const future = open
+  const live = meetings.results.filter(isLive);
+  const future = meetings.results
+    .filter((m) => m.endedAt === null && m.response !== "declined")
     .filter((m) => m.endsAt > now && peopleInCall(m) === 0)
     .sort((a, b) => a.startsAt - b.startsAt);
   const needsReply = future.filter((m) => m.response === "pending");
