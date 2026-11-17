@@ -319,3 +319,33 @@ test("ending a repeating meeting drops its later occurrences", async () => {
     { start: Date.UTC(2026, 10, 18, 9, 0), end: Date.UTC(2026, 10, 18, 9, 30) },
   ]);
 });
+
+test("the recap shows when each person joined, left and how long they stayed", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.UTC(2026, 10, 18, 9, 0));
+  const { t, host, meetingId, hostMember, guestMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  const start = Date.now();
+  await event("meeting.participantJoined", hostMember, "host-laptop");
+  vi.advanceTimersByTime(60_000);
+  await event("meeting.participantJoined", guestMember);
+  await event("meeting.participantJoined", hostMember, "host-phone");
+  vi.advanceTimersByTime(60_000);
+  await event("meeting.participantLeft", hostMember, "host-laptop");
+  await event("meeting.participantLeft", guestMember);
+  vi.advanceTimersByTime(60_000);
+  await event("meeting.participantJoined", guestMember);
+  vi.advanceTimersByTime(60_000);
+  await event("meeting.participantLeft", hostMember, "host-phone");
+  await event("meeting.participantLeft", guestMember);
+  const code = (await t.run((ctx) => ctx.db.get("meetings", meetingId)))!.code;
+  const recap = await host.asUser.query(api.api.meetings.recap, { code, number: 1 });
+  const [hostRow, guestRow] = recap!.attendance;
+  expect(recap!.attendance.map(({ name, seconds }) => ({ name, seconds }))).toEqual([
+    { name: "Host", seconds: 240 },
+    { name: "Guest", seconds: 120 },
+  ]);
+  expect(hostRow!.joinedAt - start).toBeLessThan(10);
+  expect(guestRow!.joinedAt - start).toBeCloseTo(60_000, -2);
+  expect(guestRow!.leftAt).toBe(hostRow!.leftAt);
+});
