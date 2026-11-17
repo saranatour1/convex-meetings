@@ -15,6 +15,7 @@ import { messageReactions } from "./tables/messageReactions";
 import { messages } from "./tables/messages";
 import { notifications } from "./tables/notifications";
 import { organizations } from "./tables/organizations";
+import { rings } from "./tables/rings";
 import { roles } from "./tables/roles";
 import { schedules } from "./tables/schedules";
 import { tokens } from "./tables/tokens";
@@ -41,6 +42,7 @@ export default defineSchema({
   meetingGuests,
   meetingSessions,
   callPeers,
+  rings,
   messages,
   messageReactions,
   strokes,

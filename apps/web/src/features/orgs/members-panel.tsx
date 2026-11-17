@@ -7,6 +7,7 @@ import {
   LogOutIcon,
   MailIcon,
   MoreHorizontalIcon,
+  PhoneIcon,
   RotateCwIcon,
   SearchIcon,
   ShieldIcon,
@@ -76,6 +77,7 @@ type MembersPanelProps = {
   confirm?: MemberConfirm;
   onConfirmChange: (confirm: MemberConfirm | undefined) => void;
   onLeft: () => void;
+  onCalling: (code: string) => void;
 };
 
 const RowMenu = ({ children }: { children: ReactNode }) => (
@@ -98,6 +100,7 @@ const MemberRow = ({
   lastActiveAt,
   roles,
   onConfirm,
+  onCall,
 }: {
   member: Member;
   isSelf: boolean;
@@ -107,6 +110,7 @@ const MemberRow = ({
   lastActiveAt: number | null;
   roles: (Doc<"roles"> & { grantable: boolean })[];
   onConfirm: (confirm: MemberConfirm) => void;
+  onCall?: () => void;
 }) => {
   const { orgId } = useActiveOrg();
   const setRole = useMutation(api.members.setRole);
@@ -147,66 +151,76 @@ const MemberRow = ({
       <span className="hidden text-muted-foreground text-xs tabular-nums sm:block">
         {zone ? `${formatTime(Date.now(), zone)} · ${cityOf(zone)}` : "No hours set"}
       </span>
-      {hasActions ? (
-        <RowMenu>
-          {canManageRoles && (
-            <MenuSub>
-              <MenuSubTrigger>
-                <ShieldIcon />
-                Change role
-              </MenuSubTrigger>
-              <MenuSubPopup>
-                <MenuRadioGroup
-                  value={member.roles[0]?._id ?? ""}
-                  onValueChange={(roleId) =>
-                    void setRole({
-                      orgId,
-                      memberId: member._id,
-                      roleId: roleId as Id<"roles">,
-                    }).catch((error: unknown) =>
-                      toastManager.add({ title: describeError(error), type: "error" }),
-                    )
-                  }
-                >
-                  {roles.map((role) => (
-                    <MenuRadioItem key={role._id} value={role._id} disabled={!role.grantable}>
-                      {role.name}
-                    </MenuRadioItem>
-                  ))}
-                </MenuRadioGroup>
-              </MenuSubPopup>
-            </MenuSub>
-          )}
-          {canSignOut && !isSelf && (
-            <MenuItem onClick={() => onConfirm({ action: "signOut", memberId: member._id })}>
-              <LogOutIcon />
-              Sign out everywhere
-            </MenuItem>
-          )}
-          {(canManageRoles || canSignOut) && (canRemove || isSelf) && <MenuSeparator />}
-          {isSelf ? (
-            <MenuItem
-              variant="destructive"
-              onClick={() => onConfirm({ action: "leave", memberId: member._id })}
-            >
-              <LogOutIcon />
-              Leave organization
-            </MenuItem>
-          ) : (
-            canRemove && (
+      <div className="flex items-center justify-end gap-1">
+        {onCall && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Call ${member.name}`}
+            onClick={onCall}
+          >
+            <PhoneIcon />
+          </Button>
+        )}
+        {hasActions && (
+          <RowMenu>
+            {canManageRoles && (
+              <MenuSub>
+                <MenuSubTrigger>
+                  <ShieldIcon />
+                  Change role
+                </MenuSubTrigger>
+                <MenuSubPopup>
+                  <MenuRadioGroup
+                    value={member.roles[0]?._id ?? ""}
+                    onValueChange={(roleId) =>
+                      void setRole({
+                        orgId,
+                        memberId: member._id,
+                        roleId: roleId as Id<"roles">,
+                      }).catch((error: unknown) =>
+                        toastManager.add({ title: describeError(error), type: "error" }),
+                      )
+                    }
+                  >
+                    {roles.map((role) => (
+                      <MenuRadioItem key={role._id} value={role._id} disabled={!role.grantable}>
+                        {role.name}
+                      </MenuRadioItem>
+                    ))}
+                  </MenuRadioGroup>
+                </MenuSubPopup>
+              </MenuSub>
+            )}
+            {canSignOut && !isSelf && (
+              <MenuItem onClick={() => onConfirm({ action: "signOut", memberId: member._id })}>
+                <LogOutIcon />
+                Sign out everywhere
+              </MenuItem>
+            )}
+            {(canManageRoles || canSignOut) && (canRemove || isSelf) && <MenuSeparator />}
+            {isSelf ? (
               <MenuItem
                 variant="destructive"
-                onClick={() => onConfirm({ action: "remove", memberId: member._id })}
+                onClick={() => onConfirm({ action: "leave", memberId: member._id })}
               >
-                <UserMinusIcon />
-                Remove from organization
+                <LogOutIcon />
+                Leave organization
               </MenuItem>
-            )
-          )}
-        </RowMenu>
-      ) : (
-        <span />
-      )}
+            ) : (
+              canRemove && (
+                <MenuItem
+                  variant="destructive"
+                  onClick={() => onConfirm({ action: "remove", memberId: member._id })}
+                >
+                  <UserMinusIcon />
+                  Remove from organization
+                </MenuItem>
+              )
+            )}
+          </RowMenu>
+        )}
+      </div>
     </li>
   );
 };
@@ -457,12 +471,14 @@ export const MembersPanel = ({
   confirm,
   onConfirmChange,
   onLeft,
+  onCalling,
 }: MembersPanelProps) => {
   const { orgId, name } = useActiveOrg();
   const org = useQuery(api.orgs.get, { orgId });
   const viewer = useQuery(api.users.viewer);
   const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
   const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
+  const ring = useMutation(api.rings.ring);
   const can = (permission: string) => org?.permissions.includes(permission as never) ?? false;
   const lastActive = useQuery(
     api.members.lastActive,
@@ -530,6 +546,21 @@ export const MembersPanel = ({
                 lastActiveAt={lastActive?.[member.userId] ?? null}
                 roles={grantableRoles}
                 onConfirm={onConfirmChange}
+                onCall={
+                  member.userId !== viewer?._id && can("createMeetings")
+                    ? () =>
+                        void ring({
+                          orgId,
+                          calleeId: member.userId,
+                          timeZone: browserTimeZone(),
+                        })
+                          .then(({ code }) => {
+                            track("call_rung");
+                            onCalling(code);
+                          })
+                          .catch(showError)
+                    : undefined
+                }
               />
             ))}
             {shown.length === 0 && (

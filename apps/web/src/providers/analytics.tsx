@@ -15,6 +15,8 @@ declare module "@databuddy/sdk" {
     join_link_created: { days: number };
     meeting_scheduled: { kind: MeetingKind; repeats: boolean };
     meeting_started: undefined;
+    call_rung: undefined;
+    call_answered: { accept: boolean };
     meeting_entered: undefined;
     meeting_responded: { response: "accepted" | "declined" };
     meeting_guests_invited: { members: number; guests: number };

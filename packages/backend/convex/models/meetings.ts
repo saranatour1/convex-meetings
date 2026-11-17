@@ -36,6 +36,7 @@ type NewMeeting = {
   inviteeIds: Id<"users">[];
   canManageMeetings: boolean;
   protected?: boolean;
+  quiet?: boolean;
 };
 
 export const meetingTime = (startsAt: number, minutes: number, timeZone: string) => {
@@ -132,6 +133,7 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
   for (const member of members) {
     await ctx.db.insert("meetingMembers", parseOrThrow(zMeetingMember, { ...member, meetingId }));
   }
+  if (meeting.quiet) return { meetingId, code };
   await notify(ctx, inviteeIds, {
     kind: "meetingInvite",
     title: meeting.title,
@@ -144,6 +146,27 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
   ]);
   if (saved && savedTime) await queueMeetingEmails(ctx, "REQUEST", saved, savedTime, inviteeIds);
   return { meetingId, code };
+};
+
+export const startInstantMeeting = async (
+  ctx: MutationCtx,
+  meeting: Pick<
+    NewMeeting,
+    "orgId" | "userId" | "title" | "timeZone" | "inviteeIds" | "canManageMeetings" | "quiet"
+  >,
+) => {
+  const settings = await getSettings(ctx, meeting.userId);
+  const startsAt = Math.floor(Date.now() / 60_000) * 60_000;
+  const local = DateTime.fromMillis(startsAt, { zone: meeting.timeZone });
+  const untilMidnight = Math.floor(local.endOf("day").diff(local, "minutes").minutes);
+  return createMeeting(ctx, {
+    ...meeting,
+    kind: settings.defaultKind,
+    recap: settings.defaultRecap,
+    startsAt,
+    minutes: Math.max(5, Math.min(60, untilMidnight)),
+    timeZone: untilMidnight < 5 ? "UTC" : meeting.timeZone,
+  });
 };
 
 const timeOf = (ctx: QueryCtx, meetingId: Id<"meetings">) =>
@@ -393,6 +416,12 @@ export const cancelMeeting = async (
       .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
       .take(1000),
   );
+  for (const ring of await ctx.db
+    .query("rings")
+    .withIndex("by_meeting_and_caller", (q) => q.eq("meetingId", meetingId))
+    .take(1000)) {
+    await ctx.db.delete("rings", ring._id);
+  }
   await clearStrokes(ctx, meetingId);
   const snapshots = await ctx.db
     .query("annotationSnapshots")
