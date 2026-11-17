@@ -26,6 +26,9 @@ const MembersPage = () => {
           setSearch({ confirm: next ? `${next.action}:${next.memberId}` : undefined })
         }
         onLeft={() => void navigate({ to: "/" })}
+        onCalling={(code) =>
+          void navigate({ to: "/meetings/$code", params: { code }, search: { call: true } })
+        }
       />
     </main>
   );
