@@ -11,7 +11,6 @@ import { EmptyState } from "#/components/empty-state.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { showError } from "#/lib/errors.ts";
 import {
-  MINUTE,
   addDays,
   dayOf,
   formatAgo,
@@ -19,11 +18,9 @@ import {
   formatDayHeading,
   formatTime,
 } from "#/lib/schedule.ts";
-import { useMinute } from "./clock.ts";
+import { JOIN_EARLY, countdown, useMinute } from "./clock.ts";
 import { kindOf } from "./meeting-kinds.ts";
 import { MeetingRow, type MyMeeting } from "./meeting-row.tsx";
-
-const JOIN_EARLY = 10 * MINUTE;
 
 const peopleInCall = (meeting: MyMeeting) => meeting.lastSession?.inCall ?? 0;
 
@@ -144,7 +141,6 @@ const ReplyRow = ({ meeting, zone }: { meeting: MyMeeting; zone: string }) => {
 };
 
 const UpcomingRow = ({ meeting, now, zone }: { meeting: MyMeeting; now: number; zone: string }) => {
-  const started = meeting.startsAt <= now;
   const soon = meeting.startsAt - now <= JOIN_EARLY;
 
   return (
@@ -165,7 +161,7 @@ const UpcomingRow = ({ meeting, now, zone }: { meeting: MyMeeting; now: number; 
       {soon ? (
         <span className="flex items-center gap-2">
           <Badge variant="warning" size="sm">
-            {started ? "Now" : `In ${Math.ceil((meeting.startsAt - now) / MINUTE)} min`}
+            {countdown(meeting.startsAt, now)}
           </Badge>
           <JoinButton code={meeting.code} />
         </span>
