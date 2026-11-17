@@ -237,10 +237,29 @@ export const RecapPage = ({ code, number, search, onSearchChange }: RecapPagePro
           {recap.endedAt && `–${formatTime(recap.endedAt, zone)}`}
           {length !== null && ` · ${formatDuration(length)}`}
         </p>
-        <p className="flex items-center gap-1.5 text-sm">
-          <UsersIcon className="size-4 opacity-70" />
-          {recap.attendees.length ? recap.attendees.join(", ") : "No one's attendance was recorded"}
-        </p>
+        {recap.attendance.length ? (
+          <ul className="flex flex-col gap-1 text-sm">
+            {recap.attendance.map((person) => (
+              <li key={person.memberId} className="flex items-center gap-1.5 tabular-nums">
+                <UsersIcon className="size-4 opacity-70" />
+                <span className="font-medium">{person.name}</span>
+                <span className="text-muted-foreground">
+                  joined {formatTime(person.joinedAt, zone)}
+                  {person.leftAt === null
+                    ? " · still in the call"
+                    : ` · left ${formatTime(person.leftAt, zone)} · ${formatDuration(person.seconds * 1000) || "under a minute"}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="flex items-center gap-1.5 text-sm">
+            <UsersIcon className="size-4 opacity-70" />
+            {recap.attendees.length
+              ? recap.attendees.join(", ")
+              : "No one's attendance was recorded"}
+          </p>
+        )}
       </div>
 
       <Card>

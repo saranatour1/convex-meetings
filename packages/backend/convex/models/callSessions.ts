@@ -4,7 +4,13 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zCallPeer } from "../tables/callPeers";
 import { clearStrokes } from "./annotations";
-import { canControlCall, endWhenEmpty } from "./calls";
+import {
+  canControlCall,
+  endWhenEmpty,
+  removePeer,
+  sessionPeersOf,
+  updateAttendance,
+} from "./calls";
 import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
 import { notify } from "./notifications";
 import { getViewer } from "./users";
@@ -91,12 +97,14 @@ const trackPeers = async (
   ctx: MutationCtx,
   session: Doc<"meetingSessions">,
   event: RealtimeEvent,
+  now: number,
 ) => {
   const attendee = event.participant?.customParticipantId;
   const peerId = event.participant?.peerId ?? attendee;
   if (event.event === "meeting.participantJoined" && attendee && peerId && !session.endedAt) {
     const memberId = ctx.db.normalizeId("meetingMembers", attendee);
     if (memberId && !(await peerOf(ctx, session._id, peerId))) {
+      const others = await sessionPeersOf(ctx, session._id, session.meetingId, memberId);
       await ctx.db.insert(
         "callPeers",
         parseOrThrow(zCallPeer, {
@@ -104,13 +112,21 @@ const trackPeers = async (
           meetingId: session.meetingId,
           memberId,
           peerId,
+          joinedAt: others[0]?.joinedAt ?? now,
         }),
       );
+      if (!others.length) {
+        await updateAttendance(ctx, session._id, memberId, (entry) => ({
+          memberId,
+          joinedAt: entry?.joinedAt ?? now,
+          seconds: entry?.seconds ?? 0,
+        }));
+      }
     }
   }
   if (event.event === "meeting.participantLeft" && peerId) {
     const peer = await peerOf(ctx, session._id, peerId);
-    if (peer) await ctx.db.delete("callPeers", peer._id);
+    if (peer) await removePeer(ctx, peer, now);
     await endWhenEmpty(ctx, session.meetingId);
   }
   if (event.event === "meeting.ended") {
@@ -118,7 +134,8 @@ const trackPeers = async (
       .query("callPeers")
       .withIndex("by_session_and_peer", (q) => q.eq("sessionId", session._id))
       .take(1000);
-    for (const peer of peers) await ctx.db.delete("callPeers", peer._id);
+    const endedAt = toMillis(event.meeting?.endedAt, now);
+    for (const peer of peers) await removePeer(ctx, peer, endedAt);
     await endWhenEmpty(ctx, session.meetingId);
   }
 };
@@ -183,7 +200,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
     }
   }
   if (Object.keys(patch).length) await ctx.db.patch("meetingSessions", session._id, patch);
-  await trackPeers(ctx, session, event);
+  await trackPeers(ctx, session, event, now);
   if (event.summary && !session.summary) {
     const members = await ctx.db
       .query("meetingMembers")
@@ -228,6 +245,19 @@ export const getRecap = async (
     startedAt: session.startedAt,
     endedAt: session.endedAt ?? null,
     attendees: await meetingNames(ctx, session.attendeeIds),
+    attendance: await Promise.all(
+      (session.attendance ?? []).map(async (entry) => {
+        const member = await ctx.db.get("meetingMembers", entry.memberId);
+        const user = member ? await getViewer(ctx, member.userId) : null;
+        return {
+          memberId: entry.memberId,
+          name: user?.name ?? "Guest",
+          joinedAt: entry.joinedAt,
+          leftAt: entry.leftAt ?? null,
+          seconds: entry.seconds,
+        };
+      }),
+    ),
     summary: session.summary ?? null,
     transcriptUrl: session.transcriptId ? await ctx.storage.getUrl(session.transcriptId) : null,
     hasRecording: Boolean(session.recordingKey || session.recordingUrl),

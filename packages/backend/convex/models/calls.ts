@@ -2,6 +2,8 @@ import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { parseOrThrow } from "../lib/validate";
+import { zMeetingSession } from "../tables/meetingSessions";
 import { audit } from "./audit";
 import { findMember } from "./members";
 import { grantedPermissions } from "./roles";
@@ -9,6 +11,54 @@ import { getViewer } from "./users";
 
 const LIVE_SESSIONS_READ = 50;
 export const EMPTY_CALL_GRACE_MS = 2 * 60 * 1000;
+
+type Attendance = NonNullable<Doc<"meetingSessions">["attendance"]>[number];
+
+export const sessionPeersOf = async (
+  ctx: QueryCtx,
+  sessionId: Id<"meetingSessions">,
+  meetingId: Id<"meetings">,
+  memberId: Id<"meetingMembers">,
+) => {
+  const peers = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) =>
+      q.eq("meetingId", meetingId).eq("memberId", memberId),
+    )
+    .take(100);
+  return peers.filter((peer) => peer.sessionId === sessionId);
+};
+
+export const updateAttendance = async (
+  ctx: MutationCtx,
+  sessionId: Id<"meetingSessions">,
+  memberId: Id<"meetingMembers">,
+  change: (entry: Attendance | undefined) => Attendance,
+) => {
+  const session = await ctx.db.get("meetingSessions", sessionId);
+  if (!session) return;
+  const attendance = session.attendance ?? [];
+  const entry = attendance.find((a) => a.memberId === memberId);
+  const next = entry
+    ? attendance.map((a) => (a === entry ? change(entry) : a))
+    : [...attendance, change(undefined)].slice(0, 1000);
+  await ctx.db.patch("meetingSessions", sessionId, {
+    attendance: parseOrThrow(zMeetingSession.shape.attendance, next),
+  });
+};
+
+export const removePeer = async (ctx: MutationCtx, peer: Doc<"callPeers">, at: number) => {
+  await ctx.db.delete("callPeers", peer._id);
+  const { joinedAt } = peer;
+  if (joinedAt === undefined) return;
+  if ((await sessionPeersOf(ctx, peer.sessionId, peer.meetingId, peer.memberId)).length) return;
+  await updateAttendance(ctx, peer.sessionId, peer.memberId, (entry) => ({
+    memberId: peer.memberId,
+    joinedAt: entry?.joinedAt ?? joinedAt,
+    leftAt: at,
+    seconds: (entry?.seconds ?? 0) + Math.max(0, Math.round((at - joinedAt) / 1000)),
+  }));
+};
 
 export const endWhenEmpty = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
   const someone = await ctx.db
@@ -196,7 +246,7 @@ export const forgetDevices = async (
   for (const peer of peers) {
     if (peer.sessionId !== session._id) continue;
     if (peerId !== undefined && peer.peerId !== peerId) continue;
-    await ctx.db.delete("callPeers", peer._id);
+    await removePeer(ctx, peer, Date.now());
   }
   await endWhenEmpty(ctx, meetingId);
 };

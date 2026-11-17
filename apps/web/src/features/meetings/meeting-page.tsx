@@ -18,7 +18,7 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
-import { cityOf, formatDate, formatTime } from "#/lib/schedule.ts";
+import { cityOf, formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
 import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
 import { InviteToMeeting, MeetingDoor, MeetingSettingsCard } from "./meeting-access.tsx";
@@ -230,8 +230,9 @@ export const MeetingPage = ({
                   className="font-medium text-sm tabular-nums underline-offset-4 hover:underline"
                 >
                   {formatDate(session.startedAt, zone)} · {formatTime(session.startedAt, zone)}
-                  {session.endedAt && `–${formatTime(session.endedAt, zone)}`} · {session.attendees}{" "}
-                  joined →
+                  {session.endedAt &&
+                    `–${formatTime(session.endedAt, zone)} · ${formatDuration(session.endedAt - session.startedAt) || "under a minute"}`}{" "}
+                  · {session.attendees} joined →
                 </Link>
                 {session.summary && (
                   <p className="whitespace-pre-wrap text-muted-foreground text-sm">
