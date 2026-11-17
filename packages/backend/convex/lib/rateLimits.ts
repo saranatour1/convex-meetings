@@ -48,6 +48,9 @@ export const enforceRateLimit = async (
   }
 };
 
+export const hasRateLimitRoom = async (ctx: MutationCtx, name: RateLimit, key: string) =>
+  (await rateLimiter.check(ctx, name, { key })).ok;
+
 export const tryRateLimit = async (ctx: MutationCtx | ActionCtx, name: RateLimit, key: string) =>
   (await rateLimiter.limit(ctx, name, { key })).ok;
 

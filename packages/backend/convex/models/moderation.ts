@@ -19,7 +19,7 @@ import {
   type NameScores,
   type Penalty,
 } from "../lib/moderation";
-import { tryRateLimit } from "../lib/rateLimits";
+import { enforceRateLimit, hasRateLimitRoom, tryRateLimit } from "../lib/rateLimits";
 import { parseOrThrow } from "../lib/validate";
 import { zBan } from "../tables/bans";
 import { zModerationFlag } from "../tables/moderationFlags";
@@ -315,6 +315,32 @@ const isStorableFrame = async (ctx: QueryCtx, storageId: Id<"_storage">) => {
   return file !== null && file.contentType === "image/jpeg" && file.size <= MAX_FRAME_BYTES;
 };
 
+const frameLimit = async (
+  ctx: QueryCtx,
+  meetingId: Id<"meetings">,
+  targetMemberId: Id<"meetingMembers">,
+  reporterId: Id<"meetingMembers">,
+) =>
+  (await openWatches(ctx, meetingId, targetMemberId)).some((flag) => flag.reporterId !== reporterId)
+    ? ("frameRecheck" as const)
+    : ("frameCheck" as const);
+
+export const frameUploadUrl = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  targetMemberId: Id<"meetingMembers">,
+) => {
+  const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
+  if (!isPublicRoom(meeting) || member.removedAt) {
+    throw new ConvexError("Frames are only checked in public rooms");
+  }
+  const limit = await frameLimit(ctx, meetingId, targetMemberId, member._id);
+  if (!(await hasRateLimitRoom(ctx, limit, targetMemberId))) return null;
+  await enforceRateLimit(ctx, "frameUpload", userId);
+  return ctx.storage.generateUploadUrl();
+};
+
 export const submitFrame = async (
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -335,14 +361,13 @@ export const submitFrame = async (
     member._id !== frame.targetMemberId &&
     reporterHere !== null &&
     targetHere !== null;
-  const second =
-    allowed &&
-    (await openWatches(ctx, meeting._id, frame.targetMemberId)).some(
-      (flag) => flag.reporterId !== member._id,
-    );
   const accepted =
     allowed &&
-    (await tryRateLimit(ctx, second ? "frameRecheck" : "frameCheck", frame.targetMemberId));
+    (await tryRateLimit(
+      ctx,
+      await frameLimit(ctx, meeting._id, frame.targetMemberId, member._id),
+      frame.targetMemberId,
+    ));
   if (!accepted) {
     await ctx.storage.delete(frame.storageId);
     return false;

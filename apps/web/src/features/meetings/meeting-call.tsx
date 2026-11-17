@@ -88,7 +88,7 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
             defaults: {
               audio: !viewer && !settings?.joinMuted,
               video: !viewer && !settings?.joinCameraOff,
-              plugins: [whiteboardPlugin(token)],
+              plugins: props.moderated ? [] : [whiteboardPlugin(token)],
             },
           });
           track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });
