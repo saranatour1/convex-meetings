@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { LinkIcon, PlusIcon, VideoIcon } from "lucide-react";
+import { CalendarClockIcon, ChevronDownIcon, LinkIcon, PlusIcon, VideoIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import { Input } from "@meetings/ui/components/input";
+import { Menu, MenuItem, MenuLinkItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/menu";
 import { Separator } from "@meetings/ui/components/separator";
 import { SidebarTrigger } from "@meetings/ui/components/sidebar";
 import { parseMeetingCode } from "#/lib/meeting-code.ts";
@@ -30,14 +31,23 @@ export const AppHeader = ({ quickActions, onJoinCode, onStartMeeting }: AppHeade
       {quickActions && (
         <>
           <Separator orientation="vertical" className="me-1 h-4" />
-          <Button size="sm" onClick={onStartMeeting}>
-            <VideoIcon />
-            Start meeting
-          </Button>
-          <Button size="sm" variant="outline" render={<Link to="/schedule" />}>
-            <PlusIcon />
-            Schedule
-          </Button>
+          <Menu>
+            <MenuTrigger render={<Button size="sm" variant="outline" />}>
+              <PlusIcon />
+              New meeting
+              <ChevronDownIcon className="opacity-60" />
+            </MenuTrigger>
+            <MenuPopup align="start">
+              <MenuItem onClick={onStartMeeting}>
+                <VideoIcon />
+                Start a call now
+              </MenuItem>
+              <MenuLinkItem render={<Link to="/schedule" />}>
+                <CalendarClockIcon />
+                Schedule for later
+              </MenuLinkItem>
+            </MenuPopup>
+          </Menu>
           <form
             className="ms-auto hidden items-center gap-2 sm:flex"
             onSubmit={(event) => {
