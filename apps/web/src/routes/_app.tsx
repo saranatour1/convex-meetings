@@ -7,6 +7,7 @@ import { SidebarInset, SidebarProvider } from "@meetings/ui/components/sidebar";
 import { AppHeader } from "#/layouts/app-shell/app-header.tsx";
 import { AppSidebar } from "#/layouts/app-shell/app-sidebar.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
+import { AgentTools } from "#/features/meetings/agent-tools.tsx";
 import { IncomingCall } from "#/features/meetings/incoming-call.tsx";
 import { OrgGate, useActiveOrg } from "#/features/orgs/active-org.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
@@ -36,6 +37,8 @@ const Header = () => {
 
 const AppLayout = () => {
   const navigate = Route.useNavigate();
+  const openCall = (code: string) =>
+    void navigate({ to: "/meetings/$code", params: { code }, search: { call: true } });
 
   return (
     <>
@@ -47,11 +50,8 @@ const AppLayout = () => {
       </Unauthenticated>
       <Authenticated>
         <OrgGate onCreated={() => void navigate({ to: "/home" })}>
-          <IncomingCall
-            onAnswered={(code) =>
-              void navigate({ to: "/meetings/$code", params: { code }, search: { call: true } })
-            }
-          />
+          <IncomingCall onAnswered={openCall} />
+          <AgentTools onOpenCall={openCall} />
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>

@@ -18,6 +18,16 @@ Page state lives in the URL. An agent can open any page below in the exact state
 - [Members](https://convex-meetings.stream/members): people in the organization, `q` filters them
 - [Settings](https://convex-meetings.stream/settings): `/settings/account`, `/settings/general` (theme, time zone, working hours), `/settings/meetings`, `/settings/org`
 
+## Agent tools
+
+In browsers with WebMCP, signed-in pages register tools on `document.modelContext` (in Chrome, turn on `chrome://flags/#enable-webmcp-testing`). They act as the signed-in person in their active organization, with the same permissions they have in the UI. Times are ISO 8601. A failure comes back as `{ "error": "…" }`.
+
+- `list_upcoming_meetings` (`cursor`): meetings that haven't ended, soonest first, with code, title, start and end in the meeting's time zone, repeat rule and the person's reply. Returns a `cursor` for the next page, or null on the last
+- `schedule_meeting` (`title`, `startsAt`, optional `timeZone`, `minutes`, `kind`, `recap`, `rrule`, `inviteeEmails`, `protected`): schedules a meeting and emails each invitee a calendar invite. `startsAt` is local time in `timeZone`, like `2026-11-20T15:00`. Invitees must be in the organization. Returns the meeting's `code` and `url`
+- `start_meeting_now` (optional `timeZone`): starts an instant meeting and opens its call lobby
+- `join_meeting` (`code`): opens a meeting's call lobby. The person picks a camera and microphone and presses Join
+- `reply_to_invite` (`code`, `response`: `accepted` or `declined`): answers a meeting invite and notifies the organizer
+
 ## Shared links
 
 These carry secrets. Open them only when the person gave you the link, and never index or share them.
