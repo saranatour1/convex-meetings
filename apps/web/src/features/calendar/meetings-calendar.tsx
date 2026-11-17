@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@meetings/backend";
-import { Link } from "@tanstack/react-router";
 import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -9,6 +8,7 @@ import {
   KloqNav,
   KloqToolbar,
   formatInstant,
+  parseInstant,
   type Attendee,
   type CalEvent,
 } from "@meetings/ui/kloq";
@@ -22,7 +22,7 @@ type MeetingsCalendarProps = {
   zone: string;
   zones: string[];
   onZonesChange: (zones: string[]) => void;
-  onPlan: (time: MeetingTime) => void;
+  onPlan: (time?: MeetingTime) => void;
   selected?: string;
   onSelect: (code: string | undefined) => void;
   showDeclined: boolean;
@@ -41,6 +41,11 @@ const toAttendee = (p: Person): Attendee => ({
   email: p.email ?? p._id,
   name: p.name,
   status: p.response,
+});
+
+const timeOf = (start: number, end: number): MeetingTime => ({
+  start,
+  minutes: Math.round((end - start) / MINUTE),
 });
 
 export const MeetingsCalendar = ({
@@ -97,12 +102,13 @@ export const MeetingsCalendar = ({
       displayTimeZone={zone}
       timeZones={zones}
       onSlotClick={(slot) =>
-        !slot.allDay &&
-        onPlan({
-          start: slot.start.getTime(),
-          minutes: Math.round((slot.end.getTime() - slot.start.getTime()) / MINUTE),
-        })
+        !slot.allDay && onPlan(timeOf(slot.start.getTime(), slot.end.getTime()))
       }
+      onCommit={(change) => {
+        if (change.type === "add" && !change.event.allDay) {
+          onPlan(timeOf(parseInstant(change.event.start), parseInstant(change.event.end)));
+        }
+      }}
     >
       <KloqToolbar>
         <KloqNav />
@@ -144,7 +150,7 @@ export const MeetingsCalendar = ({
             {showDeclined ? <EyeIcon /> : <EyeOffIcon />}
             {showDeclined ? "Showing declined" : "Declined hidden"}
           </Button>
-          <Button size="sm" variant="outline" render={<Link to="/schedule" />}>
+          <Button size="sm" variant="outline" onClick={() => onPlan()}>
             <PlusIcon />
             Schedule meeting
           </Button>
