@@ -154,7 +154,7 @@ export const MeetingSettingsCard = ({
         </div>
       </CardHeader>
       <CardPanel className="flex flex-col gap-4">
-        <div className="grid gap-6 sm:grid-cols-[1fr_14rem]">
+        <div className="flex flex-col gap-6">
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 font-medium text-sm">Who can join</legend>
             <RadioGroup
