@@ -30,25 +30,27 @@ const RoomRoute = () => {
       <AuthLoading>{entry}</AuthLoading>
       <Unauthenticated>{entry}</Unauthenticated>
       <Authenticated>
-        <MeetingPage
-          code={code}
-          onCancelled={() => void navigate({ to: "/rooms" })}
-          inCall={call === true}
-          onInCallChange={(inCall) =>
-            setSearch({
-              call: inCall || undefined,
-              side: undefined,
-              expand: undefined,
-              draw: undefined,
-            })
-          }
-          side={side}
-          onSideChange={(next) => setSearch({ side: next })}
-          expanded={expand === true}
-          onExpandedChange={(next) => setSearch({ expand: next || undefined })}
-          tab={tab}
-          onTabChange={(next) => setSearch({ tab: next })}
-        />
+        <div className="mx-auto w-full max-w-5xl">
+          <MeetingPage
+            code={code}
+            onCancelled={() => void navigate({ to: "/rooms" })}
+            inCall={call === true}
+            onInCallChange={(inCall) =>
+              setSearch({
+                call: inCall || undefined,
+                side: undefined,
+                expand: undefined,
+                draw: undefined,
+              })
+            }
+            side={side}
+            onSideChange={(next) => setSearch({ side: next })}
+            expanded={expand === true}
+            onExpandedChange={(next) => setSearch({ expand: next || undefined })}
+            tab={tab}
+            onTabChange={(next) => setSearch({ tab: next })}
+          />
+        </div>
       </Authenticated>
     </PublicShell>
   );
