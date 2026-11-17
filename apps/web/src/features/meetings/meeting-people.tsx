@@ -14,12 +14,18 @@ import {
 } from "@meetings/ui/components/card";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/menu";
 import { cn } from "@meetings/ui/lib/utils";
+import { LiveDot } from "#/components/live-dot.tsx";
 import { showError } from "#/lib/errors.ts";
 import { avatarTint, getInitials } from "#/lib/initials.ts";
 import { InviteToMeeting } from "./meeting-access.tsx";
 
 export type MeetingDetails = NonNullable<FunctionReturnType<typeof api.meetings.get>>;
 type Person = MeetingDetails["people"][number];
+
+export const othersInCall = (meeting: MeetingDetails) =>
+  meeting.people
+    .filter((person) => person.inCall && person._id !== meeting.me._id)
+    .map((person) => person.name);
 
 const statusOf = (person: Person, room: boolean) => {
   if (person.role === "host") return "Host";
@@ -109,6 +115,12 @@ export const MeetingPeople = ({ meeting, room }: { meeting: MeetingDetails; room
                   >
                     {status === "Going" && <CheckIcon className="size-3" />}
                     {status}
+                    {person.inCall && (
+                      <span className="ms-1 flex items-center gap-1.5 text-success-foreground">
+                        <LiveDot />
+                        In the call
+                      </span>
+                    )}
                   </span>
                 </span>
                 {meeting.me.canControl && person._id !== meeting.me._id && (

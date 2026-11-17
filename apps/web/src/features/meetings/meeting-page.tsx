@@ -36,7 +36,7 @@ import { JOIN_EARLY, countdown, useMinute } from "./clock.ts";
 import { MeetingDoor, MeetingSettingsCard, meetingLink } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
-import { type MeetingDetails, MeetingPeople } from "./meeting-people.tsx";
+import { type MeetingDetails, MeetingPeople, othersInCall } from "./meeting-people.tsx";
 import type { MeetingTab } from "./meeting-search.ts";
 import { JoinRequests } from "./join-requests.tsx";
 
@@ -348,6 +348,7 @@ export const MeetingPage = ({
             devicesInCall={meeting.me.devicesInCall}
             isProtected={meeting.protected}
             moderated={room}
+            peopleInCall={othersInCall(meeting)}
           />
         </Suspense>
       )}
