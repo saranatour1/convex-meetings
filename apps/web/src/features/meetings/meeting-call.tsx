@@ -37,6 +37,7 @@ type MeetingCallProps = {
   moderated: boolean;
   devicesInCall: number;
   peopleInCall: string[];
+  recap: boolean;
 };
 
 type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
@@ -53,6 +54,7 @@ const CallView = ({
   rejoining,
   devicesInCall,
   peopleInCall,
+  recap,
   ...room
 }: CallViewProps) => {
   const switchHere = useAction(api.calls.switchHere);
@@ -71,7 +73,15 @@ const CallView = ({
       />
     );
   }
-  return <CallEnded title={title} onBack={onBack} onRejoin={onRejoin} rejoining={rejoining} />;
+  return (
+    <CallEnded
+      title={title}
+      recap={recap}
+      onBack={onBack}
+      onRejoin={onRejoin}
+      rejoining={rejoining}
+    />
+  );
 };
 
 export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: MeetingCallProps) => {
