@@ -13,7 +13,7 @@ const SchedulePage = () => {
   const navigate = Route.useNavigate();
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 lg:p-6">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 lg:p-6">
       <ScheduleMeeting
         initialTime={{ start, minutes }}
         display={{ view, zone, zones }}
