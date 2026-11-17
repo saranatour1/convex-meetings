@@ -3,7 +3,7 @@ import { zid, zodToConvexFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
 
 export const zFlagKind = z.enum(["message", "name", "frame", "summary"]);
-export const zFlagAction = z.enum(["removed", "strike", "ban", "kick", "watch", "review"]);
+export const zFlagAction = z.enum(["removed", "strike", "ban", "watch", "review"]);
 
 export const zModerationFlag = z.object({
   orgId: zid("organizations"),

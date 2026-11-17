@@ -18,7 +18,6 @@ const ACTIONS: Record<string, string> = {
   removed: "Removed",
   strike: "Strike",
   ban: "Banned",
-  kick: "Kicked",
   watch: "Waiting for a second check",
   review: "Needs review",
 };

@@ -77,6 +77,8 @@ export const ModerationPanel = () => {
                     <p className="text-muted-foreground text-sm">
                       {KINDS[flag.kind]} flagged for {reasonLabel(flag.reason)}
                       {score !== undefined && ` (${Math.round(score * 100)}% sure)`}
+                      {flag.reporterName &&
+                        `, reported by ${flag.reporterName}${flag.reporterIsGuest ? " (guest)" : ""}`}
                     </p>
                     {flag.body && (
                       <blockquote className="border-s-2 ps-3 text-sm">{flag.body}</blockquote>

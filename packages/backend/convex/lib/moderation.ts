@@ -166,15 +166,12 @@ export const decideName = (scores: NameScores) =>
 
 export const decideFrame = (
   scores: FrameScores,
-  seen: { trustedReporter: boolean; corroborated: boolean; othersPresent: boolean },
+  seen: { trustedReporter: boolean; confirmed: boolean; canBeConfirmed: boolean },
 ) => {
   const reason = highest(FRAME_REASONS, scores);
   if (scores[reason] < YES) return { action: "clear" as const };
-  if (seen.trustedReporter || seen.corroborated) {
-    const penalty: Penalty = scores[reason] >= SEVERE ? "ban" : "strike";
-    return { action: "kick" as const, reason, penalty };
-  }
-  return { action: seen.othersPresent ? ("watch" as const) : ("review" as const), reason };
+  if (seen.trustedReporter || seen.confirmed) return { action: "ban" as const, reason };
+  return { action: seen.canBeConfirmed ? ("watch" as const) : ("review" as const), reason };
 };
 
 export const penaltyFor = (

@@ -122,6 +122,10 @@ export const RoomEntry = ({ code, initial, onEntered }: RoomEntryProps) => {
             Be kind. Insults, hate, threats, sexual content and advertising are removed, and doing
             it again gets you banned.
           </li>
+          <li>
+            Showing nudity, sex, gore or hate symbols on your camera or screen share gets you
+            banned.
+          </li>
           <li>Chat and occasional video frames are checked automatically by an AI model.</li>
           {room.waitingRoom && (
             <li>This room has a waiting room. A host lets you in after you ask to join.</li>
