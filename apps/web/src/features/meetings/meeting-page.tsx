@@ -349,6 +349,7 @@ export const MeetingPage = ({
             isProtected={meeting.protected}
             moderated={room}
             peopleInCall={othersInCall(meeting)}
+            recap={meeting.recap}
           />
         </Suspense>
       )}

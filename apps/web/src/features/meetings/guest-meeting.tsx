@@ -131,6 +131,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                   isProtected={meeting.protected}
                   moderated={room}
                   peopleInCall={othersInCall(meeting)}
+                  recap={meeting.recap}
                 />
               </Suspense>
             ) : (
