@@ -167,8 +167,8 @@ export const summaryScreened = internalMutation({
 });
 
 export const probe = internalAction({
-  args: { frame: v.optional(v.id("_storage")) },
-  handler: async (ctx, { frame }) => {
+  args: { frame: v.optional(v.string()), shows: v.optional(v.string()) },
+  handler: async (_ctx, { frame, shows }) => {
     const room = { title: "Quiet study hall", description: "Bring your work and sit with us." };
     const messages = await Promise.all(
       PROBE_MESSAGES.map(async (text) => {
@@ -180,19 +180,25 @@ export const probe = internalAction({
         return { text, scores, verdict: decideMessage(scores), cost };
       }),
     );
-    const blob = frame ? await ctx.storage.get(frame) : null;
-    const image =
-      frame && blob
-        ? await askJev({ source: FRAME_SOURCE, frame }, FRAME_QUESTIONS, {
-            [frame]: {
-              type: "image",
-              format: "jpg",
-              data_base64: toBase64(new Uint8Array(await blob.arrayBuffer())),
-            },
-          })
-            .then(({ answers, cost }) => ({ scores: frameScores(answers), cost }))
-            .catch((error: unknown) => ({ error: String(error) }))
-        : null;
+    const reference = crypto.randomUUID();
+    const sees = (thing: string) => ({
+      type: "noul" as const,
+      instructions: `Does \`frame\` show ${thing}?`,
+    });
+    const image = frame
+      ? await askJev(
+          { source: FRAME_SOURCE, frame: reference },
+          { ...FRAME_QUESTIONS, shows: sees(shows ?? "anything"), control: sees("a dog") },
+          { [reference]: { type: "image", format: "jpg", data_base64: frame } },
+        )
+          .then(({ answers, cost }) => ({
+            scores: frameScores(answers),
+            shows: answers.shows,
+            control: answers.control,
+            cost,
+          }))
+          .catch((error: unknown) => ({ error: String(error) }))
+      : null;
     return { messages, image };
   },
 });
