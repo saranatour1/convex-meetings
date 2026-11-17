@@ -9,10 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
@@ -31,6 +32,11 @@ import { Route as AppSettingsMeetingsRouteImport } from './routes/_app/settings.
 import { Route as AppSettingsOrgRouteImport } from './routes/_app/settings.org'
 import { Route as AppMeetingsCodeRecapsNumberRouteImport } from './routes/_app/meetings.$code_.recaps.$number'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -40,14 +46,14 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHomeRoute = AppHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -138,9 +144,10 @@ const AppMeetingsCodeRecapsNumberRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
+  '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/calendar': typeof AppCalendarRoute
+  '/home': typeof AppHomeRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
@@ -160,8 +167,10 @@ export interface FileRoutesByFullPath {
   '/meetings/$code/recaps/$number': typeof AppMeetingsCodeRecapsNumberRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/calendar': typeof AppCalendarRoute
+  '/home': typeof AppHomeRoute
   '/inbox': typeof AppInboxRoute
   '/members': typeof AppMembersRoute
   '/schedule': typeof AppScheduleRoute
@@ -169,7 +178,6 @@ export interface FileRoutesByTo {
   '/invite/$secret': typeof InviteSecretRoute
   '/join/$secret': typeof JoinSecretRoute
   '/m/$code': typeof MCodeRoute
-  '/': typeof AppIndexRoute
   '/meetings/$code': typeof AppMeetingsCodeRoute
   '/orgs/new': typeof AppOrgsNewRoute
   '/settings/account': typeof AppSettingsAccountRoute
@@ -182,9 +190,11 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/home': typeof AppHomeRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/schedule': typeof AppScheduleRoute
@@ -193,7 +203,6 @@ export interface FileRoutesById {
   '/invite/$secret': typeof InviteSecretRoute
   '/join/$secret': typeof JoinSecretRoute
   '/m/$code': typeof MCodeRoute
-  '/_app/': typeof AppIndexRoute
   '/_app/meetings/$code': typeof AppMeetingsCodeRoute
   '/_app/orgs/new': typeof AppOrgsNewRoute
   '/_app/settings/account': typeof AppSettingsAccountRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/calendar'
+    | '/home'
     | '/inbox'
     | '/members'
     | '/schedule'
@@ -229,8 +239,10 @@ export interface FileRouteTypes {
     | '/meetings/$code/recaps/$number'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/sign-in'
     | '/calendar'
+    | '/home'
     | '/inbox'
     | '/members'
     | '/schedule'
@@ -238,7 +250,6 @@ export interface FileRouteTypes {
     | '/invite/$secret'
     | '/join/$secret'
     | '/m/$code'
-    | '/'
     | '/meetings/$code'
     | '/orgs/new'
     | '/settings/account'
@@ -250,9 +261,11 @@ export interface FileRouteTypes {
     | '/meetings/$code/recaps/$number'
   id:
     | '__root__'
+    | '/'
     | '/_app'
     | '/sign-in'
     | '/_app/calendar'
+    | '/_app/home'
     | '/_app/inbox'
     | '/_app/members'
     | '/_app/schedule'
@@ -261,7 +274,6 @@ export interface FileRouteTypes {
     | '/invite/$secret'
     | '/join/$secret'
     | '/m/$code'
-    | '/_app/'
     | '/_app/meetings/$code'
     | '/_app/orgs/new'
     | '/_app/settings/account'
@@ -274,6 +286,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   SignInRoute: typeof SignInRoute
   GuestSecretRoute: typeof GuestSecretRoute
@@ -284,6 +297,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -298,18 +318,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/calendar': {
       id: '/_app/calendar'
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/home': {
+      id: '/_app/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AppHomeRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inbox': {
@@ -456,11 +476,11 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
+  AppHomeRoute: typeof AppHomeRoute
   AppInboxRoute: typeof AppInboxRoute
   AppMembersRoute: typeof AppMembersRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
-  AppIndexRoute: typeof AppIndexRoute
   AppMeetingsCodeRoute: typeof AppMeetingsCodeRoute
   AppOrgsNewRoute: typeof AppOrgsNewRoute
   AppMeetingsIndexRoute: typeof AppMeetingsIndexRoute
@@ -469,11 +489,11 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
+  AppHomeRoute: AppHomeRoute,
   AppInboxRoute: AppInboxRoute,
   AppMembersRoute: AppMembersRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
-  AppIndexRoute: AppIndexRoute,
   AppMeetingsCodeRoute: AppMeetingsCodeRoute,
   AppOrgsNewRoute: AppOrgsNewRoute,
   AppMeetingsIndexRoute: AppMeetingsIndexRoute,
@@ -483,6 +503,7 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
   GuestSecretRoute: GuestSecretRoute,

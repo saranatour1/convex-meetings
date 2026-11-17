@@ -46,7 +46,7 @@ const AppLayout = () => {
         <Navigate to="/sign-in" replace />
       </Unauthenticated>
       <Authenticated>
-        <OrgGate onCreated={() => void navigate({ to: "/" })}>
+        <OrgGate onCreated={() => void navigate({ to: "/home" })}>
           <IncomingCall
             onAnswered={(code) =>
               void navigate({ to: "/meetings/$code", params: { code }, search: { call: true } })
