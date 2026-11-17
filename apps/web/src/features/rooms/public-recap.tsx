@@ -38,7 +38,7 @@ export const PublicRecap = ({ code, number, initial }: PublicRecapProps) => {
   }
 
   return (
-    <article className="flex flex-col gap-6">
+    <article className="flex w-full max-w-3xl flex-col gap-6">
       {back}
       <header className="flex flex-col gap-2">
         <h1 className="text-balance font-semibold text-3xl tracking-tight">{recap.title}</h1>
