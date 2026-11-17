@@ -265,10 +265,15 @@ test("a public recap shows numbers and only a checked summary", async () => {
     people: 1,
     summary: null,
   });
+  const insideSummary = async () =>
+    (await outsider.asUser.query(api.api.meetings.get, { code }))?.sessions[0]?.summary;
+  expect(await insideSummary()).toBeNull();
   await t.run((ctx) => ctx.db.patch("meetingSessions", sessionId, { summaryCheck: "hidden" }));
   expect((await recap())?.summary).toBeNull();
+  expect(await insideSummary()).toBeNull();
   await t.run((ctx) => ctx.db.patch("meetingSessions", sessionId, { summaryCheck: "ok" }));
   expect((await recap())?.summary).toBe("A calm hour.");
+  expect(await insideSummary()).toBe("A calm hour.");
   expect((await t.query(api.api.rooms.recaps, { code, paginationOpts: page })).page).toHaveLength(
     1,
   );

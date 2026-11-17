@@ -185,7 +185,7 @@ export const RoomEntry = ({ code, initial, onEntered }: RoomEntryProps) => {
           </form.Subscribe>
           <Button
             variant="outline"
-            render={<Link to="/sign-in" search={{ redirect: `/meetings/${code}` }} />}
+            render={<Link to="/sign-in" search={{ redirect: `/rooms/${code}` }} />}
           >
             Sign in to use your camera
           </Button>

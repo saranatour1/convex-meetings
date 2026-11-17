@@ -143,7 +143,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                 As a guest you can watch, listen and chat.{" "}
                 <Link
                   to="/sign-in"
-                  search={{ redirect: `/meetings/${meeting.code}` }}
+                  search={{ redirect: `/rooms/${meeting.code}` }}
                   className="text-foreground underline underline-offset-4"
                 >
                   Sign in

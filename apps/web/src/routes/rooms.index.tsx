@@ -1,5 +1,4 @@
-import { Navigate, createFileRoute } from "@tanstack/react-router";
-import { Authenticated } from "convex/react";
+import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@meetings/backend";
 import type { Room } from "#/features/rooms/room-card.tsx";
 import { RoomsDirectory } from "#/features/rooms/rooms-directory.tsx";
@@ -10,14 +9,9 @@ import { convexHttp } from "#/providers/convex.tsx";
 const RoomsRoute = () => {
   const initial = Route.useLoaderData();
   return (
-    <>
-      <Authenticated>
-        <Navigate to="/public-rooms" replace />
-      </Authenticated>
-      <PublicShell>
-        <RoomsDirectory initial={initial} />
-      </PublicShell>
-    </>
+    <PublicShell>
+      <RoomsDirectory initial={initial} />
+    </PublicShell>
   );
 };
 

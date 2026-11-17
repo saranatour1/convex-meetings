@@ -36,7 +36,7 @@ import {
   MeetingSettingsCard,
   meetingLink,
 } from "./meeting-access.tsx";
-import { roomLink } from "#/features/rooms/rooms-page.tsx";
+import { roomLink } from "#/features/rooms/room-link.ts";
 import { JoinRequests } from "./join-requests.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
@@ -279,7 +279,7 @@ export const MeetingPage = ({
             {meeting.sessions.map((session) => (
               <section key={session._id} className="flex flex-col gap-1">
                 <Link
-                  to="/meetings/$code/recaps/$number"
+                  to={room ? "/rooms/$code/recaps/$number" : "/meetings/$code/recaps/$number"}
                   params={{ code: meeting.code, number: session.number }}
                   className="font-medium text-sm tabular-nums underline-offset-4 hover:underline"
                 >
