@@ -108,19 +108,28 @@ test("a removed person is kicked and can't rejoin until let back in", async () =
 
 test("live calls track who is in, and admins end them for everyone", async () => {
   vi.useFakeTimers();
-  const { t, host, orgId, meetingId, guestMember, hostMember, event } = await setup();
+  const { t, host, guest, orgId, meetingId, guestMember, hostMember, event } = await setup();
+  const inCallFor = async (user: typeof guest) =>
+    (
+      await user.asUser.query(api.api.meetings.mine, {
+        paginationOpts: { numItems: 5, cursor: null },
+      })
+    ).page[0]?.lastSession?.inCall;
   await host.asUser.action(api.api.meetings.join, { meetingId });
   await event("meeting.participantJoined", hostMember);
   await event("meeting.participantJoined", guestMember);
+  expect(await inCallFor(guest)).toBe(2);
   await event("meeting.participantLeft", guestMember);
   expect(await host.asUser.query(api.api.calls.live, { orgId })).toMatchObject([
     { title: "Planning", people: ["Host"], count: 1 },
   ]);
+  expect(await inCallFor(guest)).toBe(1);
   await host.asUser.mutation(api.api.calls.end, { meetingId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   expect(calls.at(-1)?.url).toContain("/active-session/kick-all");
   await event("meeting.ended");
   expect(await host.asUser.query(api.api.calls.live, { orgId })).toEqual([]);
+  expect(await inCallFor(guest)).toBe(0);
 });
 
 test("removing someone from the org takes them out of its live calls", async () => {

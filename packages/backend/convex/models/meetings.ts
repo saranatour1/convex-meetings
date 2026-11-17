@@ -215,6 +215,15 @@ export const endEmptyMeeting = async (ctx: MutationCtx, meetingId: Id<"meetings"
   return meeting.rtkMeetingId ?? null;
 };
 
+const peopleInCall = async (ctx: QueryCtx, session: Doc<"meetingSessions"> | null) => {
+  if (!session || session.endedAt !== undefined) return 0;
+  const peers = await ctx.db
+    .query("callPeers")
+    .withIndex("by_session_and_peer", (q) => q.eq("sessionId", session._id))
+    .take(1000);
+  return new Set(peers.map((peer) => peer.memberId)).size;
+};
+
 export const listMyMeetings = async (
   ctx: QueryCtx,
   userId: Id<"users">,
@@ -237,6 +246,7 @@ export const listMyMeetings = async (
           .first(),
       ]);
       if (!meeting || !time || isPublicRoom(meeting)) return null;
+      const inCall = await peopleInCall(ctx, lastSession);
       return {
         _id: meeting._id,
         code: meeting.code,
@@ -256,6 +266,7 @@ export const listMyMeetings = async (
               startedAt: lastSession.startedAt,
               hasSummary: Boolean(lastSession.summary),
               hasRecording: Boolean(lastSession.recordingKey || lastSession.recordingUrl),
+              inCall,
             }
           : null,
       };
