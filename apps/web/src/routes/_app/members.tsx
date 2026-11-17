@@ -25,7 +25,7 @@ const MembersPage = () => {
         onConfirmChange={(next) =>
           setSearch({ confirm: next ? `${next.action}:${next.memberId}` : undefined })
         }
-        onLeft={() => void navigate({ to: "/" })}
+        onLeft={() => void navigate({ to: "/home" })}
         onCalling={(code) =>
           void navigate({ to: "/meetings/$code", params: { code }, search: { call: true } })
         }
