@@ -258,6 +258,7 @@ export const MeetingPage = ({
           inviters={meeting.inviters}
           isProtected={meeting.protected}
           slowModeSeconds={meeting.slowModeSeconds}
+          waitingRoom={meeting.waitingRoom}
         />
       )}
 

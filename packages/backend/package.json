@@ -10,6 +10,7 @@
     "test": "vp test run"
   },
   "dependencies": {
+    "@convex-dev/aggregate": "^0.3.4",
     "@convex-dev/auth": "catalog:",
     "@convex-dev/r2": "^0.10.4",
     "@convex-dev/rate-limiter": "^0.4.3",

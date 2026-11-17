@@ -89,6 +89,7 @@ test("the directory lists open public rooms to anyone, and nothing else", async 
       description: "Bring your work and sit with us.",
       people: 0,
       slowModeSeconds: 30,
+      waitingRoom: false,
       host: "Acme",
     },
   ]);
@@ -282,4 +283,83 @@ test("a public recap shows numbers and only a checked summary", async () => {
     inviteeIds: [],
   });
   expect(await t.query(api.api.rooms.recap, { code: privateCode, number: 1 })).toBeNull();
+});
+
+test("a waiting room makes guests and outsiders ask, and counts who asked and who got in", async () => {
+  const { t, host, member, outsider, code, meetingId } = await setup();
+  await host.asUser.mutation(api.api.rooms.update, { meetingId, waitingRoom: true });
+  expect(await t.query(api.api.rooms.preview, { code })).toMatchObject({ waitingRoom: true });
+  const stats = () => host.asUser.query(api.api.rooms.waitingRoom, { meetingId });
+  expect(await stats()).toEqual({ waiting: 0, joined: 0, admitted: 0 });
+
+  const secret = await t.mutation(api.api.guests.enter, { code, name: "Gus", device });
+  expect(await t.query(api.api.guests.pass, { secret })).toMatchObject({ status: "waiting" });
+  expect(await outsider.asUser.query(api.api.meetings.door, { code })).toMatchObject({
+    canEnter: false,
+    canAsk: true,
+  });
+  await expect(outsider.asUser.mutation(api.api.meetings.enter, { code })).rejects.toThrow(
+    "Only invited people",
+  );
+  await outsider.asUser.mutation(api.api.joinRequests.ask, { code });
+  await member.asUser.mutation(api.api.meetings.enter, { code });
+  expect(await stats()).toEqual({ waiting: 2, joined: 2, admitted: 0 });
+  await expect(member.asUser.query(api.api.rooms.waitingRoom, { meetingId })).rejects.toThrow(
+    "Only the host",
+  );
+
+  const waiting = async () =>
+    (await host.asUser.query(api.api.joinRequests.waiting, { meetingId, paginationOpts: page }))
+      .page;
+  const [first, second] = await waiting();
+  const guestRequest = first!.isGuest ? first! : second!;
+  const outsiderRequest = first!.isGuest ? second! : first!;
+  await host.asUser.mutation(api.api.joinRequests.admit, { requestId: guestRequest._id });
+  expect(await t.query(api.api.guests.pass, { secret })).toMatchObject({ status: "in" });
+  expect(await stats()).toEqual({ waiting: 1, joined: 2, admitted: 1 });
+  expect(await t.run(async (ctx) => (await ctx.db.query("meetingGuests").first())?.deviceId)).toBe(
+    device,
+  );
+
+  await host.asUser.mutation(api.api.joinRequests.deny, { requestId: outsiderRequest._id });
+  expect(await stats()).toEqual({ waiting: 0, joined: 2, admitted: 1 });
+  await outsider.asUser.mutation(api.api.joinRequests.ask, { code });
+  expect(await stats()).toEqual({ waiting: 1, joined: 2, admitted: 1 });
+  const [again] = await waiting();
+  await host.asUser.mutation(api.api.joinRequests.admit, { requestId: again!._id });
+  expect(await stats()).toEqual({ waiting: 0, joined: 2, admitted: 2 });
+  await outsider.asUser.mutation(api.api.messages.send, { meetingId, body: "thanks" });
+});
+
+test("hosts hear about the first person waiting in a room, not every one after", async () => {
+  const { t, host, outsider, code, meetingId } = await setup();
+  await host.asUser.mutation(api.api.rooms.update, { meetingId, waitingRoom: true });
+  await t.mutation(api.api.guests.enter, { code, name: "Gus", device });
+  await t.mutation(api.api.guests.enter, { code, name: "Ann", device: "device-0002" });
+  await outsider.asUser.mutation(api.api.joinRequests.ask, { code });
+  const notes = await t.run((ctx) =>
+    ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", host.userId))
+      .collect(),
+  );
+  expect(notes).toMatchObject([{ kind: "joinRequest", title: "Quiet study hall" }]);
+});
+
+test("a banned device can't get into the waiting room, and deleting the room clears its counts", async () => {
+  const { t, host, orgId, code, meetingId } = await setup();
+  await host.asUser.mutation(api.api.rooms.update, { meetingId, waitingRoom: true });
+  await t.mutation(api.api.guests.enter, { code, name: "Gus", device });
+  await t.run((ctx) =>
+    ctx.db.insert("bans", { orgId, userId: host.userId, deviceId: "device-0009", reason: "spam" }),
+  );
+  await expect(
+    t.mutation(api.api.guests.enter, { code, name: "Sly", device: "device-0009" }),
+  ).rejects.toThrow("banned");
+  await expect(t.mutation(api.api.guests.enter, { code, name: "Sly" })).rejects.toThrow(
+    "Reload the page",
+  );
+  await host.asUser.mutation(api.api.meetings.cancel, { meetingId });
+  expect(await t.run((ctx) => ctx.db.query("joinRequests").collect())).toEqual([]);
+  expect(await t.run((ctx) => ctx.db.query("rooms").collect())).toHaveLength(0);
 });

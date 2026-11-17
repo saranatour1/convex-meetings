@@ -10,6 +10,7 @@ import workpool from "@convex-dev/workpool/convex.config.js";
 import cloudflareEmail from "@sarant/cloudflare-email-component/convex.config.js";
 import r2 from "@convex-dev/r2/convex.config.js";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config.js";
+import aggregate from "@convex-dev/aggregate/convex.config.js";
 
 const app = defineApp({
   env: {
@@ -49,6 +50,7 @@ app.use(workpool, { name: "emailWorkpool" });
 app.use(workpool, { name: "moderationWorkpool" });
 app.use(r2);
 app.use(rateLimiter);
+app.use(aggregate, { name: "waitingRoom" });
 app.use(cloudflareEmail, {
   env: {
     CLOUDFLARE_ACCOUNT_ID: app.env.CLOUDFLARE_ACCOUNT_ID,

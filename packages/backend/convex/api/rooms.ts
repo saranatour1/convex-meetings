@@ -2,6 +2,7 @@ import { zid } from "convex-helpers/server/zod4";
 import { z } from "zod";
 import {
   authedMutation,
+  authedQuery,
   orgMutation,
   orgQuery,
   publicQuery,
@@ -16,6 +17,7 @@ import {
   listPublicRecaps,
   previewRoom,
   publicRecap,
+  roomWaitingStats,
   updateRoom,
 } from "../models/rooms";
 import { zMeeting } from "../tables/meetings";
@@ -29,6 +31,7 @@ export const create = orgMutation({
     title: zMeeting.shape.title,
     description: zRoom.shape.description,
     slowModeSeconds: zSlowMode,
+    waitingRoom: z.boolean().optional(),
     timeZone: zTimeZone,
   },
   handler: (ctx, { orgId, ...room }) => {
@@ -43,8 +46,14 @@ export const update = authedMutation({
     title: zMeeting.shape.title.optional(),
     description: zRoom.shape.description.optional(),
     slowModeSeconds: zSlowMode.optional(),
+    waitingRoom: z.boolean().optional(),
   },
   handler: (ctx, { meetingId, ...changes }) => updateRoom(ctx, ctx.userId, meetingId, changes),
+});
+
+export const waitingRoom = authedQuery({
+  args: { meetingId: zid("meetings") },
+  handler: (ctx, { meetingId }) => roomWaitingStats(ctx, ctx.userId, meetingId),
 });
 
 export const close = authedMutation({

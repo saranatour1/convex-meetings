@@ -8,6 +8,7 @@ import { zMeeting } from "../tables/meetings";
 import { zRoom } from "../tables/rooms";
 import { audit } from "./audit";
 import { requireCallControl } from "./calls";
+import { waitingRoomStats } from "./joinRequests";
 import { findSessionByNumber } from "./meetingAccess";
 import { findMeetingByCode, startInstantMeeting } from "./meetings";
 import { findRoom, isPublicRoom } from "./roomAccess";
@@ -18,10 +19,16 @@ type NewRoom = {
   title: string;
   description: string;
   slowModeSeconds: number;
+  waitingRoom?: boolean;
   timeZone: string;
 };
 
-type RoomChanges = { title?: string; description?: string; slowModeSeconds?: number };
+type RoomChanges = {
+  title?: string;
+  description?: string;
+  slowModeSeconds?: number;
+  waitingRoom?: boolean;
+};
 
 export const createRoom = async (ctx: MutationCtx, room: NewRoom) => {
   const { meetingId, code } = await startInstantMeeting(
@@ -44,6 +51,7 @@ export const createRoom = async (ctx: MutationCtx, room: NewRoom) => {
       orgId: room.orgId,
       description: room.description,
       people: 0,
+      waitingRoom: room.waitingRoom || undefined,
     }),
   );
   await audit(ctx, room.orgId, room.userId, "roomCreated", { detail: room.title });
@@ -77,13 +85,24 @@ export const updateRoom = async (
       slowModeSeconds: (changes.slowModeSeconds ?? meeting.slowModeSeconds) || undefined,
     }),
   );
-  if (changes.description !== undefined) {
-    await ctx.db.patch(
-      "rooms",
-      room._id,
-      parseOrThrow(zRoom, { ...room, description: changes.description }),
-    );
-  }
+  await ctx.db.patch(
+    "rooms",
+    room._id,
+    parseOrThrow(zRoom, {
+      ...room,
+      description: changes.description ?? room.description,
+      waitingRoom: (changes.waitingRoom ?? room.waitingRoom) || undefined,
+    }),
+  );
+};
+
+export const roomWaitingStats = async (
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+) => {
+  await requireCallControl(ctx, meetingId, userId);
+  return waitingRoomStats(ctx, meetingId);
 };
 
 export const closeRoom = async (
@@ -116,6 +135,7 @@ const describeRoom = async (ctx: QueryCtx, room: Doc<"rooms">) => {
     description: room.description,
     people: room.people,
     slowModeSeconds: meeting.slowModeSeconds ?? 0,
+    waitingRoom: room.waitingRoom ?? false,
     host: org?.name ?? "",
   };
 };

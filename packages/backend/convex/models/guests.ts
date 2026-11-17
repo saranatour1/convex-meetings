@@ -14,7 +14,12 @@ import { findMeetingByCode } from "./meetings";
 import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
 import { queueNameCheck } from "./moderationQueue";
-import { isPublicRoom, requireDeviceNotBanned, requireNotBanned } from "./roomAccess";
+import {
+  hasWaitingRoom,
+  isPublicRoom,
+  requireDeviceNotBanned,
+  requireNotBanned,
+} from "./roomAccess";
 import { notify } from "./notifications";
 
 export const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -173,7 +178,8 @@ const isGuest = async (ctx: QueryCtx, userId: Id<"users">) =>
 export const canEnter = async (ctx: QueryCtx, meeting: Doc<"meetings">, userId: Id<"users">) => {
   const access = meeting.access ?? "invited";
   if (access === "invited" || (await isGuest(ctx, userId))) return false;
-  if (access === "link" || access === "public") return true;
+  if (access === "link") return true;
+  if (access === "public" && !(await hasWaitingRoom(ctx, meeting))) return true;
   return (await findMember(ctx, meeting.orgId, userId)) !== null;
 };
 

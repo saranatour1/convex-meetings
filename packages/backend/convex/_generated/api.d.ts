@@ -40,6 +40,7 @@ import type * as internal_realtime from "../internal/realtime.js";
 import type * as internal_rings from "../internal/rings.js";
 import type * as internal_usage from "../internal/usage.js";
 import type * as internal_users from "../internal/users.js";
+import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_html from "../lib/html.js";
 import type * as lib_ics from "../lib/ics.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   "internal/rings": typeof internal_rings;
   "internal/usage": typeof internal_usage;
   "internal/users": typeof internal_users;
+  "lib/aggregates": typeof lib_aggregates;
   "lib/functions": typeof lib_functions;
   "lib/html": typeof lib_html;
   "lib/ics": typeof lib_ics;
@@ -262,5 +264,6 @@ export declare const components: {
   moderationWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"moderationWorkpool">;
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  waitingRoom: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"waitingRoom">;
   cloudflareEmail: import("@sarant/cloudflare-email-component/_generated/component.js").ComponentApi<"cloudflareEmail">;
 };

@@ -13,6 +13,7 @@ import {
 } from "@meetings/ui/components/card";
 import { Input } from "@meetings/ui/components/input";
 import { Label } from "@meetings/ui/components/label";
+import { Switch } from "@meetings/ui/components/switch";
 import { Textarea } from "@meetings/ui/components/textarea";
 import { FormError } from "#/components/form-error.tsx";
 import { useActiveOrg } from "#/features/orgs/active-org.tsx";
@@ -24,7 +25,7 @@ export const NewRoomForm = ({ onCreated }: { onCreated: (code: string) => void }
   const { orgId, name } = useActiveOrg();
   const create = useMutation(api.rooms.create);
   const form = useForm({
-    defaultValues: { title: "", description: "", slowModeSeconds: 30 },
+    defaultValues: { title: "", description: "", slowModeSeconds: 30, waitingRoom: false },
     validators: {
       onSubmitAsync: async ({ value }) => {
         try {
@@ -100,6 +101,19 @@ export const NewRoomForm = ({ onCreated }: { onCreated: (code: string) => void }
                   onChange={field.handleChange}
                 />
               </div>
+            )}
+          </form.Field>
+          <form.Field name="waitingRoom">
+            {(field) => (
+              <Label className="justify-between gap-3 font-normal">
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-medium">Waiting room</span>
+                  <span className="text-muted-foreground text-xs">
+                    People outside {name} ask to join and a host lets each one in.
+                  </span>
+                </span>
+                <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+              </Label>
             )}
           </form.Field>
           <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
