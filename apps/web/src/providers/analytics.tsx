@@ -28,7 +28,9 @@ declare module "@databuddy/sdk" {
   }
 }
 
-const clientId = import.meta.env.VITE_DATABUDDY_CLIENT_ID;
+const clientId = import.meta.env.PROD
+  ? "966d6359-e335-4668-9600-eb15b43fd81d"
+  : import.meta.env.VITE_DATABUDDY_CLIENT_ID;
 
 export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
   const viewer = useQuery(api.users.viewer);
