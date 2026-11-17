@@ -1,6 +1,7 @@
 import { useMemo, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   ChartGanttIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   GlobeIcon,
@@ -10,6 +11,11 @@ import {
 } from "lucide-react";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@meetings/ui/components/collapsible";
 import {
   NumberField,
   NumberFieldDecrement,
@@ -256,7 +262,7 @@ export const FindATime = ({
     const tag = p.id === organizer.id ? "Organizer" : p.optional ? "Optional" : null;
     return (
       <div key={p.id} className="flex min-h-16 border-b">
-        <div className="flex w-68 shrink-0 items-start gap-2.5 py-2.5 pe-3">
+        <div className="flex w-52 shrink-0 items-start gap-2.5 py-2.5 pe-3">
           <span
             aria-hidden="true"
             className="grid size-8 shrink-0 place-items-center rounded-full bg-muted font-medium text-xs"
@@ -406,49 +412,6 @@ export const FindATime = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <GlobeIcon aria-hidden="true" className="size-4 text-muted-foreground opacity-80" />
-        <span className="text-muted-foreground text-sm">Your time zone</span>
-        <ZonePicker
-          label="Your time zone"
-          placeholder="Search time zones"
-          value={zone}
-          onChange={(next) => onDisplayChange({ zone: next })}
-          className="w-52"
-        />
-        <span className="ms-2 text-muted-foreground text-sm">Also show</span>
-        {extraZones.map((z) => (
-          <span
-            key={z}
-            className="flex h-7 items-center gap-1 rounded-full border ps-2.5 pe-0.5 text-sm"
-          >
-            {zoneLabel(z)}
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {formatOffset(start, z)}
-            </span>
-            <Button
-              size="icon-xs"
-              variant="ghost"
-              className="rounded-full"
-              aria-label={`Stop showing ${zoneLabel(z)}`}
-              onClick={() => onDisplayChange({ zones: extraZones.filter((x) => x !== z) })}
-            >
-              <XIcon />
-            </Button>
-          </span>
-        ))}
-        <ZonePicker
-          label="Add a time zone"
-          placeholder="Add a time zone"
-          onChange={(next) =>
-            next !== zone &&
-            !extraZones.includes(next) &&
-            onDisplayChange({ zones: [...extraZones, next] })
-          }
-          className="w-44"
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
         <span className="me-1 text-muted-foreground text-sm">Best times</span>
         {plan.best.slice(0, 3).map((s) => (
           <Toggle
@@ -491,179 +454,134 @@ export const FindATime = ({
       </p>
 
       {view === "timeline" ? (
-        <>
-          <div className="-mx-6 overflow-x-auto overscroll-x-contain px-6 pt-7 pb-1">
-            <div className="min-w-260">
-              {[zone, ...extraZones].map((z) => (
-                <div key={z} aria-hidden="true" className="flex h-5">
-                  <div className="w-68 shrink-0 truncate pe-3 text-muted-foreground text-xs">
-                    {zoneLabel(z)} · {formatOffset(start, z)}
-                  </div>
-                  <div className="relative flex-1">
-                    {ticks.map((t) => (
-                      <span
-                        key={t}
-                        className="absolute top-0 h-5 border-s ps-1 text-[11px] text-muted-foreground tabular-nums leading-3.5"
-                        style={{ left: `${frac(t) * 100}%` }}
-                      >
-                        {formatTime(t, z)}
-                      </span>
-                    ))}
-                  </div>
+        <div className="-mx-6 overflow-x-auto overscroll-x-contain px-6 pt-7 pb-1">
+          <div className="min-w-160">
+            {[zone, ...extraZones].map((z) => (
+              <div key={z} aria-hidden="true" className="flex h-5">
+                <div className="w-52 shrink-0 truncate pe-3 text-muted-foreground text-xs">
+                  {zoneLabel(z)} · {formatOffset(start, z)}
                 </div>
-              ))}
+                <div className="relative flex-1">
+                  {ticks.map((t) => (
+                    <span
+                      key={t}
+                      className="absolute top-0 h-5 border-s ps-1 text-[11px] text-muted-foreground tabular-nums leading-3.5"
+                      style={{ left: `${frac(t) * 100}%` }}
+                    >
+                      {formatTime(t, z)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="relative">
+              <div
+                role="slider"
+                tabIndex={0}
+                aria-label="Meeting time. Left and right arrows move it, Shift with arrows changes the length."
+                aria-valuemin={0}
+                aria-valuemax={Math.round(span / MINUTE)}
+                aria-valuenow={Math.round((start - plan.from) / MINUTE)}
+                aria-valuetext={`${range}, ${formatDuration(end - start)}`}
+                onKeyDown={onLensKey}
+                {...dragHandlers("move")}
+                className="group absolute -inset-y-1 z-20 cursor-grab touch-none rounded-lg border-2 border-foreground outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                style={{
+                  left: `calc(13rem + (100% - 13rem) * ${frac(start)})`,
+                  width: `calc((100% - 13rem) * ${frac(end) - frac(start)})`,
+                }}
+              >
+                <span className="pointer-events-none absolute -top-6.5 -start-0.5 whitespace-nowrap rounded-sm bg-foreground px-1.5 py-0.5 font-medium text-background text-xs tabular-nums">
+                  {range} · {formatDuration(end - start)}
+                </span>
+                <span
+                  aria-hidden="true"
+                  {...dragHandlers("start")}
+                  className="absolute inset-y-0 -start-2 flex w-4 cursor-ew-resize items-center justify-center"
+                >
+                  <span className="h-8 w-1.5 rounded-full bg-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+                </span>
+                <span
+                  aria-hidden="true"
+                  {...dragHandlers("end")}
+                  className="absolute inset-y-0 -end-2 flex w-4 cursor-ew-resize items-center justify-center"
+                >
+                  <span className="h-8 w-1.5 rounded-full bg-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+                </span>
+              </div>
+              <div className="flex border-b">
+                <div className="flex w-52 shrink-0 flex-col justify-end py-2 pe-3">
+                  <span className="font-medium text-sm">Everyone</span>
+                  <span className="text-muted-foreground text-xs">
+                    Free per half hour. Drag the rows to pick a time.
+                  </span>
+                </div>
+                <div
+                  role="group"
+                  aria-label="Start time"
+                  onKeyDown={onSlotKey}
+                  className="grid h-18 flex-1 items-end"
+                  style={columns}
+                >
+                  {plan.slots.map((s, i) => {
+                    const on = i === slotIndex;
+                    return (
+                      <button
+                        key={s.start}
+                        ref={(el) => {
+                          slotRefs.current[i] = el;
+                        }}
+                        type="button"
+                        tabIndex={on || (slotIndex < 0 && i === 0) ? 0 : -1}
+                        aria-pressed={on}
+                        aria-label={`${formatTime(s.start, zone)}, ${s.free} of ${total} free${s.free === max ? ", one of the best times" : ""}`}
+                        onClick={() => onTimeChange({ start: s.start, minutes: time.minutes })}
+                        className="flex h-18 flex-col items-center justify-end gap-0.5 rounded-md px-0.5 pt-1.5 pb-1 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "block w-full max-w-5 rounded-[3px] transition-[height] duration-150",
+                            on
+                              ? "bg-foreground"
+                              : s.free === max
+                                ? "bg-foreground/36"
+                                : "bg-foreground/12",
+                          )}
+                          style={{
+                            height: Math.max(3, Math.round((s.free / Math.max(total, 1)) * 44)),
+                          }}
+                        />
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "text-[11px] tabular-nums leading-3.5",
+                            on ? "font-semibold text-foreground" : "text-muted-foreground",
+                            s.free === max && "font-semibold",
+                          )}
+                        >
+                          {s.free}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="relative">
                 <div
-                  role="slider"
-                  tabIndex={0}
-                  aria-label="Meeting time. Left and right arrows move it, Shift with arrows changes the length."
-                  aria-valuemin={0}
-                  aria-valuemax={Math.round(span / MINUTE)}
-                  aria-valuenow={Math.round((start - plan.from) / MINUTE)}
-                  aria-valuetext={`${range}, ${formatDuration(end - start)}`}
-                  onKeyDown={onLensKey}
-                  {...dragHandlers("move")}
-                  className="group absolute -inset-y-1 z-20 cursor-grab touch-none rounded-lg border-2 border-foreground outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  style={{
-                    left: `calc(17rem + (100% - 17rem) * ${frac(start)})`,
-                    width: `calc((100% - 17rem) * ${frac(end) - frac(start)})`,
-                  }}
-                >
-                  <span className="pointer-events-none absolute -top-6.5 -start-0.5 whitespace-nowrap rounded-sm bg-foreground px-1.5 py-0.5 font-medium text-background text-xs tabular-nums">
-                    {range} · {formatDuration(end - start)}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    {...dragHandlers("start")}
-                    className="absolute inset-y-0 -start-2 flex w-4 cursor-ew-resize items-center justify-center"
-                  >
-                    <span className="h-8 w-1.5 rounded-full bg-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    {...dragHandlers("end")}
-                    className="absolute inset-y-0 -end-2 flex w-4 cursor-ew-resize items-center justify-center"
-                  >
-                    <span className="h-8 w-1.5 rounded-full bg-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-                  </span>
-                </div>
-                <div className="flex border-b">
-                  <div className="flex w-68 shrink-0 flex-col justify-end py-2 pe-3">
-                    <span className="font-medium text-sm">Everyone</span>
-                    <span className="text-muted-foreground text-xs">
-                      Free per half hour, out of {total}. Drag on the rows to pick a time.
-                    </span>
-                  </div>
-                  <div
-                    role="group"
-                    aria-label="Start time"
-                    onKeyDown={onSlotKey}
-                    className="grid h-18 flex-1 items-end"
-                    style={columns}
-                  >
-                    {plan.slots.map((s, i) => {
-                      const on = i === slotIndex;
-                      return (
-                        <button
-                          key={s.start}
-                          ref={(el) => {
-                            slotRefs.current[i] = el;
-                          }}
-                          type="button"
-                          tabIndex={on || (slotIndex < 0 && i === 0) ? 0 : -1}
-                          aria-pressed={on}
-                          aria-label={`${formatTime(s.start, zone)}, ${s.free} of ${total} free${s.free === max ? ", one of the best times" : ""}`}
-                          onClick={() => onTimeChange({ start: s.start, minutes: time.minutes })}
-                          className="flex h-18 flex-col items-center justify-end gap-0.5 rounded-md px-0.5 pt-1.5 pb-1 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              "block w-full max-w-5 rounded-[3px] transition-[height] duration-150",
-                              on
-                                ? "bg-foreground"
-                                : s.free === max
-                                  ? "bg-foreground/36"
-                                  : "bg-foreground/12",
-                            )}
-                            style={{
-                              height: Math.max(3, Math.round((s.free / Math.max(total, 1)) * 44)),
-                            }}
-                          />
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              "text-[11px] tabular-nums leading-3.5",
-                              on ? "font-semibold text-foreground" : "text-muted-foreground",
-                              s.free === max && "font-semibold",
-                            )}
-                          >
-                            {s.free}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="relative">
-                  <div
-                    ref={trackRef}
-                    aria-hidden="true"
-                    {...dragHandlers("draw")}
-                    className="absolute inset-y-0 start-68 end-0 z-10 cursor-crosshair"
-                  />
-                  {[organizer, ...people].map(personRow)}
-                </div>
+                  ref={trackRef}
+                  aria-hidden="true"
+                  {...dragHandlers("draw")}
+                  className="absolute inset-y-0 start-52 end-0 z-10 cursor-crosshair"
+                />
+                {[organizer, ...people].map(personRow)}
               </div>
             </div>
           </div>
-          <ul
-            aria-label="Legend"
-            className="flex flex-wrap gap-x-5 gap-y-2 text-muted-foreground text-xs"
-          >
-            <li className="flex items-center gap-1.5">
-              <span aria-hidden="true" className="h-3 w-5 rounded-[3px] bg-success/16" />
-              Working hours
-            </li>
-            <li className="flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "h-3 w-5 rounded-[3px] shadow-[inset_0_0_0_1px_var(--color-border)]",
-                  hatch,
-                )}
-              />
-              Outside working hours
-            </li>
-            <li className="flex items-center gap-1.5">
-              <span aria-hidden="true" className="h-3 w-5 rounded-[3px] bg-foreground/72" />
-              Busy, from a shared calendar
-            </li>
-            <li className="flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className="h-3 w-5 rounded-[3px] border border-success-foreground border-dashed bg-success/16"
-              />
-              Working hours only, calendar not shared
-            </li>
-            <li className="flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className="h-3 border-foreground border-s-[1.5px] border-dashed"
-              />
-              Their date changes
-            </li>
-          </ul>
-          <p className="text-muted-foreground text-xs">
-            Your time zone is {zone}, {formatOffset(start, zone)}.{" "}
-            {nextChange
-              ? `Clocks there next change on ${formatLongDate(nextChange, zone)}.`
-              : "No daylight saving there."}
-          </p>
-        </>
+        </div>
       ) : (
         <div className="overflow-x-auto">
-          <div className="min-w-190">
+          <div className="min-w-160">
             <h4 className="mb-2 font-medium text-sm">Everyone at {range}</h4>
             <div
               aria-hidden="true"
@@ -701,6 +619,104 @@ export const FindATime = ({
           </div>
         </div>
       )}
+
+      <Collapsible>
+        <CollapsibleTrigger
+          render={<Button size="sm" variant="ghost" className="group -ms-2.5 w-fit" />}
+        >
+          <ChevronDownIcon className="transition-transform group-data-panel-open:rotate-180" />
+          Time zones and legend
+        </CollapsibleTrigger>
+        <CollapsiblePanel>
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <GlobeIcon aria-hidden="true" className="size-4 text-muted-foreground opacity-80" />
+              <span className="text-muted-foreground text-sm">Your time zone</span>
+              <ZonePicker
+                label="Your time zone"
+                placeholder="Search time zones"
+                value={zone}
+                onChange={(next) => onDisplayChange({ zone: next })}
+                className="w-52"
+              />
+              <span className="ms-2 text-muted-foreground text-sm">Also show</span>
+              {extraZones.map((z) => (
+                <span
+                  key={z}
+                  className="flex h-7 items-center gap-1 rounded-full border ps-2.5 pe-0.5 text-sm"
+                >
+                  {zoneLabel(z)}
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    {formatOffset(start, z)}
+                  </span>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    className="rounded-full"
+                    aria-label={`Stop showing ${zoneLabel(z)}`}
+                    onClick={() => onDisplayChange({ zones: extraZones.filter((x) => x !== z) })}
+                  >
+                    <XIcon />
+                  </Button>
+                </span>
+              ))}
+              <ZonePicker
+                label="Add a time zone"
+                placeholder="Add a time zone"
+                onChange={(next) =>
+                  next !== zone &&
+                  !extraZones.includes(next) &&
+                  onDisplayChange({ zones: [...extraZones, next] })
+                }
+                className="w-44"
+              />
+            </div>
+            <ul
+              aria-label="Legend"
+              className="flex flex-wrap gap-x-5 gap-y-2 text-muted-foreground text-xs"
+            >
+              <li className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="h-3 w-5 rounded-[3px] bg-success/16" />
+                Working hours
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "h-3 w-5 rounded-[3px] shadow-[inset_0_0_0_1px_var(--color-border)]",
+                    hatch,
+                  )}
+                />
+                Outside working hours
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="h-3 w-5 rounded-[3px] bg-foreground/72" />
+                Busy, from a shared calendar
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className="h-3 w-5 rounded-[3px] border border-success-foreground border-dashed bg-success/16"
+                />
+                Working hours only, calendar not shared
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className="h-3 border-foreground border-s-[1.5px] border-dashed"
+                />
+                Their date changes
+              </li>
+            </ul>
+            <p className="text-muted-foreground text-xs">
+              Your time zone is {zone}, {formatOffset(start, zone)}.{" "}
+              {nextChange
+                ? `Clocks there next change on ${formatLongDate(nextChange, zone)}.`
+                : "No daylight saving there."}
+            </p>
+          </div>
+        </CollapsiblePanel>
+      </Collapsible>
     </section>
   );
 };

@@ -1,14 +1,12 @@
 import { useDeferredValue, useMemo } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
-import {
-  CalendarCheckIcon,
-  CalendarClockIcon,
-  ClockIcon,
-  EyeOffIcon,
-  RepeatIcon,
-  TriangleAlertIcon,
-} from "lucide-react";
+import { CalendarClockIcon, ChevronDownIcon, RepeatIcon, TriangleAlertIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@meetings/ui/components/collapsible";
 import {
   Card,
   CardDescription,
@@ -31,7 +29,7 @@ import { parseRRule } from "@meetings/ui/kloq/rrule";
 import { RRuleBuilder } from "@meetings/ui/kloq/rrule-builder";
 import { FormError } from "#/components/form-error.tsx";
 import { PeoplePicker } from "#/features/meetings/people-picker.tsx";
-import { MEETING_KINDS, type MeetingKind } from "#/features/meetings/meeting-kinds.ts";
+import { MEETING_KINDS, kindOf, type MeetingKind } from "#/features/meetings/meeting-kinds.ts";
 import {
   FindATime,
   type MeetingTime,
@@ -50,7 +48,6 @@ import {
   wallMinutes,
   wallToUtc,
   type Person,
-  type Share,
 } from "#/lib/schedule.ts";
 
 export type NewMeeting = {
@@ -144,9 +141,15 @@ export const ScheduleForm = ({
     );
   }, [rule, everyone, day, chosen, zone]);
 
-  const others = everyone.filter((p) => p.id !== invitees.organizer.id);
-  const sharing = (share: Share) => others.filter((p) => p.share === share).length;
-  const notShared = sharing("none");
+  const optionsSummary = [
+    kindOf(values.kind).label,
+    values.recap ? "Transcript on" : "No transcript",
+    rule && "Repeats",
+    values.protected && "Protected",
+    values.isPrivate && "Private",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const zoneCount = new Set(everyone.map((p) => formatOffset(chosen, p.timeZone))).size;
 
   return (
@@ -161,94 +164,22 @@ export const ScheduleForm = ({
         </CardDescription>
       </CardHeader>
       <CardPanel className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3">
-          <form.Field name="title">
-            {(field) => (
-              <>
-                <Label htmlFor="meeting-title" className="sr-only">
-                  Title
-                </Label>
-                <Input
-                  id="meeting-title"
-                  autoFocus
-                  value={field.state.value}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="Meeting title"
-                />
-              </>
-            )}
-          </form.Field>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="flex items-center gap-2 text-muted-foreground text-sm">
-              <RepeatIcon aria-hidden="true" className="size-4 opacity-80" />
-              Repeats
-            </span>
-            <form.Field name="rrule">
-              {(field) => (
-                <RRuleBuilder
-                  value={field.state.value}
-                  date={new Date(chosen)}
-                  onChange={field.handleChange}
-                  className="w-64"
-                />
-              )}
-            </form.Field>
-            <form.Field name="kind">
-              {(field) => (
-                <Select
-                  value={field.state.value}
-                  onValueChange={(value) => value && field.handleChange(value as MeetingKind)}
-                  items={MEETING_KINDS.map((k) => ({ value: k.value, label: k.label }))}
-                >
-                  <SelectTrigger className="w-40" aria-label="Meeting type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectPopup>
-                    {MEETING_KINDS.map((k) => (
-                      <SelectItem key={k.value} value={k.value}>
-                        {k.label}
-                      </SelectItem>
-                    ))}
-                  </SelectPopup>
-                </Select>
-              )}
-            </form.Field>
-            <form.Field name="recap">
-              {(field) => (
-                <Label className="gap-2">
-                  <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                  Transcript and summary
-                </Label>
-              )}
-            </form.Field>
-            <form.Field name="protected">
-              {(field) => (
-                <Label
-                  className="ms-2 gap-2"
-                  title="Turns recording off and keeps downloads to hosts"
-                >
-                  <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                  Protected
-                </Label>
-              )}
-            </form.Field>
-            <form.Field name="isPrivate">
-              {(field) => (
-                <>
-                  <Label className="ms-2 gap-2">
-                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
-                    Private
-                  </Label>
-                  <span className="text-muted-foreground text-sm">
-                    {field.state.value
-                      ? "People who can see your calendar see only “Busy”."
-                      : "The title shows on calendars you share."}
-                  </span>
-                </>
-              )}
-            </form.Field>
-          </div>
-        </div>
+        <form.Field name="title">
+          {(field) => (
+            <>
+              <Label htmlFor="meeting-title" className="sr-only">
+                Title
+              </Label>
+              <Input
+                id="meeting-title"
+                autoFocus
+                value={field.state.value}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="Meeting title"
+              />
+            </>
+          )}
+        </form.Field>
 
         <section aria-labelledby="who-heading" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -261,39 +192,11 @@ export const ScheduleForm = ({
                 : `${everyone.length} people · ${zoneCount} time zones`}
             </span>
           </div>
-          <ul className="flex flex-wrap gap-2">
-            <li className="flex h-9 items-center gap-2 rounded-full border ps-1 pe-3">
-              <span
-                aria-hidden="true"
-                className="grid size-7 place-items-center rounded-full bg-primary font-medium text-primary-foreground text-xs"
-              >
-                {invitees.organizer.initials}
-              </span>
-              <span className="font-medium text-sm">You</span>
-              <span className="text-muted-foreground text-xs">
-                Organizer · {invitees.organizer.city}
-              </span>
-            </li>
-          </ul>
           <PeoplePicker
             people={invitees.people}
             value={added}
             onChange={(ids) => form.setFieldValue("added", ids)}
           />
-          <p className="flex flex-wrap gap-x-5 gap-y-2 text-muted-foreground text-xs">
-            <span className="flex items-center gap-1.5">
-              <CalendarCheckIcon aria-hidden="true" className="size-3.5" />
-              {sharing("calendar")} share their calendar with you
-            </span>
-            <span className="flex items-center gap-1.5">
-              <ClockIcon aria-hidden="true" className="size-3.5" />
-              {sharing("hours")} share working hours only
-            </span>
-            <span className="flex items-center gap-1.5">
-              <EyeOffIcon aria-hidden="true" className="size-3.5" />
-              {notShared} {notShared === 1 ? "hasn't" : "haven't"} shared anything yet
-            </span>
-          </p>
         </section>
 
         <FindATime
@@ -315,6 +218,87 @@ export const ScheduleForm = ({
           onDisplayChange={onDisplayChange}
         />
 
+        <Collapsible>
+          <CollapsibleTrigger
+            render={<Button size="sm" variant="ghost" className="group -ms-2.5 w-fit" />}
+          >
+            <ChevronDownIcon className="transition-transform group-data-panel-open:rotate-180" />
+            More options
+            <span className="font-normal text-muted-foreground">{optionsSummary}</span>
+          </CollapsibleTrigger>
+          <CollapsiblePanel>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <span className="flex items-center gap-2 text-muted-foreground text-sm">
+                <RepeatIcon aria-hidden="true" className="size-4 opacity-80" />
+                Repeats
+              </span>
+              <form.Field name="rrule">
+                {(field) => (
+                  <RRuleBuilder
+                    value={field.state.value}
+                    date={new Date(chosen)}
+                    onChange={field.handleChange}
+                    className="w-64"
+                  />
+                )}
+              </form.Field>
+              <form.Field name="kind">
+                {(field) => (
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => value && field.handleChange(value as MeetingKind)}
+                    items={MEETING_KINDS.map((k) => ({ value: k.value, label: k.label }))}
+                  >
+                    <SelectTrigger className="w-40" aria-label="Meeting type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectPopup>
+                      {MEETING_KINDS.map((k) => (
+                        <SelectItem key={k.value} value={k.value}>
+                          {k.label}
+                        </SelectItem>
+                      ))}
+                    </SelectPopup>
+                  </Select>
+                )}
+              </form.Field>
+              <form.Field name="recap">
+                {(field) => (
+                  <Label className="gap-2">
+                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                    Transcript and summary
+                  </Label>
+                )}
+              </form.Field>
+              <form.Field name="protected">
+                {(field) => (
+                  <Label
+                    className="ms-2 gap-2"
+                    title="Turns recording off and keeps downloads to hosts"
+                  >
+                    <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                    Protected
+                  </Label>
+                )}
+              </form.Field>
+              <form.Field name="isPrivate">
+                {(field) => (
+                  <>
+                    <Label className="ms-2 gap-2">
+                      <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+                      Private
+                    </Label>
+                    <span className="text-muted-foreground text-sm">
+                      {field.state.value
+                        ? "People who can see your calendar see only “Busy”."
+                        : "The title shows on calendars you share."}
+                    </span>
+                  </>
+                )}
+              </form.Field>
+            </div>
+          </CollapsiblePanel>
+        </Collapsible>
         {shifts.length > 0 && (
           <div className="flex items-start gap-2 rounded-lg bg-warning/8 px-3 py-2.5 text-sm dark:bg-warning/16">
             <TriangleAlertIcon

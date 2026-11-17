@@ -134,7 +134,7 @@ Rules:
 - The logo is `components/logo.tsx`. `public/favicon.svg`, `public/apple-touch-icon.png` and `public/og.png` are drawn from the same strokes.
 - Settings live behind the user menu at the bottom of the sidebar: `/settings/account`, `/settings/general` (appearance, time zone and hours), `/settings/meetings` and `/settings/org`. Per-person preferences are the `userSettings` table (`api.settings.getMine` / `setMine`, defaults in `models/settings.ts`).
 - Theme: `lib/theme.ts` puts `dark` or `light` on `<html>` (Kloq and COSS both follow it), remembers the choice locally, and an inline `THEME_SCRIPT` restores it before paint. The saved `userSettings.theme` is applied on a new device. Calls pick RealtimeKit's light or dark tokens from it.
-- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/schedule?zone=…&zones=…&view=list`, `/calendar?zones=…`, `/sign-in?redirect=…`.
+- UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/schedule?zone=…&zones=…&view=list`, `/calendar?zones=…&new=true&start=…`, `/sign-in?redirect=…`.
 - Changing URL state:
   - Declarative navigation is a `<Link>` anywhere: features, layouts or routes.
   - Imperative navigation (`navigate`) belongs to routes. Features receive it as callbacks (`onClose`, `onInvite`).
@@ -144,7 +144,7 @@ Rules:
 - The active organization is a saved preference (`userSettings.activeOrgId`), not part of the URL. `orgs.setActive` switches it (optimistically, through `useSwitchOrg`); creating or joining an org makes it active. `OrgGate` falls back to the first org, or asks to create one. Features read it with `useActiveOrg()`.
 - Org names: nobody can be in two orgs with the same name (case-insensitive), so the switcher never shows duplicates. Names don't need to be unique across everyone.
 - Scheduling starts with only the organizer; people are added from the org with `PeoplePicker`.
-- The calendar passes Kloq controlled, read-only events keyed by meeting code, with the meeting link, your reply as an attendee and, for the selected event (`/calendar?event=<code>`), everyone's replies from `meetings.get`. Kloq's own panel shows them. Unanswered invites are drawn as free (hatched). Declined meetings are hidden unless `?declined=true`.
+- The calendar passes Kloq controlled, read-only events keyed by meeting code, with the meeting link, your reply as an attendee and, for the selected event (`/calendar?event=<code>`), everyone's replies from `meetings.get`. Kloq's own panel shows them. Unanswered invites are drawn as free (hatched). Declined meetings are hidden unless `?declined=true`. Clicking or dragging an empty slot, or Schedule meeting in its toolbar, opens the schedule form in a dialog over the calendar (`?new=true&start=…&minutes=…`); scheduling closes it and selects the new meeting.
 - Find a time shows the org's members (`features/orgs/people.ts` maps them to `Person`). Busy times come from `meetings.busy`, and the calendar and Home read `meetings.mine`.
 - Search-param updates that only change what is shown pass `resetScroll: false`, so the page doesn't jump to the top.
 - Form state comes from TanStack Form (`useForm`). Server errors come back through `validators.onSubmitAsync`.
