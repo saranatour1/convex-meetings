@@ -11,6 +11,18 @@ export const MeetingCall = lazy(() =>
   loadMeetingCall().then((module) => ({ default: module.MeetingCall })),
 );
 
+export const JoinCallButton = ({ onJoin }: { onJoin: () => void }) => (
+  <Button
+    size="lg"
+    onPointerEnter={() => void loadMeetingCall()}
+    onFocus={() => void loadMeetingCall()}
+    onClick={onJoin}
+  >
+    <VideoIcon />
+    Join
+  </Button>
+);
+
 type JoinCallCardProps = { kind: MeetingKind; onJoin: () => void; hint?: string };
 
 export const JoinCallCard = ({ kind, onJoin, hint }: JoinCallCardProps) => (

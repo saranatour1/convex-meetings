@@ -3,17 +3,16 @@ import { Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
+  ArrowRightIcon,
+  CalendarClockIcon,
   CheckIcon,
   CopyIcon,
   DoorClosedIcon,
-  FileTextIcon,
-  UserCheckIcon,
-  UserXIcon,
+  EllipsisIcon,
   VideoIcon,
   XIcon,
 } from "lucide-react";
 import { api } from "@meetings/backend";
-import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -23,25 +22,217 @@ import {
   CardPanel,
   CardTitle,
 } from "@meetings/ui/components/card";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/menu";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@meetings/ui/components/tabs";
+import { cn } from "@meetings/ui/lib/utils";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
+import { roomLink } from "#/features/rooms/room-link.ts";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { copyWithToast, showError } from "#/lib/errors.ts";
-import { getInitials } from "#/lib/initials.ts";
-import { cityOf, formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
+import { cityOf, dayOf, formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
-import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
-import {
-  InviteToMeeting,
-  MeetingDoor,
-  MeetingSettingsCard,
-  meetingLink,
-} from "./meeting-access.tsx";
-import { roomLink } from "#/features/rooms/room-link.ts";
-import { JoinRequests } from "./join-requests.tsx";
+import { JoinCallButton, MeetingCall, MeetingEnded } from "./call-entry.tsx";
+import { JOIN_EARLY, countdown, useMinute } from "./clock.ts";
+import { MeetingDoor, MeetingSettingsCard, meetingLink } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
+import { type MeetingDetails, MeetingPeople } from "./meeting-people.tsx";
+import type { MeetingTab } from "./meeting-search.ts";
+import { JoinRequests } from "./join-requests.tsx";
 
-const RESPONSE_LABEL = { accepted: "Going", declined: "Not going", pending: "No reply yet" };
+type Session = MeetingDetails["sessions"][number];
+
+const sessionSummary = (session: Session, zone: string) =>
+  [
+    `${formatDate(session.startedAt, zone)} · ${formatTime(session.startedAt, zone)}${
+      session.endedAt ? `–${formatTime(session.endedAt, zone)}` : ""
+    }`,
+    session.endedAt && (formatDuration(session.endedAt - session.startedAt) || "under a minute"),
+    `${session.attendees} joined`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+const Status = ({ meeting, now }: { meeting: MeetingDetails; now: number }) => {
+  if (meeting.endedAt) return <Badge variant="outline">Ended</Badge>;
+  if (meeting.sessions.some((session) => session.endedAt === null)) {
+    return <Badge variant="success">LIVE</Badge>;
+  }
+  const time = meeting.access === "public" ? null : meeting.time;
+  if (!time || time.endsAt <= now || time.startsAt - now > JOIN_EARLY) return null;
+  return <Badge variant="warning">{countdown(time.startsAt, now)}</Badge>;
+};
+
+const HostMenu = ({
+  meeting,
+  room,
+  onCancelled,
+}: {
+  meeting: MeetingDetails;
+  room: boolean;
+  onCancelled: () => void;
+}) => {
+  const cancel = useMutation(api.meetings.cancel);
+  const closeRoom = useMutation(api.rooms.close);
+
+  return (
+    <Menu>
+      <MenuTrigger render={<Button size="icon-lg" variant="outline" aria-label="More actions" />}>
+        <EllipsisIcon />
+      </MenuTrigger>
+      <MenuPopup align="end">
+        {room && !meeting.endedAt && (
+          <MenuItem
+            onClick={() =>
+              void closeRoom({ meetingId: meeting._id })
+                .then(() => track("room_closed"))
+                .catch(showError)
+            }
+          >
+            <DoorClosedIcon />
+            Close room
+          </MenuItem>
+        )}
+        <MenuItem
+          variant="destructive"
+          onClick={() =>
+            void cancel({ meetingId: meeting._id })
+              .then(() => {
+                track("meeting_cancelled");
+                onCancelled();
+              })
+              .catch(showError)
+          }
+        >
+          <XIcon />
+          {room ? "Delete room" : "Cancel meeting"}
+        </MenuItem>
+      </MenuPopup>
+    </Menu>
+  );
+};
+
+const Reply = ({ meeting }: { meeting: MeetingDetails }) => {
+  const respond = useMutation(api.meetings.respond);
+  const options = [
+    { response: "accepted", label: "Going" },
+    { response: "declined", label: "Not going" },
+  ] as const;
+
+  return (
+    <div role="group" aria-label="Your reply" className="flex gap-1.5">
+      {options.map(({ response, label }) => {
+        const chosen = meeting.me.response === response;
+        return (
+          <Button
+            key={response}
+            size="lg"
+            variant={chosen ? "secondary" : "outline"}
+            aria-pressed={chosen}
+            onClick={() =>
+              void respond({ meetingId: meeting._id, response })
+                .then(() => track("meeting_responded", { response }))
+                .catch(showError)
+            }
+          >
+            {chosen && <CheckIcon />}
+            {label}
+          </Button>
+        );
+      })}
+    </div>
+  );
+};
+
+const LastCall = ({
+  meeting,
+  session,
+  room,
+  zone,
+}: {
+  meeting: MeetingDetails;
+  session: Session;
+  room: boolean;
+  zone: string;
+}) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Last call</CardTitle>
+      <CardDescription className="tabular-nums">{sessionSummary(session, zone)}</CardDescription>
+    </CardHeader>
+    <CardPanel className="flex flex-col gap-3">
+      <p className="line-clamp-4 whitespace-pre-wrap text-muted-foreground text-sm">
+        {session.summary ??
+          (meeting.recap
+            ? "The summary shows up a few minutes after the call ends."
+            : "Transcripts and summaries are off for this meeting.")}
+      </p>
+      <Button
+        size="sm"
+        variant="outline"
+        className="self-start"
+        render={
+          <Link
+            to={room ? "/rooms/$code/recaps/$number" : "/meetings/$code/recaps/$number"}
+            params={{ code: meeting.code, number: session.number }}
+          />
+        }
+      >
+        Open recap
+        <ArrowRightIcon />
+      </Button>
+    </CardPanel>
+  </Card>
+);
+
+const Recaps = ({
+  meeting,
+  room,
+  zone,
+}: {
+  meeting: MeetingDetails;
+  room: boolean;
+  zone: string;
+}) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Recaps</CardTitle>
+      <CardDescription>
+        {meeting.recap
+          ? "Summaries arrive a few minutes after a call ends. Links last 7 days."
+          : "Transcripts and summaries are off for this meeting."}
+      </CardDescription>
+    </CardHeader>
+    <CardPanel>
+      <ul className="flex flex-col divide-y">
+        {meeting.sessions.map((session) => (
+          <li key={session._id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+            <Link
+              to={room ? "/rooms/$code/recaps/$number" : "/meetings/$code/recaps/$number"}
+              params={{ code: meeting.code, number: session.number }}
+              className="font-medium text-sm tabular-nums underline-offset-4 hover:underline"
+            >
+              {sessionSummary(session, zone)}
+            </Link>
+            {session.summary && (
+              <p className="whitespace-pre-wrap text-muted-foreground text-sm">{session.summary}</p>
+            )}
+            <div className="flex gap-3 text-muted-foreground text-xs">
+              {session.endedAt === null && <span>In progress</span>}
+              {session.hasTranscript && <span>Transcript</span>}
+              {session.hasRecording && (
+                <span className="flex items-center gap-1">
+                  <VideoIcon className="size-3.5" />
+                  Recording
+                </span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </CardPanel>
+  </Card>
+);
 
 type MeetingPageProps = {
   code: string;
@@ -52,6 +243,8 @@ type MeetingPageProps = {
   onSideChange: (side: CallSide | undefined) => void;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  tab?: MeetingTab;
+  onTabChange: (tab: MeetingTab | undefined) => void;
 };
 
 export const MeetingPage = ({
@@ -63,264 +256,176 @@ export const MeetingPage = ({
   onSideChange,
   expanded,
   onExpandedChange,
+  tab,
+  onTabChange,
 }: MeetingPageProps) => {
   const meeting = useQuery(api.meetings.get, { code });
-  const respond = useMutation(api.meetings.respond);
-  const cancel = useMutation(api.meetings.cancel);
-  const remove = useMutation(api.calls.remove);
-  const letIn = useMutation(api.calls.letIn);
-  const closeRoom = useMutation(api.rooms.close);
+  const now = useMinute();
   if (meeting === undefined) return <LoadingScreen />;
   if (meeting === null) return <MeetingDoor code={code} />;
-  const meetingId = meeting._id;
 
   const zone = browserTimeZone();
   const room = meeting.access === "public";
   const time = room ? null : meeting.time;
   const isHost = meeting.me.role === "host";
   const link = room ? roomLink(meeting.code) : meetingLink(meeting.code);
+  const lastCall = meeting.sessions.find((session) => session.endedAt !== null);
+  const sideColumn = meeting.me.canControl || lastCall;
+  const current = tab === "recaps" && !meeting.sessions.length ? "overview" : (tab ?? "overview");
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-2">
-            {meeting.title}
-            <Badge variant="outline">{room ? "Public room" : kindOf(meeting.kind).label}</Badge>
-          </CardTitle>
+      {meeting.me.canControl && !inCall && (
+        <JoinRequests meetingId={meeting._id} className="rounded-lg p-3" />
+      )}
+
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="flex min-w-0 flex-1 basis-80 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline">
+              <span
+                aria-hidden
+                className={cn(
+                  "size-1.5 rounded-full",
+                  room ? "bg-muted-foreground" : kindOf(meeting.kind).dot,
+                )}
+              />
+              {room ? "Public room" : kindOf(meeting.kind).label}
+            </Badge>
+            <Status meeting={meeting} now={now} />
+            {isHost && <Badge variant="outline">You're hosting</Badge>}
+          </div>
+          <h1 className="font-semibold text-2xl tracking-tight">{meeting.title}</h1>
           {time && (
-            <CardDescription className="tabular-nums">
-              {formatDate(time.startsAt, zone)} · {formatTime(time.startsAt, zone)}–
-              {formatTime(time.endsAt, zone)}
+            <p className="flex flex-wrap items-center gap-1.5 text-muted-foreground text-sm tabular-nums">
+              <CalendarClockIcon className="size-4" />
+              {dayOf(time.startsAt, zone) === dayOf(now, zone)
+                ? "Today"
+                : formatDate(time.startsAt, zone)}{" "}
+              · {formatTime(time.startsAt, zone)}–{formatTime(time.endsAt, zone)}
               {time.timeZone !== zone &&
                 ` · ${formatTime(time.startsAt, time.timeZone)} in ${cityOf(time.timeZone)}`}
               {time.rrule && " · repeats"}
-            </CardDescription>
+            </p>
           )}
           <div className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-muted-foreground text-sm">{link}</span>
+            <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+              {meeting.code}
+            </code>
             <Button
-              size="icon-sm"
+              size="sm"
               variant="ghost"
-              aria-label={room ? "Copy the public link" : "Copy meeting link"}
               onClick={() =>
                 void copyWithToast(link, room ? "Public link copied" : "Meeting link copied")
               }
             >
               <CopyIcon />
+              Copy link
             </Button>
           </div>
-        </CardHeader>
-        <CardPanel className="flex flex-col gap-6">
-          {meeting.me.canControl && !inCall && (
-            <JoinRequests meetingId={meetingId} className="rounded-lg p-3" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {!isHost && !room && <Reply meeting={meeting} />}
+          {isHost && <HostMenu meeting={meeting} room={room} onCancelled={onCancelled} />}
+          {!meeting.endedAt && !inCall && <JoinCallButton onJoin={() => onInCallChange(true)} />}
+        </div>
+      </header>
+
+      {meeting.endedAt && <MeetingEnded endedAt={meeting.endedAt} room={room} />}
+      {inCall && !meeting.endedAt && (
+        <Suspense fallback={<Button disabled>Loading call…</Button>}>
+          <MeetingCall
+            meetingId={meeting._id}
+            title={meeting.title}
+            kind={meeting.kind}
+            inCall={inCall}
+            onInCallChange={onInCallChange}
+            side={side}
+            onSideChange={onSideChange}
+            expanded={expanded}
+            onExpandedChange={onExpandedChange}
+            canControl={meeting.me.canControl}
+            devicesInCall={meeting.me.devicesInCall}
+            isProtected={meeting.protected}
+            moderated={room}
+          />
+        </Suspense>
+      )}
+
+      <Tabs
+        value={current}
+        onValueChange={(value: string) =>
+          onTabChange(value === "overview" ? undefined : (value as MeetingTab))
+        }
+        className="gap-4"
+      >
+        <TabsList variant="underline" className="w-full justify-start border-b">
+          <TabsTab value="overview" className="grow-0">
+            Overview
+          </TabsTab>
+          <TabsTab value="chat" className="grow-0">
+            Chat
+          </TabsTab>
+          {meeting.sessions.length > 0 && (
+            <TabsTab value="recaps" className="grow-0 gap-1.5">
+              Recaps
+              <Badge variant="secondary" size="sm" className="tabular-nums">
+                {meeting.sessions.length}
+              </Badge>
+            </TabsTab>
           )}
-          {meeting.endedAt ? (
-            <MeetingEnded endedAt={meeting.endedAt} room={room} />
-          ) : inCall ? (
-            <Suspense fallback={<Button disabled>Loading call…</Button>}>
-              <MeetingCall
-                meetingId={meetingId}
-                title={meeting.title}
-                kind={meeting.kind}
-                inCall={inCall}
-                onInCallChange={onInCallChange}
-                side={side}
-                onSideChange={onSideChange}
-                expanded={expanded}
-                onExpandedChange={onExpandedChange}
-                canControl={meeting.me.canControl}
-                devicesInCall={meeting.me.devicesInCall}
-                isProtected={meeting.protected}
-                moderated={room}
-              />
-            </Suspense>
-          ) : (
-            <JoinCallCard kind={meeting.kind} onJoin={() => onInCallChange(true)} />
-          )}
-          <div className="flex flex-wrap gap-2">
-            {room && meeting.me.canControl && !meeting.endedAt && (
-              <Button
-                variant="outline"
-                onClick={() =>
-                  void closeRoom({ meetingId })
-                    .then(() => track("room_closed"))
-                    .catch(showError)
-                }
-              >
-                <DoorClosedIcon />
-                Close room
-              </Button>
+        </TabsList>
+
+        <TabsPanel value="overview">
+          <div
+            className={cn(
+              "grid items-start gap-6",
+              sideColumn && "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]",
             )}
-            {isHost ? (
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  void cancel({ meetingId })
-                    .then(() => {
-                      track("meeting_cancelled");
-                      onCancelled();
-                    })
-                    .catch(showError)
-                }
-              >
-                <XIcon />
-                {room ? "Delete room" : "Cancel meeting"}
-              </Button>
-            ) : room ? null : (
-              <>
-                <Button
-                  variant={meeting.me.response === "accepted" ? "default" : "outline"}
-                  onClick={() =>
-                    void respond({ meetingId, response: "accepted" })
-                      .then(() => track("meeting_responded", { response: "accepted" }))
-                      .catch(showError)
-                  }
-                >
-                  <CheckIcon />
-                  Going
-                </Button>
-                <Button
-                  variant={meeting.me.response === "declined" ? "default" : "outline"}
-                  onClick={() =>
-                    void respond({ meetingId, response: "declined" })
-                      .then(() => track("meeting_responded", { response: "declined" }))
-                      .catch(showError)
-                  }
-                >
-                  Not going
-                </Button>
-              </>
+          >
+            <MeetingPeople meeting={meeting} room={room} />
+            {sideColumn && (
+              <div className="flex flex-col gap-6">
+                {meeting.me.canControl && (
+                  <MeetingSettingsCard
+                    meetingId={meeting._id}
+                    access={meeting.access}
+                    inviters={meeting.inviters}
+                    isProtected={meeting.protected}
+                    slowModeSeconds={meeting.slowModeSeconds}
+                    waitingRoom={meeting.waitingRoom}
+                  />
+                )}
+                {lastCall && (
+                  <LastCall meeting={meeting} session={lastCall} room={room} zone={zone} />
+                )}
+              </div>
             )}
           </div>
-          {meeting.me.canInvite && !room && <InviteToMeeting meetingId={meetingId} />}
-          <ul className="flex flex-col gap-2">
-            {meeting.people.map((person) => (
-              <li key={person._id} className="flex items-center gap-3">
-                <Avatar className="size-7">
-                  {person.imageUrl && <AvatarImage src={person.imageUrl} alt="" />}
-                  <AvatarFallback className="text-xs">{getInitials(person.name)}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm">{person.name}</span>
-                <span className="text-muted-foreground text-xs">
-                  {person.role === "host"
-                    ? "Host"
-                    : room
-                      ? "Visitor"
-                      : RESPONSE_LABEL[person.response]}
-                </span>
-                {person.isGuest && (
-                  <Badge variant="outline" size="sm">
-                    Guest
-                  </Badge>
-                )}
-                {person.removed && (
-                  <Badge variant="error" size="sm">
-                    Removed
-                  </Badge>
-                )}
-                {meeting.me.canControl && person._id !== meeting.me._id && (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    className="ms-auto"
-                    onClick={() =>
-                      void (
-                        person.removed
-                          ? letIn({ meetingMemberId: person._id })
-                          : remove({ meetingMemberId: person._id })
-                      ).catch(showError)
-                    }
-                  >
-                    {person.removed ? (
-                      <>
-                        <UserCheckIcon />
-                        Let back in
-                      </>
-                    ) : (
-                      <>
-                        <UserXIcon />
-                        Remove from call
-                      </>
-                    )}
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </CardPanel>
-      </Card>
+        </TabsPanel>
 
-      {meeting.me.canControl && (
-        <MeetingSettingsCard
-          meetingId={meetingId}
-          access={meeting.access}
-          inviters={meeting.inviters}
-          isProtected={meeting.protected}
-          slowModeSeconds={meeting.slowModeSeconds}
-          waitingRoom={meeting.waitingRoom}
-        />
-      )}
+        <TabsPanel value="chat">
+          <Card>
+            <CardHeader>
+              <CardTitle>Chat</CardTitle>
+              <CardDescription>
+                {room
+                  ? "Everyone in this public room sees it."
+                  : "Only people invited to this meeting see it."}
+              </CardDescription>
+            </CardHeader>
+            <CardPanel>
+              <MeetingChat className="h-[32rem]" meetingId={meeting._id} />
+            </CardPanel>
+          </Card>
+        </TabsPanel>
 
-      {meeting.sessions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileTextIcon className="size-4" />
-              Recaps
-            </CardTitle>
-            <CardDescription>
-              {meeting.recap
-                ? "Summaries arrive a few minutes after a call ends. Links last 7 days."
-                : "Transcripts and summaries are off for this meeting."}
-            </CardDescription>
-          </CardHeader>
-          <CardPanel className="flex flex-col gap-4">
-            {meeting.sessions.map((session) => (
-              <section key={session._id} className="flex flex-col gap-1">
-                <Link
-                  to={room ? "/rooms/$code/recaps/$number" : "/meetings/$code/recaps/$number"}
-                  params={{ code: meeting.code, number: session.number }}
-                  className="font-medium text-sm tabular-nums underline-offset-4 hover:underline"
-                >
-                  {formatDate(session.startedAt, zone)} · {formatTime(session.startedAt, zone)}
-                  {session.endedAt &&
-                    `–${formatTime(session.endedAt, zone)} · ${formatDuration(session.endedAt - session.startedAt) || "under a minute"}`}{" "}
-                  · {session.attendees} joined →
-                </Link>
-                {session.summary && (
-                  <p className="whitespace-pre-wrap text-muted-foreground text-sm">
-                    {session.summary}
-                  </p>
-                )}
-                <div className="flex gap-3 text-muted-foreground text-xs">
-                  {session.hasTranscript && <span>Transcript</span>}
-                  {session.hasRecording && (
-                    <span className="flex items-center gap-1">
-                      <VideoIcon className="size-3.5" />
-                      Recording
-                    </span>
-                  )}
-                </div>
-              </section>
-            ))}
-          </CardPanel>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Chat</CardTitle>
-          <CardDescription>
-            {room
-              ? "Everyone in this public room sees it."
-              : "Only people invited to this meeting see it."}
-          </CardDescription>
-        </CardHeader>
-        <CardPanel>
-          <MeetingChat className="h-96" meetingId={meetingId} />
-        </CardPanel>
-      </Card>
+        {meeting.sessions.length > 0 && (
+          <TabsPanel value="recaps">
+            <Recaps meeting={meeting} room={room} zone={zone} />
+          </TabsPanel>
+        )}
+      </Tabs>
     </div>
   );
 };
