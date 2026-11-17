@@ -35,6 +35,7 @@ import {
   MeetingSettingsCard,
   meetingLink,
 } from "./meeting-access.tsx";
+import { JoinRequests } from "./join-requests.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -106,6 +107,9 @@ export const MeetingPage = ({
           </div>
         </CardHeader>
         <CardPanel className="flex flex-col gap-6">
+          {meeting.me.canControl && !inCall && (
+            <JoinRequests meetingId={meetingId} className="rounded-lg p-3" />
+          )}
           {meeting.endedAt ? (
             <MeetingEnded endedAt={meeting.endedAt} />
           ) : inCall ? (
