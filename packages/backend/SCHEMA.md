@@ -147,6 +147,7 @@ erDiagram
     id transcriptId FK "_storage, optional"
     string recordingKey "optional"
     number recordingSeconds "optional"
+    number recordingStartedAt "optional"
   }
   callPeers {
     id _id PK
@@ -155,6 +156,8 @@ erDiagram
     id memberId FK "meetingMembers"
     string peerId
     number joinedAt "optional"
+    number connectedAt "optional"
+    boolean liveText "optional"
   }
   messages {
     id _id PK
@@ -200,6 +203,11 @@ erDiagram
     id sessionId FK "meetingSessions, optional"
     id actorId FK "users, optional"
     number readAt "optional"
+  }
+  usage {
+    id _id PK
+    string key
+    number amount
   }
   users }o--o| _storage : imageId
   userSettings }o--|| users : userId
@@ -288,6 +296,7 @@ erDiagram
 | meetingSessions | by_meeting_and_number | meetingId, number |
 | meetingSessions | by_rtk_session | rtkSessionId |
 | meetingSessions | by_org_and_ended | orgId, endedAt |
+| meetingSessions | by_recording_started | recordingStartedAt |
 | callPeers | by_session_and_peer | sessionId, peerId |
 | callPeers | by_meeting_and_member | meetingId, memberId |
 | messages | by_meeting | meetingId |
@@ -298,3 +307,4 @@ erDiagram
 | schedules | by_user | userId |
 | notifications | by_user | userId |
 | notifications | by_user_and_readAt | userId, readAt |
+| usage | by_key | key |

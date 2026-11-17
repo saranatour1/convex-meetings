@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { addOrgMember, signIn, testBackend } from "../../tools/auth-test-setup";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { DateTime } from "luxon";
 
 const page = { numItems: 20, cursor: null };
 let calls: { url: string; body: unknown }[] = [];
@@ -17,7 +18,11 @@ beforeEach(() => {
       calls.push({ url, body: init?.body ? JSON.parse(init.body as string) : undefined });
       const data = url.endsWith("/meetings")
         ? { id: "rtk-meeting" }
-        : { id: "participant", token: "token" };
+        : url.endsWith("/presets")
+          ? [{ id: "preset-1", name: "call_host" }]
+          : url.includes("/recordings?")
+            ? [{ id: "recording-1" }]
+            : { id: "participant", token: "token" };
       return new Response(JSON.stringify({ success: true, data }));
     }),
   );
@@ -348,4 +353,107 @@ test("the recap shows when each person joined, left and how long they stayed", a
   expect(hostRow!.joinedAt - start).toBeLessThan(10);
   expect(guestRow!.joinedAt - start).toBeCloseTo(60_000, -2);
   expect(guestRow!.leftAt).toBe(hostRow!.leftAt);
+});
+
+const month = () => DateTime.utc().toFormat("yyyy-LL");
+const usageOf = (t: ReturnType<typeof testBackend>, key: string) =>
+  t.run(
+    async (ctx) =>
+      (
+        await ctx.db
+          .query("usage")
+          .withIndex("by_key", (q) => q.eq("key", key))
+          .unique()
+      )?.amount ?? 0,
+  );
+
+test("each person can create 10 meetings a day", async () => {
+  const { host, orgId } = await setup();
+  const create = () =>
+    host.asUser.mutation(api.api.meetings.create, {
+      orgId,
+      title: "Again",
+      kind: "groupCall",
+      recap: false,
+      startsAt: Date.UTC(2026, 10, 18, 9, 0),
+      minutes: 30,
+      timeZone: "UTC",
+      inviteeIds: [],
+    });
+  for (let made = 1; made < 10; made++) await create();
+  await expect(create()).rejects.toThrow("You can create 10 meetings a day.");
+});
+
+test("call minutes count per device and end every call at the monthly limit", async () => {
+  vi.useFakeTimers();
+  const { t, host, meetingId, hostMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember, "laptop");
+  await event("meeting.participantJoined", hostMember, "phone");
+  vi.advanceTimersByTime(60_000);
+  await event("meeting.participantLeft", hostMember, "phone");
+  expect(await usageOf(t, `callSeconds:${month()}`)).toBeCloseTo(60, 0);
+
+  await t.run(async (ctx) => {
+    const row = await ctx.db.query("usage").first();
+    await ctx.db.patch("usage", row!._id, { amount: 9_000 * 60 });
+  });
+  await t.mutation(internal.internal.usage.enforce, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(calls.some((c) => c.url.endsWith("/active-session/kick-all"))).toBe(true);
+  await expect(host.asUser.action(api.api.meetings.join, { meetingId })).rejects.toThrow(
+    "free call minutes are used up",
+  );
+});
+
+test("recording minutes are counted and recordings stop at the monthly limit", async () => {
+  vi.useFakeTimers();
+  const { t, host, meetingId, hostMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  const recording = (status: string) =>
+    t.mutation(internal.internal.realtime.recordEvent, {
+      event: {
+        event: "recording.statusUpdate",
+        meeting: { id: "rtk-meeting", sessionId: "session-1" },
+        recording: { status },
+      },
+    });
+  await recording("RECORDING");
+  vi.advanceTimersByTime(120_000);
+  await recording("UPLOADING");
+  await recording("UPLOADED");
+  expect(await usageOf(t, `recordingSeconds:${month()}`)).toBeCloseTo(120, 0);
+
+  await recording("RECORDING");
+  vi.advanceTimersByTime(90 * 60_000);
+  await t.mutation(internal.internal.usage.enforce, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(calls).toContainEqual({
+    url: expect.stringContaining("/recordings/recording-1"),
+    body: { action: "stop" },
+  });
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  expect(calls.at(-2)).toMatchObject({
+    url: expect.stringContaining("/meetings/rtk-meeting"),
+    body: { record_on_start: false, recording_config: { max_seconds: 60 } },
+  });
+});
+
+test("live text switches off for the day once its share of free AI usage is spent", async () => {
+  vi.useFakeTimers();
+  const { t, host, meetingId, hostMember, guestMember, event } = await setup();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  vi.advanceTimersByTime(6 * 60_000);
+  await t.mutation(internal.internal.usage.enforce, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(calls.at(-1)).toMatchObject({
+    url: expect.stringContaining("/presets/preset-1"),
+    body: { permissions: { transcription_enabled: false } },
+  });
+  expect(await usageOf(t, "liveTextOff")).toBe(1);
+  await event("meeting.participantJoined", guestMember);
+  const peers = await t.run((ctx) => ctx.db.query("callPeers").collect());
+  expect(peers.find((peer) => peer.memberId === guestMember)?.liveText).toBe(false);
 });
