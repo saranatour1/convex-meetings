@@ -8,7 +8,7 @@ export const zMeetingCode = z
 
 export const zMeetingKind = z.enum(["groupCall", "webinar", "classroom", "audioRoom"]);
 
-export const zMeetingAccess = z.enum(["invited", "org", "link"]);
+export const zMeetingAccess = z.enum(["invited", "org", "ask", "link"]);
 export const zMeetingInviters = z.enum(["hosts", "everyone"]);
 
 export const zMeeting = z.object({
