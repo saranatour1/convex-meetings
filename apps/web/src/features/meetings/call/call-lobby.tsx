@@ -24,7 +24,8 @@ const LobbyToggles = ({ kind }: { kind: MeetingKind }) => {
   const { meeting } = useRealtimeKitMeeting();
   const audioOn = useRealtimeKitSelector((m) => m.self.audioEnabled);
   const videoOn = useRealtimeKitSelector((m) => m.self.videoEnabled);
-  const canAudio = useRealtimeKitSelector((m) => m.self.permissions.canProduceAudio === "ALLOWED");
+  const audioPermission = useRealtimeKitSelector((m) => m.self.permissions.canProduceAudio);
+  const canAudio = audioPermission === "ALLOWED";
   const canVideo = useRealtimeKitSelector((m) => m.self.permissions.canProduceVideo === "ALLOWED");
 
   return (
@@ -53,7 +54,9 @@ const LobbyToggles = ({ kind }: { kind: MeetingKind }) => {
       )}
       {!canAudio && (
         <span className="text-muted-foreground text-sm">
-          You'll join listening. Ask to speak once you're in.
+          {audioPermission === "NOT_ALLOWED"
+            ? "You'll join watching and listening. Sign in to use your camera and mic."
+            : "You'll join listening. Ask to speak once you're in."}
         </span>
       )}
     </div>

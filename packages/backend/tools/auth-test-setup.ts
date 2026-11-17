@@ -1,8 +1,10 @@
 import { sessionIdentity, registerCore } from "@convex-dev/auth/test";
 import { registerPasskey } from "@convex-dev/auth/components/passkey/test";
+import { registerPassword } from "@convex-dev/auth/components/password/test";
 import { registerUsername } from "@convex-dev/auth/components/username/test";
 import { register as registerWorkpool } from "@convex-dev/workpool/test";
 import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test";
+import { register as registerAggregate } from "@convex-dev/aggregate/test";
 import { register as registerEmail } from "@sarant/cloudflare-email-component/test";
 import { convexTest } from "convex-test";
 import { vi } from "vite-plus/test";
@@ -18,11 +20,14 @@ export const testBackend = () => {
   const t = convexTest(schema, modules);
   registerCore(t);
   registerPasskey(t);
+  registerPassword(t);
   registerUsername(t);
   registerWorkpool(t, "avatarWorkpool");
   registerWorkpool(t, "emailWorkpool");
+  registerWorkpool(t, "moderationWorkpool");
   registerEmail(t);
   registerRateLimiter(t);
+  registerAggregate(t, "waitingRoom");
   return t;
 };
 

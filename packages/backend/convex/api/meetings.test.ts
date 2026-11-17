@@ -182,7 +182,7 @@ test("busy times include later occurrences of a repeating meeting", async () => 
 
 test("presets keep chat in Convex and audio rooms voice-only", () => {
   const presets = allPresets();
-  expect(new Set(presets.map((p) => p.name)).size).toBe(8);
+  expect(new Set(presets.map((p) => p.name)).size).toBe(9);
   expect(presets.every((p) => !p.permissions.chat.public.can_send)).toBe(true);
   const listener = presets.find((p) => p.name === "audio_listener");
   expect(listener?.config.view_type).toBe("AUDIO_ROOM");
@@ -190,6 +190,11 @@ test("presets keep chat in Convex and audio rooms voice-only", () => {
   expect(
     presets.find((p) => p.name === "class_instructor")?.permissions.connected_meetings,
   ).toMatchObject({ can_alter_connected_meetings: true });
+  expect(presets.find((p) => p.name === "call_public_guest")?.permissions.media).toEqual({
+    audio: { can_produce: "NOT_ALLOWED" },
+    video: { can_produce: "NOT_ALLOWED" },
+    screenshare: { can_produce: "NOT_ALLOWED" },
+  });
 });
 
 test("webhook signatures are checked against the raw body", async () => {

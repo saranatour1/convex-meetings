@@ -12,6 +12,7 @@ import { zMeetingTime } from "../tables/meetingTimes";
 import { clearStrokes } from "./annotations";
 import { canControlCall } from "./calls";
 import { requireMeetingMember } from "./meetingAccess";
+import { findRoom, isPublicRoom } from "./roomAccess";
 import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
 import { notify } from "./notifications";
@@ -37,6 +38,8 @@ type NewMeeting = {
   canManageMeetings: boolean;
   protected?: boolean;
   quiet?: boolean;
+  access?: Doc<"meetings">["access"];
+  slowModeSeconds?: number;
 };
 
 export const meetingTime = (startsAt: number, minutes: number, timeZone: string) => {
@@ -107,8 +110,10 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
       title: meeting.title,
       kind: meeting.kind,
       recap: meeting.recap,
-      record: autoRecord,
+      record: meeting.access === "public" ? undefined : autoRecord,
       protected: meeting.protected || undefined,
+      access: meeting.access,
+      slowModeSeconds: meeting.slowModeSeconds || undefined,
     }),
   );
   const rrule = meeting.rrule || undefined;
@@ -154,6 +159,7 @@ export const startInstantMeeting = async (
     NewMeeting,
     "orgId" | "userId" | "title" | "timeZone" | "inviteeIds" | "canManageMeetings" | "quiet"
   >,
+  overrides: Partial<Pick<NewMeeting, "kind" | "access" | "slowModeSeconds">> = {},
 ) => {
   const settings = await getSettings(ctx, meeting.userId);
   const startsAt = Math.floor(Date.now() / 60_000) * 60_000;
@@ -166,6 +172,7 @@ export const startInstantMeeting = async (
     startsAt,
     minutes: Math.max(5, Math.min(60, untilMidnight)),
     timeZone: untilMidnight < 5 ? "UTC" : meeting.timeZone,
+    ...overrides,
   });
 };
 
@@ -188,7 +195,7 @@ const endedTime = (time: Doc<"meetingTimes">, now: number) => {
 
 export const endEmptyMeeting = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
   const meeting = await ctx.db.get("meetings", meetingId);
-  if (!meeting || meeting.endedAt) return null;
+  if (!meeting || meeting.endedAt || isPublicRoom(meeting)) return null;
   const someone = await ctx.db
     .query("callPeers")
     .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
@@ -229,7 +236,7 @@ export const listMyMeetings = async (
           .order("desc")
           .first(),
       ]);
-      if (!meeting || !time) return null;
+      if (!meeting || !time || isPublicRoom(meeting)) return null;
       return {
         _id: meeting._id,
         code: meeting.code,
@@ -289,14 +296,16 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
       .order("desc")
       .take(20),
   ]);
+  const open = isPublicRoom(meeting);
+  const listed = open && !canControl ? members.filter((m) => m.role === "host") : members;
   const people = await Promise.all(
-    members.map(async (m) => {
+    listed.map(async (m) => {
       const user = await getViewer(ctx, m.userId);
       return {
         _id: m._id,
         name: user?.name ?? "Anonymous",
-        email: isGuest ? null : (user?.email ?? null),
-        imageUrl: user?.imageUrl ?? null,
+        email: isGuest || open ? null : (user?.email ?? null),
+        imageUrl: open ? null : (user?.imageUrl ?? null),
         role: m.role,
         response: m.response,
         removed: Boolean(m.removedAt),
@@ -311,9 +320,11 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
-    protected: meeting.protected ?? false,
+    protected: open || (meeting.protected ?? false),
     access: meeting.access ?? "invited",
     inviters: meeting.inviters ?? "hosts",
+    slowModeSeconds: meeting.slowModeSeconds ?? 0,
+    waitingRoom: open && ((await findRoom(ctx, meetingId))?.waitingRoom ?? false),
     endedAt: meeting.endedAt ?? null,
     time,
     me: {
@@ -333,7 +344,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
       startedAt: s.startedAt,
       endedAt: s.endedAt ?? null,
       attendees: s.attendeeIds.length,
-      summary: s.summary ?? null,
+      summary: open && s.summaryCheck !== "ok" ? null : (s.summary ?? null),
       hasTranscript: Boolean(s.transcriptId || s.transcriptUrl),
       hasRecording: Boolean(s.recordingKey || s.recordingUrl),
     })),
@@ -449,6 +460,8 @@ export const cancelMeeting = async (
     { kind: "meetingCancelled", title: meeting.title, actorId: userId },
   );
   await deleteAll(ctx, members);
+  const room = await findRoom(ctx, meetingId);
+  if (room) await ctx.db.delete("rooms", room._id);
   await ctx.db.delete("meetings", meetingId);
   return meeting.rtkMeetingId ?? null;
 };

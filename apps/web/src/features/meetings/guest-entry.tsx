@@ -17,6 +17,7 @@ import { Input } from "@meetings/ui/components/input";
 import { Label } from "@meetings/ui/components/label";
 import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
+import { deviceId } from "#/features/rooms/device-id.ts";
 import { describeError } from "#/lib/errors.ts";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -30,7 +31,7 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
     validators: {
       onSubmitAsync: async ({ value }) => {
         try {
-          onEntered(await enter({ code, name: value.name }));
+          onEntered(await enter({ code, name: value.name, device: deviceId() }));
           if (preview?.access === "ask") track("join_requested", { guest: true });
           else track("guest_entered");
           return undefined;
@@ -51,7 +52,7 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
     </Button>
   );
 
-  if (preview === null || (preview.access !== "link" && preview.access !== "ask")) {
+  if (preview === null || !["link", "ask", "public"].includes(preview.access)) {
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>

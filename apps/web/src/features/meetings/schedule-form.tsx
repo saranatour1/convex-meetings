@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@meetings/ui/components/select";
 import { Switch } from "@meetings/ui/components/switch";
+import { SlowModeSelect } from "#/features/rooms/slow-mode.tsx";
 import { parseRRule } from "@meetings/ui/kloq/rrule";
 import { RRuleBuilder } from "@meetings/ui/kloq/rrule-builder";
 import { FormError } from "#/components/form-error.tsx";
@@ -55,6 +56,7 @@ export type NewMeeting = {
   kind: MeetingKind;
   recap: boolean;
   protected: boolean;
+  slowModeSeconds: number;
   startsAt: number;
   minutes: number;
   timeZone: string;
@@ -92,6 +94,7 @@ export const ScheduleForm = ({
       kind: defaults.kind,
       recap: defaults.recap,
       protected: false,
+      slowModeSeconds: 0,
       rrule: undefined as string | undefined,
       isPrivate: false,
       day: initialTime?.start
@@ -109,6 +112,7 @@ export const ScheduleForm = ({
           kind: value.kind,
           recap: value.recap,
           protected: value.protected,
+          slowModeSeconds: value.slowModeSeconds,
           startsAt: value.start ?? 0,
           minutes: value.durationMinutes,
           timeZone: zone,
@@ -146,6 +150,7 @@ export const ScheduleForm = ({
     values.recap ? "Transcript on" : "No transcript",
     rule && "Repeats",
     values.protected && "Protected",
+    values.slowModeSeconds > 0 && "Slow mode",
     values.isPrivate && "Private",
   ]
     .filter(Boolean)
@@ -278,6 +283,18 @@ export const ScheduleForm = ({
                   >
                     <Switch checked={field.state.value} onCheckedChange={field.handleChange} />
                     Protected
+                  </Label>
+                )}
+              </form.Field>
+              <form.Field name="slowModeSeconds">
+                {(field) => (
+                  <Label className="ms-2 gap-2">
+                    Slow mode in chat
+                    <SlowModeSelect
+                      id="schedule-slow-mode"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
                   </Label>
                 )}
               </form.Field>

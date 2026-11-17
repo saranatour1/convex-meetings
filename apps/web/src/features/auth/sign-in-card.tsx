@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@meetings/ui/components/card";
 import { Logo } from "#/components/logo.tsx";
+import { DevEmailForm } from "./dev-email-form.tsx";
 import { OAuthButtons } from "./oauth-buttons.tsx";
 
 export const SignInCard = () => {
@@ -21,6 +22,7 @@ export const SignInCard = () => {
       </CardHeader>
       <CardPanel className="flex flex-col gap-2">
         <OAuthButtons />
+        <DevEmailForm />
       </CardPanel>
     </Card>
   );

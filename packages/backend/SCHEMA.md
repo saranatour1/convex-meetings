@@ -98,6 +98,7 @@ erDiagram
     boolean protected "optional"
     enum access "optional"
     enum inviters "optional"
+    number slowModeSeconds "optional"
     string rtkMeetingId "optional"
     number endedAt "optional"
   }
@@ -130,6 +131,7 @@ erDiagram
     id tokenId FK "tokens"
     id invitedBy FK "users, optional"
     string emailError "optional"
+    string deviceId "optional"
   }
   joinRequests {
     id _id PK
@@ -137,6 +139,7 @@ erDiagram
     id userId FK "users"
     enum status
     id tokenId FK "tokens, optional"
+    string deviceId "optional"
   }
   meetingSessions {
     id _id PK
@@ -149,6 +152,7 @@ erDiagram
     array attendeeIds
     array attendance "optional"
     string summary "optional"
+    enum summaryCheck "optional"
     string transcriptUrl "optional"
     string recordingUrl "optional"
     id transcriptId FK "_storage, optional"
@@ -179,6 +183,7 @@ erDiagram
     id meetingId FK "meetings"
     id meetingMemberId FK "meetingMembers"
     string body
+    boolean pending "optional"
   }
   messageReactions {
     id _id PK
@@ -223,6 +228,43 @@ erDiagram
     id _id PK
     string key
     number amount
+  }
+  rooms {
+    id _id PK
+    id meetingId FK "meetings"
+    id orgId FK "organizations"
+    string description
+    number people
+    boolean waitingRoom "optional"
+    number closedAt "optional"
+  }
+  moderationFlags {
+    id _id PK
+    id orgId FK "organizations"
+    id meetingId FK "meetings"
+    id userId FK "users"
+    id memberId FK "meetingMembers"
+    enum kind
+    string reason
+    enum action
+    record scores
+    string body "optional"
+    id storageId FK "_storage, optional"
+    id reporterId FK "meetingMembers, optional"
+    number resolvedAt "optional"
+    id resolvedBy FK "users, optional"
+  }
+  bans {
+    id _id PK
+    id orgId FK "organizations"
+    id userId FK "users"
+    string deviceId "optional"
+    string reason
+    id flagId FK "moderationFlags, optional"
+    id bannedBy FK "users, optional"
+    number expiresAt "optional"
+    number liftedAt "optional"
+    id liftedBy FK "users, optional"
   }
   users }o--o| _storage : imageId
   userSettings }o--|| users : userId
@@ -282,6 +324,20 @@ erDiagram
   notifications }o--|| users : userId
   notifications }o--o| meetingSessions : sessionId
   notifications }o--o| users : actorId
+  rooms }o--|| meetings : meetingId
+  rooms }o--|| organizations : orgId
+  moderationFlags }o--|| organizations : orgId
+  moderationFlags }o--|| meetings : meetingId
+  moderationFlags }o--|| users : userId
+  moderationFlags }o--|| meetingMembers : memberId
+  moderationFlags }o--o| _storage : storageId
+  moderationFlags }o--o| meetingMembers : reporterId
+  moderationFlags }o--o| users : resolvedBy
+  bans }o--|| organizations : orgId
+  bans }o--|| users : userId
+  bans }o--o| moderationFlags : flagId
+  bans }o--o| users : bannedBy
+  bans }o--o| users : liftedBy
 ```
 
 ## Indexes
@@ -314,6 +370,7 @@ erDiagram
 | meetingMembers | by_user | userId |
 | meetingGuests | by_token | tokenId |
 | meetingGuests | by_meeting | meetingId |
+| meetingGuests | by_user | userId |
 | joinRequests | by_meeting_and_status | meetingId, status |
 | joinRequests | by_meeting_and_user | meetingId, userId |
 | joinRequests | by_token | tokenId |
@@ -335,3 +392,13 @@ erDiagram
 | notifications | by_user | userId |
 | notifications | by_user_and_readAt | userId, readAt |
 | usage | by_key | key |
+| rooms | by_meeting | meetingId |
+| rooms | by_org | orgId |
+| rooms | by_closed_and_people | closedAt, people |
+| moderationFlags | by_org | orgId |
+| moderationFlags | by_org_and_user | orgId, userId |
+| moderationFlags | by_meeting | meetingId |
+| moderationFlags | by_meeting_and_member | meetingId, memberId |
+| bans | by_org | orgId |
+| bans | by_org_and_user | orgId, userId |
+| bans | by_org_and_device | orgId, deviceId |

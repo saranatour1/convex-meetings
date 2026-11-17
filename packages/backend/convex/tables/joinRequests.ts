@@ -1,12 +1,14 @@
 import { defineTable } from "convex/server";
 import { zid, zodToConvexFields } from "convex-helpers/server/zod4";
 import { z } from "zod";
+import { zDeviceId } from "./bans";
 
 export const zJoinRequest = z.object({
   meetingId: zid("meetings"),
   userId: zid("users"),
   status: z.enum(["waiting", "denied"]),
   tokenId: zid("tokens").optional(),
+  deviceId: zDeviceId.optional(),
 });
 
 export const joinRequests = defineTable(zodToConvexFields(zJoinRequest.shape))

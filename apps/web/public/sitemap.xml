@@ -2,5 +2,6 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://convex-meetings.stream/</loc></url>
   <url><loc>https://convex-meetings.stream/sign-in</loc></url>
+  <url><loc>https://convex-meetings.stream/rooms</loc></url>
   <url><loc>https://convex-meetings.stream/llms.txt</loc></url>
 </urlset>

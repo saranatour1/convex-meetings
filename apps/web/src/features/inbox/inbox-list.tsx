@@ -11,6 +11,7 @@ import {
   InboxIcon,
   MailIcon,
   PhoneMissedIcon,
+  ShieldAlertIcon,
 } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
@@ -32,6 +33,7 @@ const ICONS = {
   recapReady: FileTextIcon,
   missedCall: PhoneMissedIcon,
   joinRequest: HandIcon,
+  moderationReview: ShieldAlertIcon,
 };
 
 const sentence = (n: Notification) => {
@@ -49,6 +51,8 @@ const sentence = (n: Notification) => {
       return `You missed a call from ${actor}`;
     case "joinRequest":
       return `${actor} asks to join ${n.title}`;
+    case "moderationReview":
+      return `A video frame in ${n.title} needs your review`;
   }
 };
 
@@ -100,6 +104,15 @@ const Row = ({ notification }: { notification: Notification }) => {
       <Link
         to="/meetings/$code/recaps/$number"
         params={{ code: notification.meetingCode, number: notification.sessionNumber }}
+        onClick={markRead}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
+        {body}
+      </Link>
+    ) : notification.kind === "moderationReview" ? (
+      <Link
+        to="/public-rooms"
+        search={{ tab: "moderation" }}
         onClick={markRead}
         className="flex min-w-0 flex-1 items-center gap-3"
       >

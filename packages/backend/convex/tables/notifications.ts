@@ -9,6 +9,7 @@ export const zNotificationKind = z.enum([
   "recapReady",
   "missedCall",
   "joinRequest",
+  "moderationReview",
 ]);
 
 export const zNotification = z.object({
