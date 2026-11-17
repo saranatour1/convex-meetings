@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { type CallSearch, validateCallSearch } from "#/features/meetings/call/call-search.ts";
 import { MeetingPage } from "#/features/meetings/meeting-page.tsx";
+import { type MeetingSearch, validateMeetingSearch } from "#/features/meetings/meeting-search.ts";
 
 const MeetingRoute = () => {
   const { code } = Route.useParams();
-  const { call, side, expand } = Route.useSearch();
+  const { call, side, expand, tab } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const setSearch = (next: CallSearch) =>
+  const setSearch = (next: MeetingSearch) =>
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true, resetScroll: false });
 
   return (
@@ -27,12 +27,14 @@ const MeetingRoute = () => {
         onSideChange={(next) => setSearch({ side: next })}
         expanded={expand === true}
         onExpandedChange={(next) => setSearch({ expand: next || undefined })}
+        tab={tab}
+        onTabChange={(next) => setSearch({ tab: next })}
       />
     </main>
   );
 };
 
 export const Route = createFileRoute("/_app/meetings/$code")({
-  validateSearch: validateCallSearch,
+  validateSearch: validateMeetingSearch,
   component: MeetingRoute,
 });

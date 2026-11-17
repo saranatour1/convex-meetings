@@ -1,6 +1,8 @@
 import { useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
-import { ArrowLeftIcon, PhoneOffIcon, RotateCwIcon } from "lucide-react";
+import { ArrowLeftIcon, FileTextIcon, PhoneOffIcon, RotateCwIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
+import { Skeleton } from "@meetings/ui/components/skeleton";
+import { useGuestPass } from "../guest-pass.ts";
 
 const MESSAGES: Record<string, { title: string; description: string }> = {
   left: { title: "You left the call", description: "The call is still going if others are in it." },
@@ -20,41 +22,66 @@ const MESSAGES: Record<string, { title: string; description: string }> = {
   },
 };
 
+const RecapOnItsWay = ({ guest }: { guest: boolean }) => (
+  <section className="flex w-full flex-col gap-3 rounded-2xl border p-5 text-start">
+    <h3 className="flex items-center gap-2 font-semibold text-sm">
+      <FileTextIcon className="size-4 opacity-80" />
+      Your recap is on its way
+    </h3>
+    <div aria-hidden className="flex flex-col gap-2">
+      <Skeleton className="h-2.5 w-full" />
+      <Skeleton className="h-2.5 w-11/12" />
+      <Skeleton className="h-2.5 w-3/5" />
+    </div>
+    <p className="text-muted-foreground text-sm">
+      The summary and transcript show up on the meeting's Recaps tab
+      {guest ? "" : " and in your Inbox"} a few minutes after the call ends.
+    </p>
+  </section>
+);
+
 type CallEndedProps = {
   title: string;
+  recap: boolean;
   onRejoin: () => void;
   onBack: () => void;
   rejoining: boolean;
 };
 
-export const CallEnded = ({ title, onRejoin, onBack, rejoining }: CallEndedProps) => {
+export const CallEnded = ({ title, recap, onRejoin, onBack, rejoining }: CallEndedProps) => {
   const state = useRealtimeKitSelector((m) => m.self.roomState);
+  const pass = useGuestPass();
   const message = MESSAGES[state] ?? MESSAGES.left!;
 
   return (
     <div className="grid h-dvh place-items-center p-6">
-      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-        <span className="grid size-12 place-items-center rounded-full bg-muted">
-          <PhoneOffIcon className="size-5" />
-        </span>
-        <div className="flex flex-col gap-1">
-          <h2 className="font-semibold text-lg">{message.title}</h2>
-          <p className="text-muted-foreground text-sm">
-            {title} · {message.description}
-          </p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeftIcon />
-            Back to meeting
-          </Button>
-          {state !== "rejected" && (
-            <Button disabled={rejoining} onClick={onRejoin}>
-              <RotateCwIcon />
-              {rejoining ? "Rejoining…" : "Rejoin"}
+      <div className="flex w-full max-w-md flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <span className="grid size-12 place-items-center rounded-full bg-muted">
+            <PhoneOffIcon className="size-5" />
+          </span>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-semibold text-lg">{message.title}</h2>
+            <p className="text-muted-foreground text-sm">
+              {title} · {message.description}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeftIcon />
+              Back to meeting
             </Button>
-          )}
+            {state !== "rejected" && (
+              <Button disabled={rejoining} onClick={onRejoin}>
+                <RotateCwIcon />
+                {rejoining ? "Rejoining…" : "Rejoin"}
+              </Button>
+            )}
+          </div>
         </div>
+        {recap && (state === "left" || state === "ended") && (
+          <RecapOnItsWay guest={Boolean(pass.guest)} />
+        )}
       </div>
     </div>
   );

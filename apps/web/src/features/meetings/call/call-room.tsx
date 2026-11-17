@@ -11,8 +11,9 @@ import {
 } from "@cloudflare/realtimekit-react-ui";
 import {
   ChartBarIcon,
+  CheckIcon,
   CircleIcon,
-  ClockIcon,
+  EllipsisIcon,
   HandIcon,
   MaximizeIcon,
   MessageSquareIcon,
@@ -29,10 +30,18 @@ import {
 import { api, type Id } from "@meetings/backend";
 import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/menu";
+import {
+  Menu,
+  MenuItem,
+  MenuPopup,
+  MenuSeparator,
+  MenuTrigger,
+} from "@meetings/ui/components/menu";
 import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
 import { describeError } from "#/lib/errors.ts";
+import { formatElapsed } from "#/lib/schedule.ts";
+import { useSecond } from "../clock.ts";
 import { useGuestPass } from "../guest-pass.ts";
 import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
@@ -87,10 +96,11 @@ const StageButton = () => {
 
 const Elapsed = () => {
   const startedAt = useRealtimeKitSelector((m) => m.meta.meetingStartedTimestamp);
+  const now = useSecond();
   return startedAt ? (
-    <span className="flex items-center gap-1.5 text-muted-foreground text-xs tabular-nums">
-      <ClockIcon className="size-3.5" />
-      since {new Date(startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    <span className="font-mono text-muted-foreground text-xs tabular-nums">
+      <span className="sr-only">In the call for </span>
+      {formatElapsed(now - new Date(startedAt).getTime())}
     </span>
   ) : null;
 };
@@ -148,16 +158,22 @@ export const CallRoom = ({
     onSideChange(next);
   };
 
-  const panels: { side: CallSide; label: string; icon: typeof UsersIcon; show: boolean }[] = [
-    { side: "chat", label: "Chat", icon: MessageSquareIcon, show: true },
-    { side: "participants", label: "People", icon: UsersIcon, show: true },
+  const panels: {
+    side: CallSide;
+    label: string;
+    icon: typeof UsersIcon;
+    show: boolean;
+    inDock?: boolean;
+  }[] = [
+    { side: "chat", label: "Chat", icon: MessageSquareIcon, show: true, inDock: true },
+    { side: "participants", label: "People", icon: UsersIcon, show: true, inDock: true },
     {
       side: "polls",
       label: "Polls",
       icon: ChartBarIcon,
       show: kind === "webinar" || kind === "classroom",
     },
-    { side: "plugins", label: "Plugins and whiteboard", icon: PuzzleIcon, show: !moderated },
+    { side: "plugins", label: "Whiteboard and plugins", icon: PuzzleIcon, show: !moderated },
     { side: "ai", label: "AI transcript", icon: SparklesIcon, show: true },
   ];
 
@@ -191,7 +207,10 @@ export const CallRoom = ({
     >
       <header className="flex items-center gap-3 border-b px-4 py-2">
         <span className="truncate font-medium text-sm">{title}</span>
-        <Badge variant="outline">{kindOf(kind).label}</Badge>
+        <Badge variant="outline">
+          <span aria-hidden className={cn("size-1.5 rounded-full", kindOf(kind).dot)} />
+          {kindOf(kind).label}
+        </Badge>
         <Elapsed />
         {isRecording && (
           <Badge variant="error">
@@ -203,17 +222,6 @@ export const CallRoom = ({
           <UsersIcon className="size-3.5" />
           {people} in the call
         </span>
-        <Tool
-          label="Full screen"
-          size="icon"
-          onClick={() =>
-            void (document.fullscreenElement
-              ? document.exitFullscreen()
-              : document.documentElement.requestFullscreen())
-          }
-        >
-          <MaximizeIcon />
-        </Tool>
       </header>
 
       <OtherDevices />
@@ -221,7 +229,7 @@ export const CallRoom = ({
       {canControl && <JoinRequests meetingId={meetingId} className="border-b px-4 py-2" />}
       <div className="flex min-h-0 flex-1">
         <div
-          className="relative min-w-0 flex-1 bg-muted/40 p-2"
+          className="relative min-w-0 flex-1 bg-muted/40 p-2 pb-24"
           onContextMenu={isProtected ? (event) => event.preventDefault() : undefined}
           onDragStart={isProtected ? (event) => event.preventDefault() : undefined}
         >
@@ -238,6 +246,133 @@ export const CallRoom = ({
           ) : (
             <RtkGrid meeting={meeting} className="size-full" />
           )}
+          <div
+            role="toolbar"
+            aria-label="Call controls"
+            className="absolute inset-x-0 bottom-4 z-10 mx-auto flex w-fit max-w-[calc(100%-1rem)] flex-wrap items-center justify-center gap-2 rounded-3xl border bg-popover/95 p-2 shadow-lg backdrop-blur"
+          >
+            <StageButton />
+            <MediaControls kind={kind} screenShare />
+            <span aria-hidden className="h-6 w-px bg-border" />
+            {panels
+              .filter((panel) => panel.inDock)
+              .map((panel) => (
+                <Tool
+                  key={panel.side}
+                  label={panel.label}
+                  active={side === panel.side}
+                  onClick={() => openSide(side === panel.side ? undefined : panel.side)}
+                >
+                  <panel.icon />
+                </Tool>
+              ))}
+            <Menu>
+              <MenuTrigger render={<Tool label="More" />}>
+                <EllipsisIcon />
+              </MenuTrigger>
+              <MenuPopup align="end" side="top">
+                {canPip && (
+                  <MenuItem
+                    onClick={() =>
+                      pipActive
+                        ? meeting.participants.pip.disable()
+                        : meeting.participants.pip.enable()
+                    }
+                  >
+                    <PictureInPicture2Icon />
+                    {pipActive ? "Close picture-in-picture" : "Picture-in-picture"}
+                  </MenuItem>
+                )}
+                {canRecord && !isProtected && (
+                  <MenuItem
+                    variant={isRecording ? "destructive" : "default"}
+                    onClick={() =>
+                      void (isRecording ? meeting.recording.stop() : meeting.recording.start())
+                    }
+                  >
+                    {isRecording ? <SquareIcon /> : <CircleIcon />}
+                    {isRecording ? "Stop recording" : "Record"}
+                  </MenuItem>
+                )}
+                {panels
+                  .filter((panel) => !panel.inDock && panel.show)
+                  .map((panel) => (
+                    <MenuItem
+                      key={panel.side}
+                      onClick={() => openSide(side === panel.side ? undefined : panel.side)}
+                    >
+                      <panel.icon />
+                      {panel.label}
+                      {side === panel.side && <CheckIcon className="ms-auto" />}
+                    </MenuItem>
+                  ))}
+                {canBreakout && (
+                  <MenuItem
+                    onClick={() =>
+                      emitCallUi(root.current, { activeBreakoutRoomsManager: { active: true } })
+                    }
+                  >
+                    <SplitIcon />
+                    Breakout rooms
+                  </MenuItem>
+                )}
+                <MenuSeparator />
+                <MenuItem onClick={() => emitCallUi(root.current, { activeSettings: true })}>
+                  <SettingsIcon />
+                  Settings
+                </MenuItem>
+                <MenuItem
+                  onClick={() =>
+                    void (document.fullscreenElement
+                      ? document.exitFullscreen()
+                      : document.documentElement.requestFullscreen())
+                  }
+                >
+                  <MaximizeIcon />
+                  Full screen
+                </MenuItem>
+              </MenuPopup>
+            </Menu>
+            <span aria-hidden className="h-6 w-px bg-border" />
+            {canControl ? (
+              <Menu>
+                <MenuTrigger render={<Button variant="destructive" className="rounded-full" />}>
+                  <PhoneOffIcon />
+                  Leave
+                </MenuTrigger>
+                <MenuPopup align="end" side="top">
+                  <MenuItem
+                    onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
+                  >
+                    <PhoneOffIcon />
+                    Leave the call
+                  </MenuItem>
+                  <MenuItem
+                    variant="destructive"
+                    onClick={() =>
+                      void end({ meetingId })
+                        .then(() => track("call_ended"))
+                        .catch((error: unknown) =>
+                          toastManager.add({ title: describeError(error), type: "error" }),
+                        )
+                    }
+                  >
+                    <UsersIcon />
+                    End for everyone
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            ) : (
+              <Button
+                variant="destructive"
+                className="rounded-full"
+                onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
+              >
+                <PhoneOffIcon />
+                Leave
+              </Button>
+            )}
+          </div>
         </div>
         <RtkSidebar
           meeting={meeting}
@@ -264,103 +399,6 @@ export const CallRoom = ({
           </aside>
         )}
       </div>
-
-      <footer className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-t px-4 py-2">
-        <div className="flex items-center gap-1">
-          <Tool label="Settings" onClick={() => emitCallUi(root.current, { activeSettings: true })}>
-            <SettingsIcon />
-          </Tool>
-          {canBreakout && (
-            <Tool
-              label="Breakout rooms"
-              onClick={() =>
-                emitCallUi(root.current, { activeBreakoutRoomsManager: { active: true } })
-              }
-            >
-              <SplitIcon />
-            </Tool>
-          )}
-          <StageButton />
-        </div>
-        <div className="flex items-center gap-2">
-          <MediaControls kind={kind} screenShare />
-          {canPip && (
-            <Tool
-              label={pipActive ? "Close picture-in-picture" : "Picture-in-picture"}
-              active={pipActive}
-              onClick={() =>
-                pipActive ? meeting.participants.pip.disable() : meeting.participants.pip.enable()
-              }
-            >
-              <PictureInPicture2Icon />
-            </Tool>
-          )}
-          {canRecord && !isProtected && (
-            <Tool
-              label={isRecording ? "Stop recording" : "Record"}
-              active={isRecording}
-              className={cn(isRecording && "text-destructive-foreground")}
-              onClick={() =>
-                void (isRecording ? meeting.recording.stop() : meeting.recording.start())
-              }
-            >
-              {isRecording ? <SquareIcon /> : <CircleIcon />}
-            </Tool>
-          )}
-        </div>
-        <div className="flex items-center justify-end gap-1">
-          {panels
-            .filter((panel) => panel.show)
-            .map((panel) => (
-              <Tool
-                key={panel.side}
-                label={panel.label}
-                active={side === panel.side}
-                onClick={() => openSide(side === panel.side ? undefined : panel.side)}
-              >
-                <panel.icon />
-              </Tool>
-            ))}
-          {canControl ? (
-            <Menu>
-              <MenuTrigger render={<Button variant="destructive" className="ms-2 rounded-full" />}>
-                <PhoneOffIcon />
-                Leave
-              </MenuTrigger>
-              <MenuPopup align="end" side="top">
-                <MenuItem
-                  onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
-                >
-                  <PhoneOffIcon />
-                  Leave the call
-                </MenuItem>
-                <MenuItem
-                  variant="destructive"
-                  onClick={() =>
-                    void end({ meetingId })
-                      .then(() => track("call_ended"))
-                      .catch((error: unknown) =>
-                        toastManager.add({ title: describeError(error), type: "error" }),
-                      )
-                  }
-                >
-                  <UsersIcon />
-                  End for everyone
-                </MenuItem>
-              </MenuPopup>
-            </Menu>
-          ) : (
-            <Button
-              variant="destructive"
-              className="ms-2 rounded-full"
-              onClick={() => emitCallUi(root.current, { activeLeaveConfirmation: true })}
-            >
-              <PhoneOffIcon />
-              Leave
-            </Button>
-          )}
-        </div>
-      </footer>
 
       <RtkParticipantsAudio meeting={meeting} />
       <RtkDialogManager meeting={meeting} />

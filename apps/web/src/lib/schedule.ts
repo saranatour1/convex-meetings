@@ -73,6 +73,9 @@ export const formatWeekday = (ms: number, timeZone: string) => at(ms, timeZone).
 
 export const formatDate = (ms: number, timeZone: string) => at(ms, timeZone).toFormat("ccc, LLL d");
 
+export const formatDayHeading = (ms: number, timeZone: string) =>
+  at(ms, timeZone).toFormat("cccc d LLLL");
+
 export const formatLongDate = (ms: number, timeZone: string) =>
   at(ms, timeZone).toFormat("LLL d, yyyy");
 
@@ -259,6 +262,13 @@ export const clockShifts = (people: Person[], starts: number[]) => {
     if (changes.length) shifts.push({ start: starts[k], changes });
   }
   return shifts;
+};
+
+export const formatElapsed = (ms: number) => {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const clock = `${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`;
+  return seconds >= 3600 ? `${Math.floor(seconds / 3600)}:${clock}` : clock;
 };
 
 export const formatAgo = (ms: number) => DateTime.fromMillis(ms).toRelative() ?? "just now";
