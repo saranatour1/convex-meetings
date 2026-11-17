@@ -159,6 +159,14 @@ erDiagram
     number connectedAt "optional"
     boolean liveText "optional"
   }
+  rings {
+    id _id PK
+    id orgId FK "organizations"
+    id meetingId FK "meetings"
+    id callerId FK "users"
+    id calleeId FK "users"
+    enum status
+  }
   messages {
     id _id PK
     id meetingId FK "meetings"
@@ -246,6 +254,10 @@ erDiagram
   callPeers }o--|| meetingSessions : sessionId
   callPeers }o--|| meetings : meetingId
   callPeers }o--|| meetingMembers : memberId
+  rings }o--|| organizations : orgId
+  rings }o--|| meetings : meetingId
+  rings }o--|| users : callerId
+  rings }o--|| users : calleeId
   messages }o--|| meetings : meetingId
   messages }o--|| meetingMembers : meetingMemberId
   messageReactions }o--|| messages : messageId
@@ -299,6 +311,8 @@ erDiagram
 | meetingSessions | by_recording_started | recordingStartedAt |
 | callPeers | by_session_and_peer | sessionId, peerId |
 | callPeers | by_meeting_and_member | meetingId, memberId |
+| rings | by_callee_and_status | calleeId, status |
+| rings | by_meeting_and_caller | meetingId, callerId |
 | messages | by_meeting | meetingId |
 | messageReactions | by_message_and_member | messageId, memberId |
 | messageReactions | by_meeting | meetingId |

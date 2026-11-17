@@ -7,6 +7,7 @@ export const zNotificationKind = z.enum([
   "meetingCancelled",
   "rsvp",
   "recapReady",
+  "missedCall",
 ]);
 
 export const zNotification = z.object({

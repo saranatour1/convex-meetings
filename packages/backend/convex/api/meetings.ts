@@ -1,6 +1,5 @@
 import { zid } from "convex-helpers/server/zod4";
 import { ConvexError } from "convex/values";
-import { DateTime } from "luxon";
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import {
@@ -27,11 +26,11 @@ import {
   getMeeting,
   listMyMeetings,
   respond as respondToMeeting,
+  startInstantMeeting,
 } from "../models/meetings";
 import { listSessionMessages } from "../models/messages";
 import { requireCallControl } from "../models/calls";
 import { canEnter, enterAsMember, inviteToMeeting } from "../models/guests";
-import { getSettings } from "../models/settings";
 import { zMeeting, zMeetingAccess, zMeetingInviters } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 
@@ -195,21 +194,13 @@ export const respondByCode = authedMutation({
 
 export const startNow = orgMutation({
   args: { timeZone: zTimeZone },
-  handler: async (ctx, { orgId, timeZone }) => {
+  handler: (ctx, { orgId, timeZone }) => {
     ctx.requirePermission("createMeetings");
-    const settings = await getSettings(ctx, ctx.userId);
-    const startsAt = Math.floor(Date.now() / 60_000) * 60_000;
-    const local = DateTime.fromMillis(startsAt, { zone: timeZone });
-    const untilMidnight = Math.floor(local.endOf("day").diff(local, "minutes").minutes);
-    return createMeeting(ctx, {
+    return startInstantMeeting(ctx, {
       orgId,
       userId: ctx.userId,
       title: "Instant meeting",
-      kind: settings.defaultKind,
-      recap: settings.defaultRecap,
-      startsAt,
-      minutes: Math.max(5, Math.min(60, untilMidnight)),
-      timeZone: untilMidnight < 5 ? "UTC" : timeZone,
+      timeZone,
       inviteeIds: [],
       canManageMeetings: ctx.can("manageMeetings"),
     });

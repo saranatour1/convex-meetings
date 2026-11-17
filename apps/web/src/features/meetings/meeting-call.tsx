@@ -16,6 +16,7 @@ import { describeError } from "#/lib/errors.ts";
 import { CallEnded } from "./call/call-ended.tsx";
 import { CallLobby } from "./call/call-lobby.tsx";
 import { CallRoom } from "./call/call-room.tsx";
+import { OutgoingRing } from "./call/outgoing-ring.tsx";
 import { applyCallTheme } from "./call/call-theme.ts";
 import { type CallSide, whiteboardPlugin } from "./call/call-ui.ts";
 import { useGuestPass } from "./guest-pass.ts";
@@ -109,6 +110,7 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
   if (meeting && inCall) {
     return (
       <div ref={applyCallTheme} className="fixed inset-0 z-50 bg-background">
+        {!pass.guest && <OutgoingRing meetingId={meetingId} />}
         <RealtimeKitProvider value={meeting}>
           <RtkUiProvider meeting={meeting} showSetupScreen>
             <form.Subscribe selector={(state) => state.isSubmitting}>
