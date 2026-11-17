@@ -25,6 +25,7 @@ declare module "@databuddy/sdk" {
     call_joined: { kind: MeetingKind; guest: boolean };
     call_ended: undefined;
     chat_message_sent: { guest: boolean };
+    agent_tool_called: { name: string };
   }
 }
 
