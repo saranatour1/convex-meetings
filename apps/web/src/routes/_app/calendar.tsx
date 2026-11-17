@@ -3,7 +3,7 @@ import { MeetingsCalendar } from "#/features/calendar/meetings-calendar.tsx";
 import { parseZones } from "#/lib/zones.ts";
 
 const CalendarPage = () => {
-  const { zones } = Route.useSearch();
+  const { zones, event, declined } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   return (
@@ -18,6 +18,23 @@ const CalendarPage = () => {
             resetScroll: false,
           })
         }
+        selected={event}
+        onSelect={(code) =>
+          code !== event &&
+          void navigate({
+            search: (prev) => ({ ...prev, event: code }),
+            replace: true,
+            resetScroll: false,
+          })
+        }
+        showDeclined={declined ?? false}
+        onShowDeclinedChange={(show) =>
+          void navigate({
+            search: (prev) => ({ ...prev, declined: show || undefined }),
+            replace: true,
+            resetScroll: false,
+          })
+        }
         onPlan={(time) =>
           void navigate({ to: "/schedule", search: { start: time.start, minutes: time.minutes } })
         }
@@ -27,8 +44,12 @@ const CalendarPage = () => {
 };
 
 export const Route = createFileRoute("/_app/calendar")({
-  validateSearch: (search: Record<string, unknown>): { zones?: string[] } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { zones?: string[]; event?: string; declined?: true } => ({
     zones: parseZones(search.zones),
+    event: typeof search.event === "string" ? search.event : undefined,
+    declined: search.declined === true ? true : undefined,
   }),
   component: CalendarPage,
 });
