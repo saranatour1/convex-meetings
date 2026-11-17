@@ -11,6 +11,7 @@ import { canControlCall } from "./calls";
 import { findLiveToken, issueToken, normalizeEmail } from "./invites";
 import { findMeetingByCode } from "./meetings";
 import { findMember } from "./members";
+import { queueMeetingEmails } from "./meetingEmails";
 import { notify } from "./notifications";
 
 const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -184,6 +185,10 @@ export const inviteToMeeting = async (
   emails: string[],
 ) => {
   const meeting = await requireInviteRights(ctx, meetingId, userId);
+  const time = await ctx.db
+    .query("meetingTimes")
+    .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
+    .first();
   const added: string[] = [];
   const guests: string[] = [];
   const skipped: string[] = [];
@@ -209,6 +214,7 @@ export const inviteToMeeting = async (
         meetingCode: meeting.code,
         actorId: userId,
       });
+      if (time) await queueMeetingEmails(ctx, "REQUEST", meeting, time, [member._id]);
       added.push(email);
       continue;
     }

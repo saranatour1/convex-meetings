@@ -2,7 +2,15 @@ import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { CheckIcon, FileTextIcon, UserCheckIcon, UserXIcon, VideoIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CopyIcon,
+  FileTextIcon,
+  UserCheckIcon,
+  UserXIcon,
+  VideoIcon,
+  XIcon,
+} from "lucide-react";
 import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
 import { Badge } from "@meetings/ui/components/badge";
@@ -16,12 +24,17 @@ import {
 } from "@meetings/ui/components/card";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
-import { showError } from "#/lib/errors.ts";
+import { copyWithToast, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf, formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
 import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
-import { InviteToMeeting, MeetingDoor, MeetingSettingsCard } from "./meeting-access.tsx";
+import {
+  InviteToMeeting,
+  MeetingDoor,
+  MeetingSettingsCard,
+  meetingLink,
+} from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
@@ -78,6 +91,19 @@ export const MeetingPage = ({
               {time.rrule && " · repeats"}
             </CardDescription>
           )}
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="truncate text-muted-foreground text-sm">
+              {meetingLink(meeting.code)}
+            </span>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Copy meeting link"
+              onClick={() => void copyWithToast(meetingLink(meeting.code), "Meeting link copied")}
+            >
+              <CopyIcon />
+            </Button>
+          </div>
         </CardHeader>
         <CardPanel className="flex flex-col gap-6">
           {meeting.endedAt ? (
@@ -201,7 +227,6 @@ export const MeetingPage = ({
       {meeting.me.canControl && (
         <MeetingSettingsCard
           meetingId={meetingId}
-          code={meeting.code}
           access={meeting.access}
           inviters={meeting.inviters}
           isProtected={meeting.protected}
