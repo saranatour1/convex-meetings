@@ -23,6 +23,8 @@ declare module "@databuddy/sdk" {
     meeting_guests_invited: { members: number; guests: number };
     meeting_cancelled: undefined;
     guest_entered: undefined;
+    join_requested: { guest: boolean };
+    join_request_answered: { admit: boolean };
     call_joined: { kind: MeetingKind; guest: boolean };
     call_ended: undefined;
     chat_message_sent: { guest: boolean };
