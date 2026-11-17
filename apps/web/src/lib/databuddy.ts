@@ -1,0 +1,1 @@
+export const DATABUDDY_CLIENT_ID = "966d6359-e335-4668-9600-eb15b43fd81d";
