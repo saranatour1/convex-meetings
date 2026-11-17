@@ -41,10 +41,9 @@ export const MediaControls = ({
   const videoOn = useRealtimeKitSelector((m) => m.self.videoEnabled);
   const sharing = useRealtimeKitSelector((m) => m.self.screenShareEnabled);
   const onStage = useRealtimeKitSelector((m) => m.stage.status === "ON_STAGE");
-  const canAudio = canProduce(
-    useRealtimeKitSelector((m) => m.self.permissions.canProduceAudio),
-    onStage,
-  );
+  const audioPermission = useRealtimeKitSelector((m) => m.self.permissions.canProduceAudio);
+  const canAudio = canProduce(audioPermission, onStage);
+  const listenOnly = audioPermission === "NOT_ALLOWED";
   const canVideo = canProduce(
     useRealtimeKitSelector((m) => m.self.permissions.canProduceVideo),
     onStage,
@@ -57,7 +56,15 @@ export const MediaControls = ({
   return (
     <div className="flex items-center gap-2">
       <ControlButton
-        label={audioOn ? "Mute" : canAudio ? "Unmute" : "Ask to speak to unmute"}
+        label={
+          audioOn
+            ? "Mute"
+            : canAudio
+              ? "Unmute"
+              : listenOnly
+                ? "Sign in to use your mic"
+                : "Ask to speak to unmute"
+        }
         on={audioOn}
         disabled={!canAudio}
         onClick={() => void (audioOn ? meeting.self.disableAudio() : meeting.self.enableAudio())}
@@ -66,7 +73,13 @@ export const MediaControls = ({
       </ControlButton>
       {kind !== "audioRoom" && (
         <ControlButton
-          label={videoOn ? "Turn camera off" : "Turn camera on"}
+          label={
+            videoOn
+              ? "Turn camera off"
+              : listenOnly
+                ? "Sign in to use your camera"
+                : "Turn camera on"
+          }
           on={videoOn}
           disabled={!canVideo}
           onClick={() => void (videoOn ? meeting.self.disableVideo() : meeting.self.enableVideo())}

@@ -29,6 +29,9 @@ declare module "@databuddy/sdk" {
     call_ended: undefined;
     chat_message_sent: { guest: boolean };
     agent_tool_called: { name: string; userAgent: string };
+    room_created: { slowMode: number };
+    room_entered: { guest: boolean };
+    room_closed: undefined;
   }
 }
 

@@ -10,3 +10,9 @@ export const emailWorkpool = new Workpool(components.emailWorkpool, {
   maxParallelism: 2,
   retryActionsByDefault: false,
 });
+
+export const moderationWorkpool = new Workpool(components.moderationWorkpool, {
+  maxParallelism: 10,
+  retryActionsByDefault: true,
+  defaultRetryBehavior: { maxAttempts: 4, initialBackoffMs: 500, base: 2 },
+});

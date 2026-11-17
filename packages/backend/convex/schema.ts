@@ -1,5 +1,6 @@
 import { defineSchema } from "convex/server";
 import { auditEvents } from "./tables/auditEvents";
+import { bans } from "./tables/bans";
 import { callPeers } from "./tables/callPeers";
 import { invites } from "./tables/invites";
 import { joinRequests } from "./tables/joinRequests";
@@ -14,10 +15,12 @@ import { memberRoles } from "./tables/memberRoles";
 import { members } from "./tables/members";
 import { messageReactions } from "./tables/messageReactions";
 import { messages } from "./tables/messages";
+import { moderationFlags } from "./tables/moderationFlags";
 import { notifications } from "./tables/notifications";
 import { organizations } from "./tables/organizations";
 import { rings } from "./tables/rings";
 import { roles } from "./tables/roles";
+import { rooms } from "./tables/rooms";
 import { schedules } from "./tables/schedules";
 import { tokens } from "./tables/tokens";
 import { usage } from "./tables/usage";
@@ -52,4 +55,7 @@ export default defineSchema({
   schedules,
   notifications,
   usage,
+  rooms,
+  moderationFlags,
+  bans,
 });

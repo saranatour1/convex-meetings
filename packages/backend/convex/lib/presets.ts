@@ -11,7 +11,10 @@ const PRESET_NAMES: Record<Kind, Record<Role, string>> = {
   audioRoom: { host: "audio_host", participant: "audio_listener" },
 };
 
-export const presetName = (kind: Kind, role: Role) => PRESET_NAMES[kind][role];
+export const PUBLIC_GUEST_PRESET = "call_public_guest";
+
+export const presetName = (kind: Kind, role: Role, viewer = false) =>
+  viewer ? PUBLIC_GUEST_PRESET : PRESET_NAMES[kind][role];
 
 const DESIGN_TOKENS = {
   theme: "light",
@@ -104,7 +107,22 @@ const preset = (kind: Kind, role: Role) => {
   };
 };
 
-export const allPresets = () =>
-  (Object.keys(PRESET_NAMES) as Kind[]).flatMap((kind) =>
+const publicGuestPreset = () => {
+  const base = preset("groupCall", "participant");
+  const silent: { can_produce: Produce } = { can_produce: "NOT_ALLOWED" };
+  return {
+    ...base,
+    name: PUBLIC_GUEST_PRESET,
+    permissions: {
+      ...base.permissions,
+      media: { audio: silent, video: silent, screenshare: silent },
+    },
+  };
+};
+
+export const allPresets = () => [
+  ...(Object.keys(PRESET_NAMES) as Kind[]).flatMap((kind) =>
     (["host", "participant"] as const).map((role) => preset(kind, role)),
-  );
+  ),
+  publicGuestPreset(),
+];

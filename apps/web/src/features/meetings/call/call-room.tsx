@@ -37,6 +37,7 @@ import { useGuestPass } from "../guest-pass.ts";
 import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 import { RTK_SECTIONS, emitCallUi, type CallSide } from "./call-ui.ts";
+import { FrameSampler } from "./frame-sampler.tsx";
 import { MediaControls } from "./media-controls.tsx";
 import { JoinRequests } from "../join-requests.tsx";
 import { OtherDevices, listenToOwnDevices } from "./other-devices.tsx";
@@ -104,6 +105,7 @@ type CallRoomProps = {
   onExpandedChange: (expanded: boolean) => void;
   canControl: boolean;
   isProtected: boolean;
+  moderated: boolean;
 };
 
 export const CallRoom = ({
@@ -116,6 +118,7 @@ export const CallRoom = ({
   onExpandedChange,
   canControl,
   isProtected,
+  moderated,
 }: CallRoomProps) => {
   const { meeting } = useRealtimeKitMeeting();
   const end = useMutation(api.calls.end);
@@ -154,7 +157,7 @@ export const CallRoom = ({
       icon: ChartBarIcon,
       show: kind === "webinar" || kind === "classroom",
     },
-    { side: "plugins", label: "Plugins and whiteboard", icon: PuzzleIcon, show: true },
+    { side: "plugins", label: "Plugins and whiteboard", icon: PuzzleIcon, show: !moderated },
     { side: "ai", label: "AI transcript", icon: SparklesIcon, show: true },
   ];
 
@@ -214,6 +217,7 @@ export const CallRoom = ({
       </header>
 
       <OtherDevices />
+      {moderated && <FrameSampler meetingId={meetingId} />}
       {canControl && <JoinRequests meetingId={meetingId} className="border-b px-4 py-2" />}
       <div className="flex min-h-0 flex-1">
         <div
@@ -227,6 +231,7 @@ export const CallRoom = ({
               sharerId={remoteSharer}
               expanded={expanded}
               onExpandedChange={onExpandedChange}
+              annotate={!moderated}
               canSnapshot={!isProtected || canControl}
               canClearAll={canControl}
             />

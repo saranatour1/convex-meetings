@@ -42,6 +42,7 @@ type ShareStageProps = {
   sharerId: string | null;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  annotate: boolean;
   canSnapshot: boolean;
   canClearAll: boolean;
 };
@@ -51,6 +52,7 @@ export const ShareStage = ({
   sharerId,
   expanded,
   onExpandedChange,
+  annotate,
   canSnapshot,
   canClearAll,
 }: ShareStageProps) => {
@@ -69,7 +71,7 @@ export const ShareStage = ({
         ) : (
           <SelfShare />
         )}
-        {shareId && (
+        {shareId && annotate && (
           <AnnotationLayer
             key={shareId}
             meetingId={meetingId}

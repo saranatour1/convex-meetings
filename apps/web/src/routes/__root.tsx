@@ -38,7 +38,8 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 };
 
 export const Route = createRootRoute({
-  ssr: ({ location }) => (location.pathname === "/" ? true : "data-only"),
+  ssr: ({ location }) =>
+    location.pathname === "/" || location.pathname.startsWith("/rooms") ? true : "data-only",
   head: () => ({
     meta: SITE_META,
     links: [...SITE_LINKS, { rel: "stylesheet", href: appCss }],

@@ -13,6 +13,13 @@ import { findLiveToken, issueToken, normalizeEmail } from "./invites";
 import { findMeetingByCode } from "./meetings";
 import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
+import { queueNameCheck } from "./moderationQueue";
+import {
+  hasWaitingRoom,
+  isPublicRoom,
+  requireDeviceNotBanned,
+  requireNotBanned,
+} from "./roomAccess";
 import { notify } from "./notifications";
 
 export const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -58,6 +65,7 @@ export const grantGuestPass = async (
     userId: Id<"users">;
     tokenId: Id<"tokens">;
     invitedBy?: Id<"users">;
+    deviceId?: string;
   },
 ) => {
   await ctx.db.insert(
@@ -75,17 +83,18 @@ export const grantGuestPass = async (
 const createGuest = async (
   ctx: MutationCtx,
   meetingId: Id<"meetings">,
-  guest: { name: string; email?: string; invitedBy?: Id<"users"> },
+  guest: { name: string; email?: string; invitedBy?: Id<"users">; deviceId?: string },
 ) => {
-  const userId = await insertGuestUser(ctx, guest);
+  const userId = await insertGuestUser(ctx, { name: guest.name, email: guest.email });
   const { secret, tokenId } = await issueToken(ctx, GUEST_PASS_MS);
   const guestId = await grantGuestPass(ctx, {
     meetingId,
     userId,
     tokenId,
     invitedBy: guest.invitedBy,
+    deviceId: guest.deviceId,
   });
-  return { secret, guestId };
+  return { secret, guestId, userId };
 };
 
 export const previewMeeting = async (ctx: QueryCtx, code: string) => {
@@ -119,8 +128,29 @@ export const previewGuestPass = async (ctx: QueryCtx, secret: string) => {
   return { code: meeting.code, title: meeting.title, name: user.name ?? "", status };
 };
 
-export const enterAsGuest = async (ctx: MutationCtx, code: string, name: string) => {
+const enterRoomAsGuest = async (
+  ctx: MutationCtx,
+  meeting: Doc<"meetings">,
+  name: string,
+  deviceId: string | undefined,
+) => {
+  if (meeting.endedAt) throw new ConvexError("This room is closed");
+  if (!deviceId) throw new ConvexError("Reload the page to join this room");
+  await requireDeviceNotBanned(ctx, meeting.orgId, deviceId);
+  const { secret, userId } = await createGuest(ctx, meeting._id, { name, deviceId });
+  const member = await findMeetingMember(ctx, meeting._id, userId);
+  if (member) await queueNameCheck(ctx, member._id);
+  return secret;
+};
+
+export const enterAsGuest = async (
+  ctx: MutationCtx,
+  code: string,
+  name: string,
+  deviceId?: string,
+) => {
   const meeting = await findMeetingByCode(ctx, code);
+  if (meeting && isPublicRoom(meeting)) return enterRoomAsGuest(ctx, meeting, name, deviceId);
   if (!meeting || (meeting.access ?? "invited") !== "link") {
     throw new ConvexError("Only invited people can join this meeting");
   }
@@ -132,10 +162,14 @@ export const renameGuest = async (ctx: MutationCtx, secret: string, name: string
   const guest = await findGuest(ctx, secret);
   if (!guest) throw new ConvexError("This guest link has expired");
   await ctx.db.patch("users", guest.userId, parseOrThrow(zUser.pick({ name: true }), { name }));
-  const member = await findMeetingMember(ctx, guest.meetingId, guest.userId);
+  const [member, meeting] = await Promise.all([
+    findMeetingMember(ctx, guest.meetingId, guest.userId),
+    ctx.db.get("meetings", guest.meetingId),
+  ]);
   if (member?.response === "pending") {
     await ctx.db.patch("meetingMembers", member._id, { response: "accepted" });
   }
+  if (member && meeting && isPublicRoom(meeting)) await queueNameCheck(ctx, member._id);
 };
 
 const isGuest = async (ctx: QueryCtx, userId: Id<"users">) =>
@@ -145,13 +179,16 @@ export const canEnter = async (ctx: QueryCtx, meeting: Doc<"meetings">, userId: 
   const access = meeting.access ?? "invited";
   if (access === "invited" || (await isGuest(ctx, userId))) return false;
   if (access === "link") return true;
+  if (access === "public" && !(await hasWaitingRoom(ctx, meeting))) return true;
   return (await findMember(ctx, meeting.orgId, userId)) !== null;
 };
 
 export const enterAsMember = async (ctx: MutationCtx, userId: Id<"users">, code: string) => {
   const meeting = await findMeetingByCode(ctx, code);
   if (!meeting) throw new ConvexError("No meeting with that code");
+  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId);
   if (await findMeetingMember(ctx, meeting._id, userId)) return meeting._id;
+  if (isPublicRoom(meeting) && meeting.endedAt) throw new ConvexError("This room is closed");
   if (!(await canEnter(ctx, meeting, userId))) {
     throw new ConvexError("Only invited people can join this meeting");
   }

@@ -8,6 +8,7 @@ import { audit } from "./audit";
 import { recordPeerUsage } from "./usage";
 import { findMember } from "./members";
 import { grantedPermissions } from "./roles";
+import { syncRoomPeople } from "./roomAccess";
 import { getViewer } from "./users";
 
 const LIVE_SESSIONS_READ = 50;
@@ -50,6 +51,7 @@ export const updateAttendance = async (
 
 export const removePeer = async (ctx: MutationCtx, peer: Doc<"callPeers">, at: number) => {
   await ctx.db.delete("callPeers", peer._id);
+  await syncRoomPeople(ctx, peer.meetingId);
   await recordPeerUsage(ctx, peer, at);
   const { joinedAt } = peer;
   if (joinedAt === undefined) return;
@@ -102,7 +104,7 @@ export const requireCallControl = async (
   return { meeting, member };
 };
 
-const kickLater = (
+export const kickLater = (
   ctx: MutationCtx,
   rtkMeetingId: string | undefined,
   member: Doc<"meetingMembers">,

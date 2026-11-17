@@ -17,19 +17,22 @@ const SUPPORTED_ALGORITHMS = [-7, -257];
 
 const rpId = () => new URL(env.SITE_URL).hostname;
 
-const signedUpWithOAuth = async (ctx: QueryCtx, userId: Id<"users">) => {
+export const devEmailSignInOn = () => env.DEV_EMAIL_SIGN_IN === "true";
+
+const signInKind = async (ctx: QueryCtx, userId: Id<"users">) => {
   const method = (await ctx.db.get("users", userId))?.method;
-  return method === "google" || method === "github";
+  if (method === "google" || method === "github") return "oauth";
+  if (method === "devEmail" && devEmailSignInOn()) return "devEmail";
+  return null;
 };
 
 export const requireSignedIn = async (ctx: QueryCtx) => {
   const userId = await getAuthUserId(ctx);
   const identity = await ctx.auth.getUserIdentity();
   if (userId === null || identity === null) throw new ConvexError("Unauthenticated");
-  if (!(await signedUpWithOAuth(ctx, userId))) {
-    throw new ConvexError("Sign in with Google or GitHub");
-  }
-  return { userId, sessionId: identity.subject };
+  const kind = await signInKind(ctx, userId);
+  if (!kind) throw new ConvexError("Sign in with Google or GitHub");
+  return { userId, sessionId: identity.subject, skipsPasskey: kind === "devEmail" };
 };
 
 const isVerified = async (ctx: QueryCtx, sessionId: string) =>
@@ -39,8 +42,10 @@ const isVerified = async (ctx: QueryCtx, sessionId: string) =>
     .unique()) !== null;
 
 export const requireVerifiedUserId = async (ctx: QueryCtx) => {
-  const { userId, sessionId } = await requireSignedIn(ctx);
-  if (!(await isVerified(ctx, sessionId))) throw new ConvexError("Passkey required");
+  const { userId, sessionId, skipsPasskey } = await requireSignedIn(ctx);
+  if (!skipsPasskey && !(await isVerified(ctx, sessionId))) {
+    throw new ConvexError("Passkey required");
+  }
   return userId;
 };
 
@@ -56,8 +61,9 @@ export const passkeyStep = async (ctx: QueryCtx) => {
   const userId = await getAuthUserId(ctx);
   const identity = await ctx.auth.getUserIdentity();
   if (userId === null || identity === null) return null;
-  if (!(await signedUpWithOAuth(ctx, userId))) return "oauth";
-  if (await isVerified(ctx, identity.subject)) return "done";
+  const kind = await signInKind(ctx, userId);
+  if (!kind) return "oauth";
+  if (kind === "devEmail" || (await isVerified(ctx, identity.subject))) return "done";
   return (await passkeyCount(ctx, userId)) === 0 ? "enroll" : "verify";
 };
 

@@ -34,6 +34,7 @@ type MeetingCallProps = {
   onExpandedChange: (expanded: boolean) => void;
   canControl: boolean;
   isProtected: boolean;
+  moderated: boolean;
   devicesInCall: number;
 };
 
@@ -75,6 +76,7 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
   const pass = useGuestPass();
   const settings = useQuery(api.settings.getMine, pass.guest ? "skip" : {});
   const [meeting, initMeeting] = useRealtimeKitClient();
+  const viewer = props.moderated && Boolean(pass.guest);
   const form = useForm({
     defaultValues: {},
     validators: {
@@ -84,9 +86,9 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
           await initMeeting({
             authToken: token,
             defaults: {
-              audio: !settings?.joinMuted,
-              video: !settings?.joinCameraOff,
-              plugins: [whiteboardPlugin(token)],
+              audio: !viewer && !settings?.joinMuted,
+              video: !viewer && !settings?.joinCameraOff,
+              plugins: props.moderated ? [] : [whiteboardPlugin(token)],
             },
           });
           track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });

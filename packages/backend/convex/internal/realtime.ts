@@ -117,6 +117,16 @@ export const markLiveText = internalMutation({
   handler: (ctx, { on }) => markLiveTextState(ctx, on),
 });
 
+export const syncPresets = internalAction({
+  args: {},
+  handler: async () => {
+    const existing = new Set((await realtimeKit.listPresets()).map((preset) => preset.name));
+    const missing = allPresets().filter((preset) => !existing.has(preset.name));
+    for (const preset of missing) await realtimeKit.createPreset(preset);
+    return missing.map((preset) => preset.name);
+  },
+});
+
 export const setup = internalAction({
   args: {},
   handler: async () => {

@@ -2,9 +2,15 @@
 
 > Open-source meetings app for teams: schedule across time zones, call in the browser, keep a recap of every call. A fully working app at https://convex-meetings.stream, built with Convex, TanStack Start and Cloudflare RealtimeKit.
 
-Only the landing page is public. Everything else needs a signed-in account. Sign-in is Google or GitHub followed by the person's passkey, so an agent acting for someone works inside that person's signed-in browser session. There is no public API.
+The landing page and the public rooms pages are public. Everything else needs a signed-in account. Sign-in is Google or GitHub followed by the person's passkey, so an agent acting for someone works inside that person's signed-in browser session. There is no public API.
 
 Page state lives in the URL. An agent can open any page below in the exact state it needs by setting its query parameters, without clicking through the UI. Meetings are identified by a code like `abc-defg-hij`. Times are UTC milliseconds and time zones are IANA names. List parameters are JSON arrays, for example `zones=["Europe/Berlin","America/New_York"]`.
+
+## Public pages
+
+- [Public rooms](https://convex-meetings.stream/rooms): rooms anyone can drop into, with each room's name, description, host organization and how many people are in it now
+- `/rooms/<code>`: one public room. Type a name to join as a guest (watch, listen and chat); signing in adds camera and mic. A room with a waiting room lets you in once a host answers. Chat and video are checked automatically
+- `/rooms/<code>/recaps/<n>`: the public recap of the room's nth call: when it was open, how long, how many people, and a summary. No names, faces or recordings
 
 ## Pages
 
@@ -16,6 +22,7 @@ Page state lives in the URL. An agent can open any page below in the exact state
 - `/meetings/<code>/recaps/<n>`: transcript and recording of the meeting's nth call, `q` searches the transcript
 - [Inbox](https://convex-meetings.stream/inbox): notifications, such as meeting invites and replies
 - [Members](https://convex-meetings.stream/members): people in the organization, `q` filters them
+- [Rooms](https://convex-meetings.stream/public-rooms): public rooms from inside the app. `tab=ours` lists and opens the organization's rooms, `tab=moderation` shows flags and bans to people who manage meetings
 - [Settings](https://convex-meetings.stream/settings): `/settings/account`, `/settings/general` (theme, time zone, working hours), `/settings/meetings`, `/settings/org`
 
 ## Agent tools

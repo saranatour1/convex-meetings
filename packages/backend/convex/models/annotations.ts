@@ -5,6 +5,7 @@ import { parseOrThrow } from "../lib/validate";
 import { zAnnotationSnapshot, zStroke } from "../tables/annotations";
 import { canControlCall } from "./calls";
 import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
+import { isPublicRoom } from "./roomAccess";
 import { getViewer } from "./users";
 
 const STROKES_READ = 500;
@@ -40,7 +41,8 @@ export const addStroke = async (
   userId: Id<"users">,
   stroke: Pick<ReturnType<typeof zStroke.parse>, "meetingId" | "shareId" | "color" | "points">,
 ) => {
-  const { member } = await requireInCall(ctx, stroke.meetingId, userId);
+  const { meeting, member } = await requireInCall(ctx, stroke.meetingId, userId);
+  if (isPublicRoom(meeting)) throw new ConvexError("Drawing is off in public rooms");
   return ctx.db.insert("strokes", parseOrThrow(zStroke, { ...stroke, memberId: member._id }));
 };
 
@@ -76,6 +78,7 @@ export const requireSnapshotRights = async (
   meetingId: Id<"meetings">,
 ) => {
   const { meeting, member } = await requireInCall(ctx, meetingId, userId);
+  if (isPublicRoom(meeting)) throw new ConvexError("Snapshots are off in public rooms");
   if (meeting.protected && !(await canControlCall(ctx, meeting, member))) {
     throw new ConvexError("In a protected meeting only the host can save annotations");
   }

@@ -8,7 +8,7 @@ export const zMeetingCode = z
 
 export const zMeetingKind = z.enum(["groupCall", "webinar", "classroom", "audioRoom"]);
 
-export const zMeetingAccess = z.enum(["invited", "org", "ask", "link"]);
+export const zMeetingAccess = z.enum(["invited", "org", "ask", "link", "public"]);
 export const zMeetingInviters = z.enum(["hosts", "everyone"]);
 
 export const zMeeting = z.object({
@@ -22,6 +22,7 @@ export const zMeeting = z.object({
   protected: z.boolean().optional(),
   access: zMeetingAccess.optional(),
   inviters: zMeetingInviters.optional(),
+  slowModeSeconds: z.number().int().min(0).max(600).optional(),
   rtkMeetingId: z.string().optional(),
   endedAt: z.number().optional(),
 });
