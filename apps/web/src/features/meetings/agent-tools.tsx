@@ -50,7 +50,7 @@ const isoIn = (millis: number, timeZone: string) =>
 const reportingErrors =
   <Input,>(name: string, run: (input: Input) => Promise<unknown>) =>
   (input: Input) => {
-    track("agent_tool_called", { name });
+    track("agent_tool_called", { name, userAgent: navigator.userAgent });
     return run(input).catch((error: unknown) => ({ error: describeError(error) }));
   };
 
