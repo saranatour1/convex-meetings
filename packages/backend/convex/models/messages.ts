@@ -6,6 +6,7 @@ import { parseOrThrow } from "../lib/validate";
 import { zMessageReaction } from "../tables/messageReactions";
 import { zMessage } from "../tables/messages";
 import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
+import { isPublicRoom, requireNotBanned } from "./roomAccess";
 import { createViewerLoader } from "./users";
 
 const REACTIONS_READ = 200;
@@ -73,6 +74,7 @@ const describeMessage = async (
   loaders: ChatLoaders,
   message: Doc<"messages">,
   userId: Id<"users">,
+  faceless = false,
 ) => {
   const author = await loaders.member(message.meetingMemberId);
   const user = author && (await loaders.viewer(author.userId));
@@ -81,18 +83,22 @@ const describeMessage = async (
     _id: message._id,
     _creationTime: message._creationTime,
     body: message.body,
+    pending: message.pending ?? false,
     authorId: message.meetingMemberId,
     authorName: user?.name ?? "Someone",
-    authorImageUrl: user?.imageUrl ?? null,
+    authorImageUrl: faceless ? null : (user?.imageUrl ?? null),
     mine: author?.userId === userId,
   };
 };
+
+const isShown = (message: { pending: boolean; mine: boolean }) => !message.pending || message.mine;
 
 export const listMessages = async (
   ctx: QueryCtx,
   meetingId: Id<"meetings">,
   paginationOpts: PaginationOptions,
   userId: Id<"users">,
+  faceless = false,
 ) => {
   const result = await ctx.db
     .query("messages")
@@ -100,10 +106,10 @@ export const listMessages = async (
     .order("desc")
     .paginate(paginationOpts);
   const loaders = createChatLoaders(ctx);
-  return {
-    ...result,
-    page: await Promise.all(result.page.map((m) => describeMessage(ctx, loaders, m, userId))),
-  };
+  const page = await Promise.all(
+    result.page.map((m) => describeMessage(ctx, loaders, m, userId, faceless)),
+  );
+  return { ...result, page: page.filter(isShown) };
 };
 
 export const listSessionMessages = async (
@@ -121,10 +127,8 @@ export const listSessionMessages = async (
     })
     .paginate(paginationOpts);
   const loaders = createChatLoaders(ctx);
-  return {
-    ...result,
-    page: await Promise.all(result.page.map((m) => describeMessage(ctx, loaders, m, userId))),
-  };
+  const page = await Promise.all(result.page.map((m) => describeMessage(ctx, loaders, m, userId)));
+  return { ...result, page: page.filter(isShown) };
 };
 
 export const toggleReaction = async (
@@ -135,8 +139,9 @@ export const toggleReaction = async (
 ) => {
   const message = await ctx.db.get("messages", messageId);
   if (!message) throw new ConvexError("This message was deleted");
-  const { member } = await requireMeetingMember(ctx, message.meetingId, userId);
+  const { meeting, member } = await requireMeetingMember(ctx, message.meetingId, userId);
   if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
+  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId);
   const mine = await ctx.db
     .query("messageReactions")
     .withIndex("by_message_and_member", (q) =>
@@ -165,4 +170,6 @@ export const sendMessage = (
   meetingId: Id<"meetings">,
   meetingMemberId: Id<"meetingMembers">,
   body: string,
-) => ctx.db.insert("messages", parseOrThrow(zMessage, { meetingId, meetingMemberId, body }));
+  pending?: true,
+) =>
+  ctx.db.insert("messages", parseOrThrow(zMessage, { meetingId, meetingMemberId, body, pending }));

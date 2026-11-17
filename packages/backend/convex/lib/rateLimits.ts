@@ -16,6 +16,10 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   meeting: { kind: "fixed window", rate: 10, period: DAY },
   ring: { kind: "token bucket", rate: 30, period: HOUR, capacity: 5 },
   joinAsk: { kind: "token bucket", rate: 30, period: HOUR, capacity: 10 },
+  guestRename: { kind: "token bucket", rate: 20, period: HOUR, capacity: 5 },
+  frameUpload: { kind: "token bucket", rate: 4, period: MINUTE, capacity: 4 },
+  frameCheck: { kind: "token bucket", rate: 2, period: MINUTE, capacity: 1 },
+  frameRecheck: { kind: "token bucket", rate: 6, period: MINUTE, capacity: 3 },
 });
 
 export type RateLimit = keyof NonNullable<typeof rateLimiter.limits>;
@@ -40,6 +44,22 @@ export const enforceRateLimit = async (
   if (!ok) {
     throw new ConvexError(
       `${LIMIT_MESSAGES[name] ?? "Too many tries."} Try again in ${waitFor(retryAfter ?? 0)}.`,
+    );
+  }
+};
+
+export const tryRateLimit = async (ctx: MutationCtx | ActionCtx, name: RateLimit, key: string) =>
+  (await rateLimiter.limit(ctx, name, { key })).ok;
+
+export const enforceSlowMode = async (ctx: MutationCtx, key: string, seconds: number) => {
+  if (seconds <= 0) return;
+  const { ok, retryAfter } = await rateLimiter.limit(ctx, "slowMode", {
+    key,
+    config: { kind: "token bucket", rate: 1, period: seconds * 1000, capacity: 1 },
+  });
+  if (!ok) {
+    throw new ConvexError(
+      `Slow mode is on. You can send another message in ${waitFor(retryAfter ?? 0)}.`,
     );
   }
 };

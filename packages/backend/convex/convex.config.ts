@@ -46,6 +46,7 @@ app.use(authGithub, {
 });
 app.use(workpool, { name: "avatarWorkpool" });
 app.use(workpool, { name: "emailWorkpool" });
+app.use(workpool, { name: "moderationWorkpool" });
 app.use(r2);
 app.use(rateLimiter);
 app.use(cloudflareEmail, {

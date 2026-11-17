@@ -32,6 +32,9 @@ export const LandingPage = () => {
           Meetings
         </Link>
         <nav aria-label="Main" className="flex items-center gap-1">
+          <Button size="sm" variant="ghost" render={<Link to="/rooms" />}>
+            Public rooms
+          </Button>
           <Button size="sm" variant="ghost" render={<a href={REPO_URL} />}>
             <GithubIcon />
             GitHub

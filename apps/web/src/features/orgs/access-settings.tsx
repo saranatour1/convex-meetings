@@ -378,6 +378,10 @@ const ACTIONS: Record<string, string> = {
   joinDomainChanged: "set domain join to",
   callMemberRemoved: "removed from a call",
   callEnded: "ended the call",
+  roomCreated: "opened the public room",
+  roomClosed: "closed the public room",
+  userBanned: "banned from public rooms",
+  banLifted: "lifted the public room ban on",
 };
 
 export const ActivityCard = () => {

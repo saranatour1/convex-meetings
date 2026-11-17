@@ -22,6 +22,7 @@ export const zMeetingSession = z.object({
     .max(1000)
     .optional(),
   summary: z.string().optional(),
+  summaryCheck: z.enum(["ok", "hidden"]).optional(),
   transcriptUrl: z.string().optional(),
   recordingUrl: z.string().optional(),
   transcriptId: zid("_storage").optional(),

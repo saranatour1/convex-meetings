@@ -69,9 +69,14 @@ export const askAsMember = async (ctx: MutationCtx, userId: Id<"users">, code: s
   await openRequest(ctx, meeting, userId);
 };
 
-export const enterOrAskAsGuest = async (ctx: MutationCtx, code: string, name: string) => {
+export const enterOrAskAsGuest = async (
+  ctx: MutationCtx,
+  code: string,
+  name: string,
+  deviceId?: string,
+) => {
   const meeting = await findMeetingByCode(ctx, code);
-  if ((meeting?.access ?? "invited") !== "ask") return enterAsGuest(ctx, code, name);
+  if ((meeting?.access ?? "invited") !== "ask") return enterAsGuest(ctx, code, name, deviceId);
   const askable = requireAskable(meeting);
   const userId = await insertGuestUser(ctx, { name });
   const { secret, tokenId } = await issueToken(ctx, GUEST_PASS_MS);

@@ -13,8 +13,28 @@ import {
 } from "./calls";
 import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
 import { notify } from "./notifications";
+import {
+  ROOM_CAPACITY,
+  findRoom,
+  isPublicRoom,
+  requireNotBanned,
+  syncRoomPeople,
+} from "./roomAccess";
+import { queueSummaryCheck } from "./moderationQueue";
 import { liveTextOn, recordRecordingStatus, recordTranscriptUsage } from "./usage";
 import { getViewer } from "./users";
+
+const sessionPeersOfMember = (
+  ctx: QueryCtx,
+  meetingId: Id<"meetings">,
+  memberId: Id<"meetingMembers">,
+) =>
+  ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) =>
+      q.eq("meetingId", meetingId).eq("memberId", memberId),
+    )
+    .first();
 
 export const joinDetails = async (
   ctx: QueryCtx,
@@ -24,18 +44,28 @@ export const joinDetails = async (
   const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
   if (meeting.endedAt) throw new ConvexError("This meeting has ended");
   if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
+  const open = isPublicRoom(meeting);
+  if (open) {
+    await requireNotBanned(ctx, meeting.orgId, userId);
+    const [room, here] = await Promise.all([
+      findRoom(ctx, meetingId),
+      sessionPeersOfMember(ctx, meetingId, member._id),
+    ]);
+    if (!here && (room?.people ?? 0) >= ROOM_CAPACITY) throw new ConvexError("This room is full");
+  }
   const user = await getViewer(ctx, userId);
   return {
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
-    record: !meeting.protected && (meeting.record ?? false),
+    record: !open && !meeting.protected && (meeting.record ?? false),
     rtkMeetingId: meeting.rtkMeetingId ?? null,
     memberId: member._id,
     role: member.role,
     rtkParticipantId: member.rtkParticipantId ?? null,
     name: user?.name ?? "Guest",
-    imageUrl: user?.imageUrl ?? undefined,
+    imageUrl: open ? undefined : (user?.imageUrl ?? undefined),
+    viewer: open && user?.method === "guest",
   };
 };
 
@@ -118,6 +148,7 @@ const trackPeers = async (
           liveText: await liveTextOn(ctx),
         }),
       );
+      await syncRoomPeople(ctx, session.meetingId);
       if (!others.length) {
         await updateAttendance(ctx, session._id, memberId, (entry) => ({
           memberId,
@@ -154,6 +185,7 @@ const startSession = async (
     .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meeting._id))
     .take(1000);
   for (const peer of stale) await ctx.db.delete("callPeers", peer._id);
+  await syncRoomPeople(ctx, meeting._id);
   const sessionId = await ctx.db.insert("meetingSessions", {
     meetingId: meeting._id,
     orgId: meeting.orgId,
@@ -208,7 +240,10 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   }
   if (Object.keys(patch).length) await ctx.db.patch("meetingSessions", session._id, patch);
   await trackPeers(ctx, session, event, now);
-  if (event.summary && !session.summary) {
+  if (event.summary && !session.summary && isPublicRoom(meeting)) {
+    await queueSummaryCheck(ctx, session._id);
+  }
+  if (event.summary && !session.summary && !isPublicRoom(meeting)) {
     const members = await ctx.db
       .query("meetingMembers")
       .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meeting._id))

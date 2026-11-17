@@ -21,6 +21,7 @@ export const testBackend = () => {
   registerUsername(t);
   registerWorkpool(t, "avatarWorkpool");
   registerWorkpool(t, "emailWorkpool");
+  registerWorkpool(t, "moderationWorkpool");
   registerEmail(t);
   registerRateLimiter(t);
   return t;
