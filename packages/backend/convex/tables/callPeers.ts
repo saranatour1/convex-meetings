@@ -8,6 +8,8 @@ export const zCallPeer = z.object({
   memberId: zid("meetingMembers"),
   peerId: z.string(),
   joinedAt: z.number().optional(),
+  connectedAt: z.number().optional(),
+  liveText: z.boolean().optional(),
 });
 
 export const callPeers = defineTable(zodToConvexFields(zCallPeer.shape))

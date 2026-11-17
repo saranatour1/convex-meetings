@@ -5,6 +5,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { emailWorkpool } from "../lib/workpools";
+import { spendEmail } from "./usage";
 import { zInvite } from "../tables/invites";
 import { addMember, findMember } from "./members";
 import { getViewer } from "./users";
@@ -39,8 +40,10 @@ export const findLiveToken = async (ctx: QueryCtx, secret: string) => {
   return token && token.expiresAt > Date.now() ? token : null;
 };
 
-const enqueueSend = (ctx: MutationCtx, inviteId: Id<"invites">, secret: string) =>
-  emailWorkpool.enqueueAction(ctx, internal.internal.invites.send, { inviteId, secret });
+const enqueueSend = async (ctx: MutationCtx, inviteId: Id<"invites">, secret: string) => {
+  await spendEmail(ctx);
+  await emailWorkpool.enqueueAction(ctx, internal.internal.invites.send, { inviteId, secret });
+};
 
 const deleteInvite = async (ctx: MutationCtx, invite: Doc<"invites">) => {
   await ctx.db.delete("tokens", invite.tokenId);
