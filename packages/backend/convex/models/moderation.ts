@@ -129,7 +129,7 @@ export const strikesToday = async (
       q.eq("orgId", orgId).eq("userId", userId).gt("_creationTime", since),
     )
     .take(FLAGS_READ);
-  return flags.filter((flag) => flag.action === "strike" || flag.action === "kick").length;
+  return flags.filter((flag) => flag.action === "strike").length;
 };
 
 const banUser = async (
@@ -161,15 +161,7 @@ const recordOffence = async (ctx: MutationCtx, offence: Offence) => {
     exempt,
     strikesToday: await strikesToday(ctx, meeting.orgId, member.userId),
   });
-  const frame = offence.kind === "frame";
-  const action =
-    outcome === "none"
-      ? frame
-        ? ("review" as const)
-        : ("removed" as const)
-      : outcome === "strike" && frame
-        ? ("kick" as const)
-        : outcome;
+  const action = outcome !== "none" ? outcome : offence.kind === "frame" ? "review" : "removed";
   const flagId = await ctx.db.insert(
     "moderationFlags",
     parseOrThrow(zModerationFlag, {
@@ -297,6 +289,12 @@ const inCall = (ctx: QueryCtx, meetingId: Id<"meetings">, memberId: Id<"meetingM
     )
     .first();
 
+const isSignedInMember = async (ctx: QueryCtx, memberId: Id<"meetingMembers">) => {
+  const member = await ctx.db.get("meetingMembers", memberId);
+  const user = member && (await ctx.db.get("users", member.userId));
+  return Boolean(user && user.method !== "guest");
+};
+
 const openWatches = async (
   ctx: QueryCtx,
   meetingId: Id<"meetings">,
@@ -384,15 +382,23 @@ export const applyFrameVerdict = async (
     await ctx.storage.delete(frame.storageId);
     return;
   }
-  const [watches, present, trustedReporter] = await Promise.all([
+  const [watches, present, trustedReporter, reporterSignedIn] = await Promise.all([
     openWatches(ctx, meeting._id, target._id),
     peopleInCall(ctx, meeting._id),
     canControlCall(ctx, meeting, reporter),
+    isSignedInMember(ctx, reporter._id),
   ]);
+  const earlierReporters = watches
+    .flatMap((flag) => (flag.reporterId ? [flag.reporterId] : []))
+    .filter((id) => id !== reporter._id);
+  const others = [...present].filter((id) => id !== target._id && id !== reporter._id);
+  const anySignedIn = async (ids: Id<"meetingMembers">[]) =>
+    (await Promise.all(ids.map((id) => isSignedInMember(ctx, id)))).some(Boolean);
   const verdict = decideFrame(scores, {
     trustedReporter,
-    corroborated: watches.some((flag) => flag.reporterId !== reporter._id),
-    othersPresent: [...present].some((id) => id !== target._id && id !== reporter._id),
+    confirmed:
+      earlierReporters.length > 0 && (reporterSignedIn || (await anySignedIn(earlierReporters))),
+    canBeConfirmed: others.length > 0 && (reporterSignedIn || (await anySignedIn(others))),
   });
   if (verdict.action === "clear") {
     await ctx.storage.delete(frame.storageId);
@@ -407,14 +413,13 @@ export const applyFrameVerdict = async (
   };
   const keepFor = (flagId: Id<"moderationFlags">) =>
     ctx.scheduler.runAfter(EVIDENCE_MS, internal.internal.moderation.dropEvidence, { flagId });
-  if (verdict.action === "kick") {
-    const { outcome, flagId } = await recordOffence(ctx, {
+  if (verdict.action === "ban") {
+    const { flagId } = await recordOffence(ctx, {
       ...evidence,
       meeting,
       member: target,
-      penalty: verdict.penalty,
+      penalty: "ban",
     });
-    if (outcome === "strike") await kickLater(ctx, meeting.rtkMeetingId, target);
     const resolvedAt = Date.now();
     for (const watch of watches) await ctx.db.patch("moderationFlags", watch._id, { resolvedAt });
     await keepFor(flagId);
@@ -507,10 +512,12 @@ export const listFlags = async (
   const viewer = createViewerLoader(ctx);
   const page = await Promise.all(
     result.page.map(async (flag) => {
-      const [user, meeting] = await Promise.all([
+      const [user, meeting, reporter] = await Promise.all([
         viewer(flag.userId),
         ctx.db.get("meetings", flag.meetingId),
+        flag.reporterId ? ctx.db.get("meetingMembers", flag.reporterId) : null,
       ]);
+      const reporterUser = reporter ? await viewer(reporter.userId) : null;
       return {
         _id: flag._id,
         _creationTime: flag._creationTime,
@@ -522,6 +529,8 @@ export const listFlags = async (
         imageUrl: flag.storageId ? await ctx.storage.getUrl(flag.storageId) : null,
         userName: user?.name ?? "Someone",
         isGuest: user?.method === "guest",
+        reporterName: reporterUser?.name ?? null,
+        reporterIsGuest: reporterUser?.method === "guest",
         roomTitle: meeting?.title ?? null,
         roomCode: meeting?.code ?? null,
         resolved: Boolean(flag.resolvedAt),

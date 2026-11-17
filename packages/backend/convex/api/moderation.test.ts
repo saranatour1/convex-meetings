@@ -372,19 +372,74 @@ test("one reporter only raises a watch; a second reporter gets the person kicked
   expect(await stored(confirming)).toBeNull();
 });
 
-test("a host's report is enough, and below 0.9 it is a kick and a strike", async () => {
+test("a host's report is enough, and any confirmed frame is a ban", async () => {
   const { host, outsider, member, meetingId, joinCall, storeFrame, frameScreened, flags, bans } =
     await setup();
   const targetMemberId = await joinCall(outsider.userId);
   const reporterId = await joinCall(host.userId);
   await joinCall(member.userId);
   const storageId = await storeFrame();
-  await frameScreened({ storageId, targetMemberId, reporterId }, { ...clean, gore: 0.8 });
-  expect(await flags()).toMatchObject([{ kind: "frame", action: "kick", reason: "gore" }]);
+  await frameScreened({ storageId, targetMemberId, reporterId }, { ...clean, gore: 0.75 });
+  expect(await flags()).toMatchObject([
+    { kind: "frame", action: "ban", reason: "gore", reporterName: "Host", reporterIsGuest: false },
+  ]);
+  expect(await bans()).toMatchObject([{ userName: "Outsider", reason: "gore", automatic: true }]);
+  await expect(
+    outsider.asUser.mutation(api.api.messages.send, { meetingId, body: "hi" }),
+  ).rejects.toThrow("banned");
+});
+
+test("guests can't confirm each other; a signed-in reporter is needed to ban", async () => {
+  const { t, outsider, member, code, joinCall, storeFrame, frameScreened, flags, bans } =
+    await setup();
+  const guestJoins = async (name: string, device: string) => {
+    await t.mutation(api.api.guests.enter, { code, name, device });
+    const guest = await t.run((ctx) => ctx.db.query("meetingGuests").order("desc").first());
+    return joinCall(guest!.userId);
+  };
+  const targetMemberId = await joinCall(outsider.userId);
+  const first = await guestJoins("Gus", "device-0001");
+  const second = await guestJoins("Gus again", "device-0002");
+  const scores = { ...clean, nudity: 0.95 };
+  const report = async (reporterId: Id<"meetingMembers">) =>
+    frameScreened({ storageId: await storeFrame(), targetMemberId, reporterId }, scores);
+  const actions = async () => (await flags()).map((flag) => flag.action);
+
+  await report(first);
+  await report(second);
+  expect(await actions()).toEqual(["review", "review"]);
   expect(await bans()).toEqual([]);
-  expect(await outsider.asUser.query(api.api.moderation.myStatus, { meetingId })).toMatchObject({
-    strikes: 1,
-  });
+
+  const signedIn = await joinCall(member.userId);
+  await report(first);
+  expect(await actions()).toEqual(["watch", "review", "review"]);
+  await report(second);
+  expect(await actions()).toEqual(["watch", "watch", "review", "review"]);
+  expect(await bans()).toEqual([]);
+
+  await report(signedIn);
+  expect((await flags())[0]).toMatchObject({ action: "ban", reporterName: "Member" });
+  expect(await bans()).toMatchObject([{ userName: "Outsider", reason: "nudity" }]);
+});
+
+test("a guest's report is confirmed by a signed-in one, and the other way round", async () => {
+  const { t, outsider, member, code, joinCall, storeFrame, frameScreened, bans } = await setup();
+  await t.mutation(api.api.guests.enter, { code, name: "Gus", device: "device-0001" });
+  const guest = await t.run((ctx) => ctx.db.query("meetingGuests").first());
+  const targetMemberId = await joinCall(outsider.userId);
+  const guestReporter = await joinCall(guest!.userId);
+  const signedIn = await joinCall(member.userId);
+  const scores = { ...clean, hateSymbol: 0.8 };
+  await frameScreened(
+    { storageId: await storeFrame(), targetMemberId, reporterId: signedIn },
+    scores,
+  );
+  expect(await bans()).toEqual([]);
+  await frameScreened(
+    { storageId: await storeFrame(), targetMemberId, reporterId: guestReporter },
+    scores,
+  );
+  expect(await bans()).toMatchObject([{ reason: "hateSymbol" }]);
 });
 
 test("in a room of two a flagged frame goes to the managers", async () => {

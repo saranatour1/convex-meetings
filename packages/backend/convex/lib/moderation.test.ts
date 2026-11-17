@@ -3,7 +3,7 @@ import { decideFrame, decideMessage, decideName, messageScores, penaltyFor } fro
 
 const calm = { hate: 0, threat: 0, sexual: 0, insult: 0, spam: 0, personalInfo: 0, hostile: 0 };
 const clean = { nudity: 0, sexualAct: 0, gore: 0, hateSymbol: 0 };
-const alone = { trustedReporter: false, corroborated: false, othersPresent: false };
+const alone = { trustedReporter: false, confirmed: false, canBeConfirmed: false };
 const no = { type: "noul" as const, noul: 0.1 };
 
 test("a calm message is published", () => {
@@ -53,23 +53,24 @@ test("a clean frame is cleared", () => {
   expect(decideFrame(clean, alone)).toEqual({ action: "clear" });
 });
 
-test("one ordinary reporter never kicks", () => {
+test("one ordinary reporter never bans", () => {
   expect(decideFrame({ ...clean, nudity: 0.99 }, alone).action).toBe("review");
-  expect(decideFrame({ ...clean, nudity: 0.99 }, { ...alone, othersPresent: true }).action).toBe(
+  expect(decideFrame({ ...clean, nudity: 0.99 }, { ...alone, canBeConfirmed: true }).action).toBe(
     "watch",
   );
 });
 
-test("a corroborated or trusted frame kicks, and bans at 0.9", () => {
-  expect(decideFrame({ ...clean, nudity: 0.95 }, { ...alone, corroborated: true })).toEqual({
-    action: "kick",
+test("a confirmed or trusted frame bans from 0.7 on", () => {
+  expect(decideFrame({ ...clean, nudity: 0.75 }, { ...alone, confirmed: true })).toEqual({
+    action: "ban",
     reason: "nudity",
-    penalty: "ban",
   });
   expect(decideFrame({ ...clean, gore: 0.8 }, { ...alone, trustedReporter: true })).toEqual({
-    action: "kick",
+    action: "ban",
     reason: "gore",
-    penalty: "strike",
+  });
+  expect(decideFrame({ ...clean, hateSymbol: 0.69 }, { ...alone, confirmed: true })).toEqual({
+    action: "clear",
   });
 });
 
