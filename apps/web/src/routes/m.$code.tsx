@@ -2,6 +2,7 @@ import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { GuestEntry } from "#/features/meetings/guest-entry.tsx";
+import { pageHead } from "#/lib/seo.ts";
 
 const MeetingLinkPage = () => {
   const { code } = Route.useParams();
@@ -29,4 +30,12 @@ const MeetingLinkPage = () => {
   );
 };
 
-export const Route = createFileRoute("/m/$code")({ component: MeetingLinkPage });
+export const Route = createFileRoute("/m/$code")({
+  ssr: "data-only",
+  head: () =>
+    pageHead({
+      title: "Join the meeting · Meetings",
+      description: "Open this link to join the meeting in your browser.",
+    }),
+  component: MeetingLinkPage,
+});

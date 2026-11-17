@@ -16,4 +16,4 @@ const Home = () => {
   );
 };
 
-export const Route = createFileRoute("/_app/")({ component: Home });
+export const Route = createFileRoute("/_app/home")({ component: Home });

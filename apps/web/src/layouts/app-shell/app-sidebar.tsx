@@ -18,7 +18,7 @@ import { NavUser } from "#/features/auth/nav-user.tsx";
 import { OrgSwitcher } from "#/features/orgs/org-switcher.tsx";
 
 const LINKS = [
-  { title: "Home", to: "/", icon: HouseIcon },
+  { title: "Home", to: "/home", icon: HouseIcon },
   { title: "Meetings", to: "/meetings", icon: VideoIcon },
   { title: "Calendar", to: "/calendar", icon: CalendarDaysIcon },
   { title: "Inbox", to: "/inbox", icon: InboxIcon },

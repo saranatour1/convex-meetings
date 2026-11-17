@@ -24,7 +24,7 @@ const SchedulePage = () => {
             resetScroll: false,
           })
         }
-        onClose={() => void navigate({ to: "/" })}
+        onClose={() => void navigate({ to: "/home" })}
         onScheduled={(code) => void navigate({ to: "/meetings/$code", params: { code } })}
       />
     </main>
