@@ -9,6 +9,7 @@ import {
   FileTextIcon,
   InboxIcon,
   MailIcon,
+  PhoneMissedIcon,
 } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
@@ -28,6 +29,7 @@ const ICONS = {
   meetingCancelled: CalendarXIcon,
   rsvp: CalendarCheckIcon,
   recapReady: FileTextIcon,
+  missedCall: PhoneMissedIcon,
 };
 
 const sentence = (n: Notification) => {
@@ -41,6 +43,8 @@ const sentence = (n: Notification) => {
       return `${actor} ${n.detail ?? "replied to"} ${n.title}`;
     case "recapReady":
       return `The recap for ${n.title} is ready`;
+    case "missedCall":
+      return `You missed a call from ${actor}`;
   }
 };
 
