@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
-import { CopyIcon, DoorOpenIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
+import { DoorOpenIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -27,7 +27,7 @@ import { EmptyState } from "#/components/empty-state.tsx";
 import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { splitEmails } from "#/lib/emails.ts";
-import { copyWithToast, describeError, showError } from "#/lib/errors.ts";
+import { describeError, showError } from "#/lib/errors.ts";
 
 type Access = "invited" | "org" | "link";
 type Inviters = "hosts" | "everyone";
@@ -55,11 +55,10 @@ const INVITERS: { value: Inviters; label: string }[] = [
   { value: "everyone", label: "Everyone in the meeting" },
 ];
 
-const meetingLink = (code: string) => `${window.location.origin}/m/${code}`;
+export const meetingLink = (code: string) => `${window.location.origin}/m/${code}`;
 
 type SettingsProps = {
   meetingId: Id<"meetings">;
-  code: string;
   access: Access;
   inviters: Inviters;
   isProtected: boolean;
@@ -67,7 +66,6 @@ type SettingsProps = {
 
 export const MeetingSettingsCard = ({
   meetingId,
-  code,
   access,
   inviters,
   isProtected,
@@ -86,14 +84,6 @@ export const MeetingSettingsCard = ({
           </CardTitle>
           <CardDescription>Who can get in, and who can bring others.</CardDescription>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void copyWithToast(meetingLink(code), "Meeting link copied")}
-        >
-          <CopyIcon />
-          Copy link
-        </Button>
       </CardHeader>
       <CardPanel className="flex flex-col gap-4">
         <div className="grid gap-6 sm:grid-cols-[1fr_14rem]">

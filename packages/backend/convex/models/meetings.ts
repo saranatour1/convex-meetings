@@ -13,6 +13,7 @@ import { clearStrokes } from "./annotations";
 import { canControlCall } from "./calls";
 import { requireMeetingMember } from "./meetingAccess";
 import { findMember } from "./members";
+import { queueMeetingEmails } from "./meetingEmails";
 import { notify } from "./notifications";
 import { getSettings } from "./settings";
 import { getViewer } from "./users";
@@ -137,6 +138,11 @@ export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
     meetingCode: code,
     actorId: meeting.userId,
   });
+  const [saved, savedTime] = await Promise.all([
+    ctx.db.get("meetings", meetingId),
+    timeOf(ctx, meetingId),
+  ]);
+  if (saved && savedTime) await queueMeetingEmails(ctx, "REQUEST", saved, savedTime, inviteeIds);
   return { meetingId, code };
 };
 
@@ -266,6 +272,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
       return {
         _id: m._id,
         name: user?.name ?? "Anonymous",
+        email: isGuest ? null : (user?.email ?? null),
         imageUrl: user?.imageUrl ?? null,
         role: m.role,
         response: m.response,
@@ -354,6 +361,22 @@ export const cancelMeeting = async (
 ) => {
   const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
   if (member.role !== "host") throw new ConvexError("Only the host can cancel this meeting");
+  const [time, invited] = await Promise.all([
+    timeOf(ctx, meetingId),
+    ctx.db
+      .query("meetingMembers")
+      .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
+      .take(1000),
+  ]);
+  if (time && !meeting.endedAt && time.repeatUntil > Date.now()) {
+    await queueMeetingEmails(
+      ctx,
+      "CANCEL",
+      meeting,
+      time,
+      invited.filter((m) => m.userId !== userId && m.response !== "declined").map((m) => m.userId),
+    );
+  }
   const byMeeting = (table: "meetingTimes" | "messages" | "messageReactions" | "meetingSessions") =>
     ctx.db
       .query(table)

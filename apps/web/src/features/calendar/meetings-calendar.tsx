@@ -1,11 +1,19 @@
 import { useMemo } from "react";
-import { usePaginatedQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@meetings/backend";
 import { Link } from "@tanstack/react-router";
-import { PlusIcon, XIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
-import { Kloq, KloqNav, KloqToolbar, formatInstant, type CalEvent } from "@meetings/ui/kloq";
+import {
+  Kloq,
+  KloqNav,
+  KloqToolbar,
+  formatInstant,
+  type Attendee,
+  type CalEvent,
+} from "@meetings/ui/kloq";
 import type { MeetingTime } from "#/features/meetings/find-a-time.tsx";
+import { meetingLink } from "#/features/meetings/meeting-access.tsx";
 import { kindOf } from "#/features/meetings/meeting-kinds.ts";
 import { ZonePicker } from "#/features/meetings/zone-picker.tsx";
 import { MINUTE, cityOf, formatOffset } from "#/lib/schedule.ts";
@@ -15,31 +23,74 @@ type MeetingsCalendarProps = {
   zones: string[];
   onZonesChange: (zones: string[]) => void;
   onPlan: (time: MeetingTime) => void;
+  selected?: string;
+  onSelect: (code: string | undefined) => void;
+  showDeclined: boolean;
+  onShowDeclinedChange: (show: boolean) => void;
 };
 
-export const MeetingsCalendar = ({ zone, zones, onZonesChange, onPlan }: MeetingsCalendarProps) => {
+type Person = {
+  _id: string;
+  email: string | null;
+  name: string;
+  role: "host" | "participant";
+  response: "pending" | "accepted" | "declined";
+};
+
+const toAttendee = (p: Person): Attendee => ({
+  email: p.email ?? p._id,
+  name: p.name,
+  status: p.response,
+});
+
+export const MeetingsCalendar = ({
+  zone,
+  zones,
+  onZonesChange,
+  onPlan,
+  selected,
+  onSelect,
+  showDeclined,
+  onShowDeclinedChange,
+}: MeetingsCalendarProps) => {
   const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 200 });
+  const viewer = useQuery(api.users.viewer);
+  const detail = useQuery(api.meetings.get, selected ? { code: selected } : "skip");
+  const me = viewer?.email ?? undefined;
   const events = useMemo(
     () =>
-      meetings.results
-        .filter((m) => m.response !== "declined")
-        .map((m): CalEvent => ({
-          id: m._id,
+      meetings.results.map((m): CalEvent => {
+        const people = detail?.code === m.code ? detail.people : null;
+        const host = people?.find((p) => p.role === "host");
+        return {
+          id: m.code,
           title: m.title,
           color: kindOf(m.kind).color,
           rrule: m.rrule ?? undefined,
           start: formatInstant(new Date(m.startsAt), m.timeZone),
           end: formatInstant(new Date(m.endsAt), m.timeZone),
           timeZone: m.timeZone,
-        })),
-    [meetings.results],
+          meetingUrl: meetingLink(m.code),
+          readOnly: true,
+          busy: m.response !== "pending",
+          organizer: host ? toAttendee(host).email : m.role === "host" ? me : undefined,
+          attendees: people
+            ? people.map(toAttendee)
+            : me
+              ? [{ email: me, name: viewer?.name, status: m.response }]
+              : undefined,
+        };
+      }),
+    [meetings.results, detail, me, viewer?.name],
   );
 
   return (
     <Kloq
-      key={events.map((e) => e.id).join()}
       className="overflow-hidden rounded-2xl border"
-      defaultEvents={events}
+      events={events}
+      currentUserEmail={me}
+      showDeclinedEvents={showDeclined}
+      onSelectionChange={(chosen) => onSelect(chosen[0]?.id)}
       persistence={false}
       storage={false}
       designMode={false}
@@ -84,6 +135,15 @@ export const MeetingsCalendar = ({ zone, zones, onZonesChange, onPlan }: Meeting
             }
             className="w-44"
           />
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-pressed={showDeclined}
+            onClick={() => onShowDeclinedChange(!showDeclined)}
+          >
+            {showDeclined ? <EyeIcon /> : <EyeOffIcon />}
+            {showDeclined ? "Showing declined" : "Declined hidden"}
+          </Button>
           <Button size="sm" variant="outline" render={<Link to="/schedule" />}>
             <PlusIcon />
             Schedule meeting

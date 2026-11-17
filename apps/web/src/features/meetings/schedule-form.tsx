@@ -7,7 +7,6 @@ import {
   EyeOffIcon,
   RepeatIcon,
   TriangleAlertIcon,
-  XIcon,
 } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -31,6 +30,7 @@ import { Switch } from "@meetings/ui/components/switch";
 import { parseRRule } from "@meetings/ui/kloq/rrule";
 import { RRuleBuilder } from "@meetings/ui/kloq/rrule-builder";
 import { FormError } from "#/components/form-error.tsx";
+import { PeoplePicker } from "#/features/meetings/people-picker.tsx";
 import { MEETING_KINDS, type MeetingKind } from "#/features/meetings/meeting-kinds.ts";
 import {
   FindATime,
@@ -102,11 +102,11 @@ export const ScheduleForm = ({
         : nextWorkday(dayOf(Date.now(), zone)),
       start: initialTime?.start ?? null,
       durationMinutes: initialTime?.minutes ?? defaults.minutes,
-      removed: [] as string[],
+      added: [] as string[],
     },
     validators: {
       onSubmitAsync: ({ value }) => {
-        const people = invitees.people.filter((p) => !value.removed.includes(p.id));
+        const people = invitees.people.filter((p) => value.added.includes(p.id));
         return onSchedule({
           title: value.title,
           kind: value.kind,
@@ -122,14 +122,14 @@ export const ScheduleForm = ({
     },
   });
   const values = useStore(form.store, (state) => state.values);
-  const { day, durationMinutes, start, removed, rrule } = values;
+  const { day, durationMinutes, start, added, rrule } = values;
   const planMinutes = useDeferredValue(durationMinutes);
 
   const { people, everyone, plan } = useMemo(() => {
-    const people = invitees.people.filter((p) => !removed.includes(p.id));
+    const people = invitees.people.filter((p) => added.includes(p.id));
     const everyone = [invitees.organizer, ...people];
     return { people, everyone, plan: availability(everyone, day, zone, planMinutes) };
-  }, [invitees, removed, day, zone, planMinutes]);
+  }, [invitees, added, day, zone, planMinutes]);
 
   const chosen =
     start !== null && start >= plan.from && start < plan.to ? start : plan.best[0].start;
@@ -148,12 +148,6 @@ export const ScheduleForm = ({
   const sharing = (share: Share) => others.filter((p) => p.share === share).length;
   const notShared = sharing("none");
   const zoneCount = new Set(everyone.map((p) => formatOffset(chosen, p.timeZone))).size;
-  const chips = people.map((p) => ({
-    id: p.id,
-    name: p.name,
-    initials: p.initials,
-    detail: p.optional ? `${p.city} · optional` : p.city,
-  }));
 
   return (
     <Card>
@@ -262,7 +256,9 @@ export const ScheduleForm = ({
               Who
             </h3>
             <span className="text-muted-foreground text-sm">
-              {everyone.length} people · {zoneCount} time zones
+              {people.length === 0
+                ? "Just you so far"
+                : `${everyone.length} people · ${zoneCount} time zones`}
             </span>
           </div>
           <ul className="flex flex-wrap gap-2">
@@ -278,31 +274,12 @@ export const ScheduleForm = ({
                 Organizer · {invitees.organizer.city}
               </span>
             </li>
-            {chips.map((chip) => (
-              <li
-                key={chip.id}
-                className="flex h-9 items-center gap-2 rounded-full border ps-1 pe-0.5"
-              >
-                <span
-                  aria-hidden="true"
-                  className="grid size-7 place-items-center rounded-full bg-muted font-medium text-xs"
-                >
-                  {chip.initials}
-                </span>
-                <span className="font-medium text-sm">{chip.name}</span>
-                <span className="text-muted-foreground text-xs">{chip.detail}</span>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="rounded-full"
-                  aria-label={`Remove ${chip.name}`}
-                  onClick={() => form.setFieldValue("removed", [...removed, chip.id])}
-                >
-                  <XIcon />
-                </Button>
-              </li>
-            ))}
           </ul>
+          <PeoplePicker
+            people={invitees.people}
+            value={added}
+            onChange={(ids) => form.setFieldValue("added", ids)}
+          />
           <p className="flex flex-wrap gap-x-5 gap-y-2 text-muted-foreground text-xs">
             <span className="flex items-center gap-1.5">
               <CalendarCheckIcon aria-hidden="true" className="size-3.5" />
