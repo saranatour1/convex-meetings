@@ -344,7 +344,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
       startedAt: s.startedAt,
       endedAt: s.endedAt ?? null,
       attendees: s.attendeeIds.length,
-      summary: s.summary ?? null,
+      summary: open && s.summaryCheck !== "ok" ? null : (s.summary ?? null),
       hasTranscript: Boolean(s.transcriptId || s.transcriptUrl),
       hasRecording: Boolean(s.recordingKey || s.recordingUrl),
     })),

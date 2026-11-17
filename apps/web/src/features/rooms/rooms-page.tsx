@@ -10,6 +10,7 @@ import { copyWithToast, showError } from "#/lib/errors.ts";
 import { ModerationPanel } from "./moderation-panel.tsx";
 import { NewRoomForm } from "./new-room-form.tsx";
 import { RoomCard } from "./room-card.tsx";
+import { roomLink } from "./room-link.ts";
 
 export type RoomsTab = "browse" | "ours" | "moderation";
 
@@ -18,8 +19,6 @@ const TABS: { value: RoomsTab; label: string }[] = [
   { value: "ours", label: "Ours" },
   { value: "moderation", label: "Moderation" },
 ];
-
-export const roomLink = (code: string) => `${window.location.origin}/rooms/${code}`;
 
 const BrowseRooms = () => {
   const rooms = usePaginatedQuery(api.rooms.directory, {}, { initialNumItems: 24 });

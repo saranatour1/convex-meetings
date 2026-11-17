@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { Authenticated, Unauthenticated } from "convex/react";
 import { Button } from "@meetings/ui/components/button";
 import { Logo } from "#/components/logo.tsx";
 import { REPO_URL } from "#/lib/seo.ts";
@@ -15,9 +16,16 @@ export const PublicShell = ({ children }: { children: ReactNode }) => (
         <Button size="sm" variant="ghost" render={<Link to="/rooms" />}>
           Public rooms
         </Button>
-        <Button size="sm" render={<Link to="/sign-in" />}>
-          Sign in
-        </Button>
+        <Unauthenticated>
+          <Button size="sm" render={<Link to="/sign-in" />}>
+            Sign in
+          </Button>
+        </Unauthenticated>
+        <Authenticated>
+          <Button size="sm" render={<Link to="/home" />}>
+            Open the app
+          </Button>
+        </Authenticated>
       </nav>
     </header>
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
