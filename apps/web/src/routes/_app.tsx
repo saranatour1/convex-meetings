@@ -1,38 +1,19 @@
-import { track } from "@databuddy/sdk";
-import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
-import { AuthLoading, Authenticated, Unauthenticated, useMutation } from "convex/react";
-import { api } from "@meetings/backend";
-import { toastManager } from "@meetings/ui/components/toast";
+import { Navigate, Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
+import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { SidebarInset, SidebarProvider } from "@meetings/ui/components/sidebar";
 import { AppHeader } from "#/layouts/app-shell/app-header.tsx";
 import { AppSidebar } from "#/layouts/app-shell/app-sidebar.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { AgentTools } from "#/features/meetings/agent-tools.tsx";
 import { IncomingCall } from "#/features/meetings/incoming-call.tsx";
-import { OrgGate, useActiveOrg } from "#/features/orgs/active-org.tsx";
-import { browserTimeZone } from "#/lib/browser.ts";
-import { describeError } from "#/lib/errors.ts";
+import { useStartMeeting } from "#/features/meetings/start-meeting.ts";
+import { OrgGate } from "#/features/orgs/active-org.tsx";
 
-const Header = () => {
-  const { orgId } = useActiveOrg();
-  const startNow = useMutation(api.meetings.startNow);
-  const navigate = Route.useNavigate();
+const Header = ({ onOpenCall }: { onOpenCall: (code: string) => void }) => {
+  const onHome = Boolean(useMatchRoute()({ to: "/home" }));
+  const startMeeting = useStartMeeting(onOpenCall);
 
-  return (
-    <AppHeader
-      onJoinCode={(code) => void navigate({ to: "/meetings/$code", params: { code } })}
-      onStartMeeting={() =>
-        void startNow({ orgId, timeZone: browserTimeZone() })
-          .then(({ code }) => {
-            track("meeting_started");
-            return navigate({ to: "/meetings/$code", params: { code }, search: { call: true } });
-          })
-          .catch((error: unknown) =>
-            toastManager.add({ title: describeError(error), type: "error" }),
-          )
-      }
-    />
-  );
+  return <AppHeader quickActions={!onHome} onJoinCode={onOpenCall} onStartMeeting={startMeeting} />;
 };
 
 const AppLayout = () => {
@@ -55,7 +36,7 @@ const AppLayout = () => {
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-              <Header />
+              <Header onOpenCall={openCall} />
               <Outlet />
             </SidebarInset>
           </SidebarProvider>

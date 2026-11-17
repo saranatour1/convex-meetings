@@ -73,6 +73,9 @@ export const formatWeekday = (ms: number, timeZone: string) => at(ms, timeZone).
 
 export const formatDate = (ms: number, timeZone: string) => at(ms, timeZone).toFormat("ccc, LLL d");
 
+export const formatDayHeading = (ms: number, timeZone: string) =>
+  at(ms, timeZone).toFormat("cccc d LLLL");
+
 export const formatLongDate = (ms: number, timeZone: string) =>
   at(ms, timeZone).toFormat("LLL d, yyyy");
 
