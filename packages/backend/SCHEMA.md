@@ -131,6 +131,13 @@ erDiagram
     id invitedBy FK "users, optional"
     string emailError "optional"
   }
+  joinRequests {
+    id _id PK
+    id meetingId FK "meetings"
+    id userId FK "users"
+    enum status
+    id tokenId FK "tokens, optional"
+  }
   meetingSessions {
     id _id PK
     id meetingId FK "meetings"
@@ -248,6 +255,9 @@ erDiagram
   meetingGuests }o--|| users : userId
   meetingGuests }o--|| tokens : tokenId
   meetingGuests }o--o| users : invitedBy
+  joinRequests }o--|| meetings : meetingId
+  joinRequests }o--|| users : userId
+  joinRequests }o--o| tokens : tokenId
   meetingSessions }o--|| meetings : meetingId
   meetingSessions }o--o| organizations : orgId
   meetingSessions }o--o| _storage : transcriptId
@@ -304,6 +314,9 @@ erDiagram
 | meetingMembers | by_user | userId |
 | meetingGuests | by_token | tokenId |
 | meetingGuests | by_meeting | meetingId |
+| joinRequests | by_meeting_and_status | meetingId, status |
+| joinRequests | by_meeting_and_user | meetingId, userId |
+| joinRequests | by_token | tokenId |
 | meetingSessions | by_meeting | meetingId |
 | meetingSessions | by_meeting_and_number | meetingId, number |
 | meetingSessions | by_rtk_session | rtkSessionId |

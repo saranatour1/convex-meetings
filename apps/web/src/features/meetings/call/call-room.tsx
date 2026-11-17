@@ -38,6 +38,7 @@ import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 import { RTK_SECTIONS, emitCallUi, type CallSide } from "./call-ui.ts";
 import { MediaControls } from "./media-controls.tsx";
+import { JoinRequests } from "../join-requests.tsx";
 import { OtherDevices, listenToOwnDevices } from "./other-devices.tsx";
 import { ShareStage } from "./share-stage.tsx";
 
@@ -213,6 +214,7 @@ export const CallRoom = ({
       </header>
 
       <OtherDevices />
+      {canControl && <JoinRequests meetingId={meetingId} className="border-b px-4 py-2" />}
       <div className="flex min-h-0 flex-1">
         <div
           className="relative min-w-0 flex-1 bg-muted/40 p-2"

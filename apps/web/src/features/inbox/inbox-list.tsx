@@ -7,6 +7,7 @@ import {
   CalendarXIcon,
   CheckCheckIcon,
   FileTextIcon,
+  HandIcon,
   InboxIcon,
   MailIcon,
   PhoneMissedIcon,
@@ -30,6 +31,7 @@ const ICONS = {
   rsvp: CalendarCheckIcon,
   recapReady: FileTextIcon,
   missedCall: PhoneMissedIcon,
+  joinRequest: HandIcon,
 };
 
 const sentence = (n: Notification) => {
@@ -45,6 +47,8 @@ const sentence = (n: Notification) => {
       return `The recap for ${n.title} is ready`;
     case "missedCall":
       return `You missed a call from ${actor}`;
+    case "joinRequest":
+      return `${actor} asks to join ${n.title}`;
   }
 };
 

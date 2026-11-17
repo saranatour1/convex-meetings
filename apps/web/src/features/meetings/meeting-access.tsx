@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
-import { DoorOpenIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
+import { DoorOpenIcon, HandIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -29,7 +29,7 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { splitEmails } from "#/lib/emails.ts";
 import { describeError, showError } from "#/lib/errors.ts";
 
-type Access = "invited" | "org" | "link";
+type Access = "invited" | "org" | "ask" | "link";
 type Inviters = "hosts" | "everyone";
 
 const ACCESS: { value: Access; label: string; hint: string }[] = [
@@ -42,6 +42,11 @@ const ACCESS: { value: Access; label: string; hint: string }[] = [
     value: "org",
     label: "Anyone in the organization",
     hint: "Members can open the link and walk in.",
+  },
+  {
+    value: "ask",
+    label: "Anyone with the link can ask to join",
+    hint: "Your organization walks in. Anyone else waits until a host lets them in.",
   },
   {
     value: "link",
@@ -218,6 +223,7 @@ export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) =>
 export const MeetingDoor = ({ code }: { code: string }) => {
   const door = useQuery(api.meetings.door, { code });
   const enter = useMutation(api.meetings.enter);
+  const ask = useMutation(api.joinRequests.ask);
   if (door === undefined) return <LoadingScreen />;
   if (door === null) {
     return (
@@ -235,10 +241,16 @@ export const MeetingDoor = ({ code }: { code: string }) => {
       description={
         door.canEnter
           ? "You're not on the invite list, but this meeting is open to you."
-          : "Only invited people can join this meeting. Ask the host to invite you."
+          : door.request === "waiting"
+            ? "You asked to join. This page opens the meeting as soon as a host lets you in."
+            : door.request === "denied"
+              ? "A host didn't let you in."
+              : door.canAsk
+                ? "Ask to join, and a host can let you in."
+                : "Only invited people can join this meeting. Ask the host to invite you."
       }
       action={
-        door.canEnter && (
+        door.canEnter ? (
           <Button
             onClick={() =>
               void enter({ code })
@@ -249,6 +261,20 @@ export const MeetingDoor = ({ code }: { code: string }) => {
             <DoorOpenIcon />
             Join this meeting
           </Button>
+        ) : (
+          door.canAsk &&
+          door.request !== "waiting" && (
+            <Button
+              onClick={() =>
+                void ask({ code })
+                  .then(() => track("join_requested", { guest: false }))
+                  .catch(showError)
+              }
+            >
+              <HandIcon />
+              {door.request === "denied" ? "Ask again" : "Ask to join"}
+            </Button>
+          )
         )
       }
     />
