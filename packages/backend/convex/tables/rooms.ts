@@ -7,6 +7,7 @@ export const zRoom = z.object({
   orgId: zid("organizations"),
   description: z.string().trim().min(1).max(500),
   people: z.number().int().min(0),
+  waitingRoom: z.boolean().optional(),
   closedAt: z.number().optional(),
 });
 

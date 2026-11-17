@@ -87,7 +87,7 @@ export const door = authedQuery({
       kind: meeting.kind,
       isPublic: isPublicRoom(meeting),
       canEnter: enterable,
-      canAsk: !enterable && canAsk(meeting),
+      canAsk: !enterable && (await canAsk(ctx, meeting)),
       request: request?.status ?? null,
     };
   },

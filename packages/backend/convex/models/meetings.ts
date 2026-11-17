@@ -324,6 +324,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     access: meeting.access ?? "invited",
     inviters: meeting.inviters ?? "hosts",
     slowModeSeconds: meeting.slowModeSeconds ?? 0,
+    waitingRoom: open && ((await findRoom(ctx, meetingId))?.waitingRoom ?? false),
     endedAt: meeting.endedAt ?? null,
     time,
     me: {

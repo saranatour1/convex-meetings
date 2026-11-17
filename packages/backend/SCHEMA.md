@@ -139,6 +139,7 @@ erDiagram
     id userId FK "users"
     enum status
     id tokenId FK "tokens, optional"
+    string deviceId "optional"
   }
   meetingSessions {
     id _id PK
@@ -234,6 +235,7 @@ erDiagram
     id orgId FK "organizations"
     string description
     number people
+    boolean waitingRoom "optional"
     number closedAt "optional"
   }
   moderationFlags {

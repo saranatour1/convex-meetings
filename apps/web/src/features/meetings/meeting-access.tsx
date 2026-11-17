@@ -70,6 +70,7 @@ type SettingsProps = {
   inviters: Inviters;
   isProtected: boolean;
   slowModeSeconds: number;
+  waitingRoom: boolean;
 };
 
 export const MeetingSettingsCard = ({
@@ -78,8 +79,11 @@ export const MeetingSettingsCard = ({
   inviters,
   isProtected,
   slowModeSeconds,
+  waitingRoom,
 }: SettingsProps) => {
   const update = useMutation(api.meetings.updateSettings);
+  const updateRoom = useMutation(api.rooms.update);
+  const waiting = useQuery(api.rooms.waitingRoom, access === "public" ? { meetingId } : "skip");
   const save = (changes: Omit<Parameters<typeof update>[0], "meetingId">) =>
     void update({ meetingId, ...changes }).catch(showError);
   const slowMode = (
@@ -108,7 +112,32 @@ export const MeetingSettingsCard = ({
             video are checked automatically.
           </CardDescription>
         </CardHeader>
-        <CardPanel>{slowMode}</CardPanel>
+        <CardPanel className="flex flex-col gap-4">
+          <Label className="justify-between gap-3 font-normal">
+            <span className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-1.5 font-medium">
+                <HandIcon className="size-4" />
+                Waiting room
+              </span>
+              <span className="text-muted-foreground text-xs">
+                People outside your organization ask to join and a host lets each one in.
+              </span>
+              {waiting && waiting.joined > 0 && (
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {waiting.joined} asked to join · {waiting.admitted} let in · {waiting.waiting}{" "}
+                  waiting now
+                </span>
+              )}
+            </span>
+            <Switch
+              checked={waitingRoom}
+              onCheckedChange={(on) =>
+                void updateRoom({ meetingId, waitingRoom: on }).catch(showError)
+              }
+            />
+          </Label>
+          {slowMode}
+        </CardPanel>
       </Card>
     );
   }
@@ -276,15 +305,17 @@ export const MeetingDoor = ({ code }: { code: string }) => {
       description={
         door.isPublic && door.canEnter
           ? "This is a public room. Chat and video are checked automatically, and breaking the rules gets you removed."
-          : door.canEnter
-            ? "You're not on the invite list, but this meeting is open to you."
-            : door.request === "waiting"
-              ? "You asked to join. This page opens the meeting as soon as a host lets you in."
-              : door.request === "denied"
-                ? "A host didn't let you in."
-                : door.canAsk
-                  ? "Ask to join, and a host can let you in."
-                  : "Only invited people can join this meeting. Ask the host to invite you."
+          : door.isPublic && door.canAsk && !door.request
+            ? "This public room has a waiting room. Ask to join, and a host lets you in."
+            : door.canEnter
+              ? "You're not on the invite list, but this meeting is open to you."
+              : door.request === "waiting"
+                ? "You asked to join. This page opens the meeting as soon as a host lets you in."
+                : door.request === "denied"
+                  ? "A host didn't let you in."
+                  : door.canAsk
+                    ? "Ask to join, and a host can let you in."
+                    : "Only invited people can join this meeting. Ask the host to invite you."
       }
       action={
         door.canEnter ? (

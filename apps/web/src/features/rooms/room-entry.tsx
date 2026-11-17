@@ -123,6 +123,9 @@ export const RoomEntry = ({ code, initial, onEntered }: RoomEntryProps) => {
             it again gets you banned.
           </li>
           <li>Chat and occasional video frames are checked automatically by an AI model.</li>
+          {room.waitingRoom && (
+            <li>This room has a waiting room. A host lets you in after you ask to join.</li>
+          )}
           {room.slowModeSeconds > 0 && (
             <li>Slow mode is on: one message {slowModeText(room.slowModeSeconds)}.</li>
           )}
@@ -163,7 +166,13 @@ export const RoomEntry = ({ code, initial, onEntered }: RoomEntryProps) => {
             {(isSubmitting) => (
               <Button type="submit" disabled={isSubmitting}>
                 <DoorOpenIcon />
-                {isSubmitting ? "Joining…" : "Join as a guest"}
+                {room.waitingRoom
+                  ? isSubmitting
+                    ? "Asking…"
+                    : "Ask to join as a guest"
+                  : isSubmitting
+                    ? "Joining…"
+                    : "Join as a guest"}
               </Button>
             )}
           </form.Subscribe>

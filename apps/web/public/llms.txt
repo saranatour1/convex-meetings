@@ -9,7 +9,7 @@ Page state lives in the URL. An agent can open any page below in the exact state
 ## Public pages
 
 - [Public rooms](https://convex-meetings.stream/rooms): rooms anyone can drop into, with each room's name, description, host organization and how many people are in it now
-- `/rooms/<code>`: one public room. Type a name to join as a guest (watch, listen and chat); signing in adds camera and mic. Chat and video are checked automatically
+- `/rooms/<code>`: one public room. Type a name to join as a guest (watch, listen and chat); signing in adds camera and mic. A room with a waiting room lets you in once a host answers. Chat and video are checked automatically
 - `/rooms/<code>/recaps/<n>`: the public recap of the room's nth call: when it was open, how long, how many people, and a summary. No names, faces or recordings
 
 ## Pages

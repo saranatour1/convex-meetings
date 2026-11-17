@@ -24,6 +24,7 @@ export const RoomCard = ({ room, closed, action }: RoomCardProps) => (
       <p className="text-muted-foreground text-sm">{room.description}</p>
       <p className="text-muted-foreground text-xs">
         Hosted by {room.host}
+        {room.waitingRoom && " · Waiting room"}
         {room.slowModeSeconds > 0 && ` · One message ${slowModeText(room.slowModeSeconds)}`}
       </p>
     </div>

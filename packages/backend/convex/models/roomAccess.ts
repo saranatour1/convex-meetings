@@ -16,6 +16,9 @@ export const findRoom = (ctx: QueryCtx, meetingId: Id<"meetings">) =>
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
     .unique();
 
+export const hasWaitingRoom = async (ctx: QueryCtx, meeting: Doc<"meetings">) =>
+  isPublicRoom(meeting) && (await findRoom(ctx, meeting._id))?.waitingRoom === true;
+
 export const peopleInCall = async (ctx: QueryCtx, meetingId: Id<"meetings">) => {
   const peers = await ctx.db
     .query("callPeers")
