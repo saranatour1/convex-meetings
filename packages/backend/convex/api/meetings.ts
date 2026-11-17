@@ -30,6 +30,7 @@ import {
 } from "../models/meetings";
 import { listSessionMessages } from "../models/messages";
 import { requireCallControl } from "../models/calls";
+import { isPublicRoom } from "../models/roomAccess";
 import { canEnter, enterAsMember, inviteToMeeting } from "../models/guests";
 import { canAsk, deleteJoinRequests, findJoinRequest } from "../models/joinRequests";
 import { zMeeting, zMeetingAccess, zMeetingInviters } from "../tables/meetings";
@@ -46,6 +47,7 @@ export const create = orgMutation({
     rrule: z.string().max(500).optional(),
     inviteeIds: z.array(zid("users")).max(100),
     protected: z.boolean().optional(),
+    slowModeSeconds: zMeeting.shape.slowModeSeconds,
   },
   handler: (ctx, { orgId, ...meeting }) => {
     ctx.requirePermission("createMeetings");
@@ -83,6 +85,7 @@ export const door = authedQuery({
     return {
       title: meeting.title,
       kind: meeting.kind,
+      isPublic: isPublicRoom(meeting),
       canEnter: enterable,
       canAsk: !enterable && canAsk(meeting),
       request: request?.status ?? null,
@@ -161,7 +164,7 @@ export const join = meetingAction({
     }
     const participant = await realtimeKit.addParticipant(rtkMeetingId, {
       customId: details.memberId,
-      presetName: presetName(details.kind, details.role),
+      presetName: presetName(details.kind, details.role, details.viewer),
       name: details.name,
       picture: details.imageUrl,
     });
@@ -219,15 +222,22 @@ export const updateSettings = authedMutation({
   args: {
     meetingId: zid("meetings"),
     protected: z.boolean().optional(),
-    access: zMeetingAccess.optional(),
+    access: zMeetingAccess.exclude(["public"]).optional(),
     inviters: zMeetingInviters.optional(),
+    slowModeSeconds: zMeeting.shape.slowModeSeconds,
   },
   handler: async (ctx, { meetingId, ...changes }) => {
-    await requireCallControl(ctx, meetingId, ctx.userId);
+    const { meeting } = await requireCallControl(ctx, meetingId, ctx.userId);
+    if (changes.access && isPublicRoom(meeting)) {
+      throw new ConvexError("Close a public room instead of changing who can join");
+    }
     await ctx.db.patch("meetings", meetingId, {
       ...(changes.protected !== undefined && { protected: changes.protected || undefined }),
       ...(changes.access && { access: changes.access }),
       ...(changes.inviters && { inviters: changes.inviters }),
+      ...(changes.slowModeSeconds !== undefined && {
+        slowModeSeconds: changes.slowModeSeconds || undefined,
+      }),
     });
   },
 });

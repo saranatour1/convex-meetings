@@ -27,6 +27,7 @@ import { browserTimeZone } from "#/lib/browser.ts";
 import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { dayOf, formatLongDate, formatTime } from "#/lib/schedule.ts";
+import { ChatStatus } from "./chat-status.tsx";
 import { useGuestPass } from "./guest-pass.ts";
 
 export type ChatLine = FunctionReturnType<typeof api.messages.list>["page"][number];
@@ -136,7 +137,7 @@ export const ChatLines = ({ messages, since }: ChatLinesProps) => {
             )}
             {callStart && <ChatUnreadDivider>This call</ChatUnreadDivider>}
             <ChatMessage
-              className={grouped ? undefined : "mt-2"}
+              className={cn(!grouped && "mt-2", message.pending && "opacity-60")}
               side={message.mine ? "outgoing" : "incoming"}
               author={message.authorName}
               grouped={grouped}
@@ -231,6 +232,7 @@ export const MeetingChat = ({ meetingId, since, className }: MeetingChatProps) =
           </ComposerSubmit>
         </ComposerActions>
       </Composer>
+      <ChatStatus meetingId={meetingId} />
     </div>
   );
 };

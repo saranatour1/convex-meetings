@@ -19,6 +19,10 @@ export const zAuditAction = z.enum([
   "joinDomainChanged",
   "callMemberRemoved",
   "callEnded",
+  "roomCreated",
+  "roomClosed",
+  "userBanned",
+  "banLifted",
 ]);
 
 export const zAuditEvent = z.object({

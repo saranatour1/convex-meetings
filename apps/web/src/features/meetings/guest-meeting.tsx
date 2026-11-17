@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { DoorOpenIcon, UserIcon } from "lucide-react";
 import { api } from "@meetings/backend";
@@ -64,6 +65,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
     );
   }
   const zone = browserTimeZone();
+  const room = meeting.access === "public";
   const onInCallChange = (inCall: boolean) =>
     onSearchChange({
       call: inCall || undefined,
@@ -79,8 +81,9 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
           <CardHeader>
             <CardTitle>{meeting.title}</CardTitle>
             <CardDescription className="tabular-nums">
-              {kindOf(meeting.kind).label}
+              {room ? "Public room" : kindOf(meeting.kind).label}
               {meeting.time &&
+                !room &&
                 ` · ${formatDate(meeting.time.startsAt, zone)} · ${formatTime(meeting.time.startsAt, zone)}–${formatTime(meeting.time.endsAt, zone)}`}{" "}
               · You're a guest
             </CardDescription>
@@ -109,7 +112,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                 The host removed you from this meeting.
               </p>
             ) : meeting.endedAt ? (
-              <MeetingEnded endedAt={meeting.endedAt} />
+              <MeetingEnded endedAt={meeting.endedAt} room={room} />
             ) : search.call === true ? (
               <Suspense fallback={<Button disabled>Loading call…</Button>}>
                 <MeetingCall
@@ -125,10 +128,28 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                   canControl={false}
                   devicesInCall={meeting.me.devicesInCall}
                   isProtected={meeting.protected}
+                  moderated={room}
                 />
               </Suspense>
             ) : (
-              <JoinCallCard kind={meeting.kind} onJoin={() => onInCallChange(true)} />
+              <JoinCallCard
+                kind={meeting.kind}
+                onJoin={() => onInCallChange(true)}
+                hint={room ? "You'll watch and listen. Chat stays open below." : undefined}
+              />
+            )}
+            {room && (
+              <p className="text-muted-foreground text-sm">
+                As a guest you can watch, listen and chat.{" "}
+                <Link
+                  to="/sign-in"
+                  search={{ redirect: `/meetings/${meeting.code}` }}
+                  className="text-foreground underline underline-offset-4"
+                >
+                  Sign in
+                </Link>{" "}
+                to turn on your camera and mic.
+              </p>
             )}
           </CardPanel>
         </Card>

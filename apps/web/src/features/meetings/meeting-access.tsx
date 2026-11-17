@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
-import { DoorOpenIcon, HandIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
+import { DoorOpenIcon, GlobeIcon, HandIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -24,15 +24,17 @@ import { Switch } from "@meetings/ui/components/switch";
 import { Textarea } from "@meetings/ui/components/textarea";
 import { toastManager } from "@meetings/ui/components/toast";
 import { EmptyState } from "#/components/empty-state.tsx";
+import { SlowModeSelect } from "#/features/rooms/slow-mode.tsx";
 import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { splitEmails } from "#/lib/emails.ts";
 import { describeError, showError } from "#/lib/errors.ts";
 
-type Access = "invited" | "org" | "ask" | "link";
+type Access = "invited" | "org" | "ask" | "link" | "public";
+type PrivateAccess = Exclude<Access, "public">;
 type Inviters = "hosts" | "everyone";
 
-const ACCESS: { value: Access; label: string; hint: string }[] = [
+const ACCESS: { value: PrivateAccess; label: string; hint: string }[] = [
   {
     value: "invited",
     label: "Only invited people",
@@ -67,6 +69,7 @@ type SettingsProps = {
   access: Access;
   inviters: Inviters;
   isProtected: boolean;
+  slowModeSeconds: number;
 };
 
 export const MeetingSettingsCard = ({
@@ -74,10 +77,41 @@ export const MeetingSettingsCard = ({
   access,
   inviters,
   isProtected,
+  slowModeSeconds,
 }: SettingsProps) => {
   const update = useMutation(api.meetings.updateSettings);
   const save = (changes: Omit<Parameters<typeof update>[0], "meetingId">) =>
     void update({ meetingId, ...changes }).catch(showError);
+  const slowMode = (
+    <div className="flex max-w-xs flex-col gap-2">
+      <Label htmlFor="meeting-slow-mode">Slow mode in chat</Label>
+      <SlowModeSelect
+        id="meeting-slow-mode"
+        value={slowModeSeconds}
+        onChange={(seconds) => save({ slowModeSeconds: seconds })}
+      />
+      <span className="text-muted-foreground text-xs">Hosts can always write.</span>
+    </div>
+  );
+
+  if (access === "public") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <GlobeIcon className="size-4" />
+            Public room
+          </CardTitle>
+          <CardDescription>
+            Anyone can join from the public page. Guests watch, listen and chat; signed-in people
+            can use their camera and mic. Recording, drawing and snapshots are off, and chat and
+            video are checked automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardPanel>{slowMode}</CardPanel>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -96,7 +130,7 @@ export const MeetingSettingsCard = ({
             <legend className="mb-2 font-medium text-sm">Who can join</legend>
             <RadioGroup
               value={access}
-              onValueChange={(value) => save({ access: value as Access })}
+              onValueChange={(value) => save({ access: value as PrivateAccess })}
               className="gap-2"
             >
               {ACCESS.map((option) => (
@@ -142,6 +176,7 @@ export const MeetingSettingsCard = ({
           </span>
           <Switch checked={isProtected} onCheckedChange={(on) => save({ protected: on })} />
         </Label>
+        {slowMode}
       </CardPanel>
     </Card>
   );
@@ -239,15 +274,17 @@ export const MeetingDoor = ({ code }: { code: string }) => {
       icon={<DoorOpenIcon />}
       title={door.title}
       description={
-        door.canEnter
-          ? "You're not on the invite list, but this meeting is open to you."
-          : door.request === "waiting"
-            ? "You asked to join. This page opens the meeting as soon as a host lets you in."
-            : door.request === "denied"
-              ? "A host didn't let you in."
-              : door.canAsk
-                ? "Ask to join, and a host can let you in."
-                : "Only invited people can join this meeting. Ask the host to invite you."
+        door.isPublic && door.canEnter
+          ? "This is a public room. Chat and video are checked automatically, and breaking the rules gets you removed."
+          : door.canEnter
+            ? "You're not on the invite list, but this meeting is open to you."
+            : door.request === "waiting"
+              ? "You asked to join. This page opens the meeting as soon as a host lets you in."
+              : door.request === "denied"
+                ? "A host didn't let you in."
+                : door.canAsk
+                  ? "Ask to join, and a host can let you in."
+                  : "Only invited people can join this meeting. Ask the host to invite you."
       }
       action={
         door.canEnter ? (
@@ -259,7 +296,7 @@ export const MeetingDoor = ({ code }: { code: string }) => {
             }
           >
             <DoorOpenIcon />
-            Join this meeting
+            {door.isPublic ? "Enter this room" : "Join this meeting"}
           </Button>
         ) : (
           door.canAsk &&

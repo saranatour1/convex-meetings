@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import {
   CheckIcon,
   CopyIcon,
+  DoorClosedIcon,
   FileTextIcon,
   UserCheckIcon,
   UserXIcon,
@@ -35,6 +36,7 @@ import {
   MeetingSettingsCard,
   meetingLink,
 } from "./meeting-access.tsx";
+import { roomLink } from "#/features/rooms/rooms-page.tsx";
 import { JoinRequests } from "./join-requests.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
@@ -67,13 +69,16 @@ export const MeetingPage = ({
   const cancel = useMutation(api.meetings.cancel);
   const remove = useMutation(api.calls.remove);
   const letIn = useMutation(api.calls.letIn);
+  const closeRoom = useMutation(api.rooms.close);
   if (meeting === undefined) return <LoadingScreen />;
   if (meeting === null) return <MeetingDoor code={code} />;
   const meetingId = meeting._id;
 
   const zone = browserTimeZone();
-  const time = meeting.time;
+  const room = meeting.access === "public";
+  const time = room ? null : meeting.time;
   const isHost = meeting.me.role === "host";
+  const link = room ? roomLink(meeting.code) : meetingLink(meeting.code);
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,7 +86,7 @@ export const MeetingPage = ({
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-2">
             {meeting.title}
-            <Badge variant="outline">{kindOf(meeting.kind).label}</Badge>
+            <Badge variant="outline">{room ? "Public room" : kindOf(meeting.kind).label}</Badge>
           </CardTitle>
           {time && (
             <CardDescription className="tabular-nums">
@@ -93,14 +98,14 @@ export const MeetingPage = ({
             </CardDescription>
           )}
           <div className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-muted-foreground text-sm">
-              {meetingLink(meeting.code)}
-            </span>
+            <span className="truncate text-muted-foreground text-sm">{link}</span>
             <Button
               size="icon-sm"
               variant="ghost"
-              aria-label="Copy meeting link"
-              onClick={() => void copyWithToast(meetingLink(meeting.code), "Meeting link copied")}
+              aria-label={room ? "Copy the public link" : "Copy meeting link"}
+              onClick={() =>
+                void copyWithToast(link, room ? "Public link copied" : "Meeting link copied")
+              }
             >
               <CopyIcon />
             </Button>
@@ -111,7 +116,7 @@ export const MeetingPage = ({
             <JoinRequests meetingId={meetingId} className="rounded-lg p-3" />
           )}
           {meeting.endedAt ? (
-            <MeetingEnded endedAt={meeting.endedAt} />
+            <MeetingEnded endedAt={meeting.endedAt} room={room} />
           ) : inCall ? (
             <Suspense fallback={<Button disabled>Loading call…</Button>}>
               <MeetingCall
@@ -127,12 +132,26 @@ export const MeetingPage = ({
                 canControl={meeting.me.canControl}
                 devicesInCall={meeting.me.devicesInCall}
                 isProtected={meeting.protected}
+                moderated={room}
               />
             </Suspense>
           ) : (
             <JoinCallCard kind={meeting.kind} onJoin={() => onInCallChange(true)} />
           )}
           <div className="flex flex-wrap gap-2">
+            {room && meeting.me.canControl && !meeting.endedAt && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  void closeRoom({ meetingId })
+                    .then(() => track("room_closed"))
+                    .catch(showError)
+                }
+              >
+                <DoorClosedIcon />
+                Close room
+              </Button>
+            )}
             {isHost ? (
               <Button
                 variant="ghost"
@@ -146,9 +165,9 @@ export const MeetingPage = ({
                 }
               >
                 <XIcon />
-                Cancel meeting
+                {room ? "Delete room" : "Cancel meeting"}
               </Button>
-            ) : (
+            ) : room ? null : (
               <>
                 <Button
                   variant={meeting.me.response === "accepted" ? "default" : "outline"}
@@ -174,7 +193,7 @@ export const MeetingPage = ({
               </>
             )}
           </div>
-          {meeting.me.canInvite && <InviteToMeeting meetingId={meetingId} />}
+          {meeting.me.canInvite && !room && <InviteToMeeting meetingId={meetingId} />}
           <ul className="flex flex-col gap-2">
             {meeting.people.map((person) => (
               <li key={person._id} className="flex items-center gap-3">
@@ -184,7 +203,11 @@ export const MeetingPage = ({
                 </Avatar>
                 <span className="text-sm">{person.name}</span>
                 <span className="text-muted-foreground text-xs">
-                  {person.role === "host" ? "Host" : RESPONSE_LABEL[person.response]}
+                  {person.role === "host"
+                    ? "Host"
+                    : room
+                      ? "Visitor"
+                      : RESPONSE_LABEL[person.response]}
                 </span>
                 {person.isGuest && (
                   <Badge variant="outline" size="sm">
@@ -234,6 +257,7 @@ export const MeetingPage = ({
           access={meeting.access}
           inviters={meeting.inviters}
           isProtected={meeting.protected}
+          slowModeSeconds={meeting.slowModeSeconds}
         />
       )}
 
@@ -286,7 +310,11 @@ export const MeetingPage = ({
       <Card>
         <CardHeader>
           <CardTitle>Chat</CardTitle>
-          <CardDescription>Only people invited to this meeting see it.</CardDescription>
+          <CardDescription>
+            {room
+              ? "Everyone in this public room sees it."
+              : "Only people invited to this meeting see it."}
+          </CardDescription>
         </CardHeader>
         <CardPanel>
           <MeetingChat className="h-96" meetingId={meetingId} />
