@@ -27,10 +27,12 @@ export const zMeetingSession = z.object({
   transcriptId: zid("_storage").optional(),
   recordingKey: z.string().optional(),
   recordingSeconds: z.number().optional(),
+  recordingStartedAt: z.number().optional(),
 });
 
 export const meetingSessions = defineTable(zodToConvexFields(zMeetingSession.shape))
   .index("by_meeting", ["meetingId"])
   .index("by_meeting_and_number", ["meetingId", "number"])
   .index("by_rtk_session", ["rtkSessionId"])
-  .index("by_org_and_ended", ["orgId", "endedAt"]);
+  .index("by_org_and_ended", ["orgId", "endedAt"])
+  .index("by_recording_started", ["recordingStartedAt"]);

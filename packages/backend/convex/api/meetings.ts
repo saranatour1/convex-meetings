@@ -15,7 +15,7 @@ import {
 import { presetName } from "../lib/presets";
 import { enforceRateLimit } from "../lib/rateLimits";
 import { r2Configured, signedRecordingUrl } from "../lib/r2";
-import { realtimeKit } from "../lib/realtimekit";
+import { realtimeKit, type MeetingConfig } from "../lib/realtimekit";
 import { zTimeZone } from "../lib/time";
 import { getRecap, type JoinDetails } from "../models/callSessions";
 import { findSessionByNumber, requireSessionAccess } from "../models/meetingAccess";
@@ -128,11 +128,23 @@ export const join = meetingAction({
       userId: ctx.userId,
       meetingId,
     });
+    const budget = await ctx.runQuery(internal.internal.realtime.budget, {});
+    if (budget.callsPausedUntil) {
+      throw new ConvexError(
+        `This month's free call minutes are used up. Calls open again on ${budget.callsPausedUntil}.`,
+      );
+    }
+    const config: MeetingConfig = {
+      record: details.record && budget.recordingSeconds >= 60,
+      recap: details.recap && budget.transcribe,
+      maxRecordingSeconds: budget.recordingSeconds,
+    };
+    if (details.rtkMeetingId) await realtimeKit.updateMeeting(details.rtkMeetingId, config);
     const rtkMeetingId: string =
       details.rtkMeetingId ??
       (await ctx.runMutation(internal.internal.realtime.claimMeeting, {
         meetingId,
-        rtkMeetingId: (await realtimeKit.createMeeting(details)).id,
+        rtkMeetingId: (await realtimeKit.createMeeting({ title: details.title, ...config })).id,
       }));
     if (details.rtkParticipantId && details.rtkMeetingId === rtkMeetingId) {
       const refreshed = await realtimeKit

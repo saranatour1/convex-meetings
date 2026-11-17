@@ -4,6 +4,7 @@ import { env, internalAction, internalMutation, internalQuery } from "../_genera
 import { allPresets } from "../lib/presets";
 import { realtimeKit } from "../lib/realtimekit";
 import { forgetDevices } from "../models/calls";
+import { joinBudget, markLiveText as markLiveTextState } from "../models/usage";
 import { endEmptyMeeting } from "../models/meetings";
 import {
   claimRtkMeeting,
@@ -28,6 +29,11 @@ const WEBHOOK_EVENTS = [
 export const joinDetails = internalQuery({
   args: { userId: v.id("users"), meetingId: v.id("meetings") },
   handler: (ctx, { userId, meetingId }) => readJoinDetails(ctx, userId, meetingId),
+});
+
+export const budget = internalQuery({
+  args: {},
+  handler: (ctx) => joinBudget(ctx),
 });
 
 export const claimMeeting = internalMutation({
@@ -84,6 +90,31 @@ export const kickAll = internalAction({
       console.warn("kick-all skipped", String(error));
     });
   },
+});
+
+export const stopRecordings = internalAction({
+  args: { rtkMeetingId: v.string() },
+  handler: async (_ctx, { rtkMeetingId }) => {
+    await realtimeKit.stopRecordings(rtkMeetingId).catch((error: unknown) => {
+      console.warn("stop recordings skipped", String(error));
+    });
+  },
+});
+
+export const setLiveText = internalAction({
+  args: { on: v.boolean() },
+  handler: async (ctx, { on }) => {
+    await realtimeKit.setLiveText(
+      allPresets().map((preset) => preset.name),
+      on,
+    );
+    await ctx.runMutation(internal.internal.realtime.markLiveText, { on });
+  },
+});
+
+export const markLiveText = internalMutation({
+  args: { on: v.boolean() },
+  handler: (ctx, { on }) => markLiveTextState(ctx, on),
 });
 
 export const setup = internalAction({

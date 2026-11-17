@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { emailWorkpool } from "../lib/workpools";
+import { spendEmail } from "./usage";
 import { zMeetingGuest } from "../tables/meetingGuests";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zUser } from "../tables/users";
@@ -221,6 +222,7 @@ export const inviteToMeeting = async (
       email,
       invitedBy: userId,
     });
+    await spendEmail(ctx);
     await emailWorkpool.enqueueAction(ctx, internal.internal.guests.sendInvite, {
       guestId,
       secret,

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { signIn, testBackend } from "../../tools/auth-test-setup";
 import { api } from "../_generated/api";
+import { DateTime } from "luxon";
 import { INVITE_TTL_MS } from "../models/invites";
 
 const sentEmails: { to: string; text: string }[] = [];
@@ -152,4 +153,21 @@ test("the last owner can't be removed", async () => {
   await expect(
     owner.asUser.mutation(api.api.members.remove, { orgId, memberId: members.page[0]!._id }),
   ).rejects.toThrow("at least one owner");
+});
+
+test("invite emails stop once this month's free emails are used up", async () => {
+  const setup = await orgWithOwner();
+  await setup.t.run((ctx) =>
+    ctx.db.insert("usage", {
+      key: `emails:${DateTime.utc().toFormat("yyyy-LL")}`,
+      amount: 2_700,
+    }),
+  );
+  await expect(
+    setup.owner.asUser.mutation(api.api.invites.create, {
+      orgId: setup.orgId,
+      emails: ["late@example.com"],
+      roleId: setup.memberRoleId,
+    }),
+  ).rejects.toThrow("free emails are used up");
 });

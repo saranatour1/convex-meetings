@@ -13,6 +13,7 @@ import {
 } from "./calls";
 import { requireMeetingMember, requireSessionAccess } from "./meetingAccess";
 import { notify } from "./notifications";
+import { liveTextOn, recordRecordingStatus, recordTranscriptUsage } from "./usage";
 import { getViewer } from "./users";
 
 export const joinDetails = async (
@@ -113,6 +114,8 @@ const trackPeers = async (
           memberId,
           peerId,
           joinedAt: others[0]?.joinedAt ?? now,
+          connectedAt: now,
+          liveText: await liveTextOn(ctx),
         }),
       );
       if (!others.length) {
@@ -192,6 +195,10 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);
   if (event.transcriptDownloadUrl) patch.transcriptUrl = event.transcriptDownloadUrl;
   if (event.transcriptId) patch.transcriptId = event.transcriptId;
+  Object.assign(patch, await recordRecordingStatus(ctx, session, event.recording?.status, now));
+  if (event.event === "meeting.transcript" && !session.transcriptId && !session.transcriptUrl) {
+    await recordTranscriptUsage(ctx, session, now);
+  }
   if (event.recording?.status === "UPLOADED") {
     if (event.recording.downloadUrl) patch.recordingUrl = event.recording.downloadUrl;
     if (event.recordingKey) patch.recordingKey = event.recordingKey;

@@ -3,6 +3,7 @@ import { ConvexError } from "convex/values";
 import { DateTime } from "luxon";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { enforceRateLimit } from "../lib/rateLimits";
 import { lastOccurrenceEnd, occurrencesBetween, ruleEndingAt } from "../lib/recurrence";
 import { parseOrThrow } from "../lib/validate";
 import { zMeeting } from "../tables/meetings";
@@ -78,6 +79,7 @@ export const uniqueMeetingCode = async (ctx: QueryCtx) => {
 };
 
 export const createMeeting = async (ctx: MutationCtx, meeting: NewMeeting) => {
+  await enforceRateLimit(ctx, "meeting", meeting.userId);
   const inviteeIds = [...new Set(meeting.inviteeIds)].filter((id) => id !== meeting.userId);
   if (inviteeIds.length > MAX_INVITEES)
     throw new ConvexError(`Invite at most ${MAX_INVITEES} people`);
