@@ -15,6 +15,7 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   stroke: { kind: "token bucket", rate: 600, period: MINUTE, capacity: 60 },
   meeting: { kind: "fixed window", rate: 10, period: DAY },
   ring: { kind: "token bucket", rate: 30, period: HOUR, capacity: 5 },
+  joinAsk: { kind: "token bucket", rate: 30, period: HOUR, capacity: 10 },
 });
 
 export type RateLimit = keyof NonNullable<typeof rateLimiter.limits>;

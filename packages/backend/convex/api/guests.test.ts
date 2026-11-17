@@ -186,3 +186,115 @@ test("cancelling a meeting deletes its guests and their passes", async () => {
   }));
   expect(leftovers).toEqual({ guests: [], guestUsers: [] });
 });
+
+test("ask meetings let the org walk in and make everyone else wait for a host", async () => {
+  const { host, colleague, outsider, create } = await setup();
+  const { meetingId, code } = await create("Clinic");
+  await host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, access: "ask" });
+  const waiting = () =>
+    host.asUser.query(api.api.joinRequests.waiting, { meetingId, paginationOpts: page });
+
+  expect(await colleague.asUser.query(api.api.meetings.door, { code })).toMatchObject({
+    canEnter: true,
+    canAsk: false,
+  });
+  expect(await outsider.asUser.query(api.api.meetings.door, { code })).toMatchObject({
+    canEnter: false,
+    canAsk: true,
+    request: null,
+  });
+  await expect(outsider.asUser.mutation(api.api.meetings.enter, { code })).rejects.toThrow(
+    "Only invited people",
+  );
+
+  await outsider.asUser.mutation(api.api.joinRequests.ask, { code });
+  await outsider.asUser.mutation(api.api.joinRequests.ask, { code });
+  expect(await outsider.asUser.query(api.api.meetings.door, { code })).toMatchObject({
+    request: "waiting",
+  });
+  expect(await outsider.asUser.query(api.api.meetings.get, { code })).toBeNull();
+  const [request] = (await waiting()).page;
+  expect((await waiting()).page).toEqual([
+    { _id: request!._id, name: "Outsider", imageUrl: null, isGuest: false },
+  ]);
+  const inbox = await host.asUser.query(api.api.inbox.list, { paginationOpts: page });
+  expect(inbox.page).toMatchObject([{ kind: "joinRequest", title: "Clinic", meetingCode: code }]);
+
+  await colleague.asUser.mutation(api.api.meetings.enter, { code });
+  expect(
+    (
+      await colleague.asUser.query(api.api.joinRequests.waiting, {
+        meetingId,
+        paginationOpts: page,
+      })
+    ).page,
+  ).toEqual([]);
+  await expect(
+    colleague.asUser.mutation(api.api.joinRequests.admit, { requestId: request!._id }),
+  ).rejects.toThrow("Only the host");
+
+  await host.asUser.mutation(api.api.joinRequests.deny, { requestId: request!._id });
+  expect(await outsider.asUser.query(api.api.meetings.door, { code })).toMatchObject({
+    request: "denied",
+  });
+  expect((await waiting()).page).toEqual([]);
+
+  await outsider.asUser.mutation(api.api.joinRequests.ask, { code });
+  const [again] = (await waiting()).page;
+  await host.asUser.mutation(api.api.joinRequests.admit, { requestId: again!._id });
+  expect(await outsider.asUser.query(api.api.meetings.get, { code })).toMatchObject({
+    title: "Clinic",
+    me: { role: "participant", response: "accepted", canControl: false },
+  });
+  expect((await waiting()).page).toEqual([]);
+});
+
+test("guests on ask meetings wait for a host before their pass works", async () => {
+  const { t, host, create } = await setup();
+  const { meetingId, code } = await create("Clinic");
+  await host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, access: "ask" });
+  expect(await t.query(api.api.guests.preview, { code })).toEqual({
+    access: "ask",
+    title: "Clinic",
+    kind: "groupCall",
+  });
+
+  const gus = await t.mutation(api.api.guests.enter, { code, name: "Gus" });
+  const ida = await t.mutation(api.api.guests.enter, { code, name: "Ida" });
+  expect(await t.query(api.api.guests.pass, { secret: gus })).toEqual({
+    code,
+    title: "Clinic",
+    name: "Gus",
+    status: "waiting",
+  });
+  await expect(t.query(api.api.meetings.get, { code, guest: gus })).rejects.toThrow("expired");
+
+  const requests = await host.asUser.query(api.api.joinRequests.waiting, {
+    meetingId,
+    paginationOpts: page,
+  });
+  const idOf = (name: string) => requests.page.find((r) => r.name === name)!._id;
+  expect(requests.page.map((r) => [r.name, r.isGuest])).toEqual([
+    ["Gus", true],
+    ["Ida", true],
+  ]);
+  await host.asUser.mutation(api.api.joinRequests.admit, { requestId: idOf("Gus") });
+  await host.asUser.mutation(api.api.joinRequests.deny, { requestId: idOf("Ida") });
+
+  expect(await t.query(api.api.guests.pass, { secret: gus })).toMatchObject({ status: "in" });
+  expect(await t.query(api.api.meetings.get, { code, guest: gus })).toMatchObject({
+    title: "Clinic",
+    me: { isGuest: true, response: "accepted" },
+  });
+  expect(await t.query(api.api.guests.pass, { secret: ida })).toMatchObject({
+    status: "denied",
+  });
+
+  await host.asUser.mutation(api.api.meetings.cancel, { meetingId });
+  expect(await t.query(api.api.guests.pass, { secret: ida })).toBeNull();
+  const leftovers = await t.run(async (ctx) => ({
+    requests: await ctx.db.query("joinRequests").take(10),
+    guestUsers: (await ctx.db.query("users").take(50)).filter((u) => u.method === "guest"),
+  }));
+  expect(leftovers).toEqual({ requests: [], guestUsers: [] });
+});

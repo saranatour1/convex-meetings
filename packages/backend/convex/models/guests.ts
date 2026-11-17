@@ -15,7 +15,7 @@ import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
 import { notify } from "./notifications";
 
-const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
+export const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
 const SECRET = /^[0-9a-f]{64}$/;
 
 const findGuest = async (ctx: QueryCtx, secret: string) => {
@@ -34,18 +34,14 @@ export const guestUserId = async (ctx: QueryCtx, secret: string) => {
   return guest.userId;
 };
 
-const findMeetingMember = (ctx: QueryCtx, meetingId: Id<"meetings">, userId: Id<"users">) =>
+export const findMeetingMember = (ctx: QueryCtx, meetingId: Id<"meetings">, userId: Id<"users">) =>
   ctx.db
     .query("meetingMembers")
     .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId).eq("userId", userId))
     .unique();
 
-const createGuest = async (
-  ctx: MutationCtx,
-  meetingId: Id<"meetings">,
-  guest: { name: string; email?: string; invitedBy?: Id<"users"> },
-) => {
-  const userId = await ctx.db.insert(
+export const insertGuestUser = (ctx: MutationCtx, guest: { name: string; email?: string }) =>
+  ctx.db.insert(
     "users",
     parseOrThrow(zUser, {
       name: guest.name,
@@ -54,20 +50,41 @@ const createGuest = async (
       isVerified: false,
     }),
   );
+
+export const grantGuestPass = async (
+  ctx: MutationCtx,
+  guest: {
+    meetingId: Id<"meetings">;
+    userId: Id<"users">;
+    tokenId: Id<"tokens">;
+    invitedBy?: Id<"users">;
+  },
+) => {
   await ctx.db.insert(
     "meetingMembers",
     parseOrThrow(zMeetingMember, {
-      meetingId,
-      userId,
+      meetingId: guest.meetingId,
+      userId: guest.userId,
       role: "participant",
       response: guest.invitedBy ? "pending" : "accepted",
     }),
   );
+  return ctx.db.insert("meetingGuests", parseOrThrow(zMeetingGuest, guest));
+};
+
+const createGuest = async (
+  ctx: MutationCtx,
+  meetingId: Id<"meetings">,
+  guest: { name: string; email?: string; invitedBy?: Id<"users"> },
+) => {
+  const userId = await insertGuestUser(ctx, guest);
   const { secret, tokenId } = await issueToken(ctx, GUEST_PASS_MS);
-  const guestId = await ctx.db.insert(
-    "meetingGuests",
-    parseOrThrow(zMeetingGuest, { meetingId, userId, tokenId, invitedBy: guest.invitedBy }),
-  );
+  const guestId = await grantGuestPass(ctx, {
+    meetingId,
+    userId,
+    tokenId,
+    invitedBy: guest.invitedBy,
+  });
   return { secret, guestId };
 };
 
@@ -80,14 +97,26 @@ export const previewMeeting = async (ctx: QueryCtx, code: string) => {
 };
 
 export const previewGuestPass = async (ctx: QueryCtx, secret: string) => {
-  const guest = await findGuest(ctx, secret);
-  if (!guest) return null;
+  if (!SECRET.test(secret)) return null;
+  const token = await findLiveToken(ctx, secret);
+  if (!token) return null;
+  const holder =
+    (await ctx.db
+      .query("meetingGuests")
+      .withIndex("by_token", (q) => q.eq("tokenId", token._id))
+      .unique()) ??
+    (await ctx.db
+      .query("joinRequests")
+      .withIndex("by_token", (q) => q.eq("tokenId", token._id))
+      .unique());
+  if (!holder) return null;
   const [meeting, user] = await Promise.all([
-    ctx.db.get("meetings", guest.meetingId),
-    ctx.db.get("users", guest.userId),
+    ctx.db.get("meetings", holder.meetingId),
+    ctx.db.get("users", holder.userId),
   ]);
   if (!meeting || !user) return null;
-  return { code: meeting.code, title: meeting.title, name: user.name ?? "" };
+  const status = "status" in holder ? (meeting.endedAt ? "ended" : holder.status) : "in";
+  return { code: meeting.code, title: meeting.title, name: user.name ?? "", status };
 };
 
 export const enterAsGuest = async (ctx: MutationCtx, code: string, name: string) => {

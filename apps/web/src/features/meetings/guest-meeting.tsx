@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { UserIcon } from "lucide-react";
+import { DoorOpenIcon, UserIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -32,9 +32,28 @@ type GuestMeetingProps = {
 
 export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingProps) => {
   const pass = useQuery(api.guests.pass, { secret });
-  const meeting = useQuery(api.meetings.get, pass ? { code: pass.code, guest: secret } : "skip");
+  const admitted = pass?.status === "in";
+  const meeting = useQuery(
+    api.meetings.get,
+    pass && admitted ? { code: pass.code, guest: secret } : "skip",
+  );
   const rename = useMutation(api.guests.rename);
-  if (pass === undefined || (pass && meeting === undefined)) return <LoadingScreen />;
+  if (pass === undefined || (admitted && meeting === undefined)) return <LoadingScreen />;
+  if (pass && pass.status !== "in") {
+    return (
+      <EmptyState
+        icon={<DoorOpenIcon />}
+        title={pass.title}
+        description={
+          pass.status === "waiting"
+            ? `You asked to join as ${pass.name}. This page opens the meeting as soon as a host lets you in.`
+            : pass.status === "denied"
+              ? "A host didn't let you in."
+              : "This meeting has ended."
+        }
+      />
+    );
+  }
   if (!pass || !meeting) {
     return (
       <EmptyState

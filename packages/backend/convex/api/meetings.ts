@@ -31,6 +31,7 @@ import {
 import { listSessionMessages } from "../models/messages";
 import { requireCallControl } from "../models/calls";
 import { canEnter, enterAsMember, inviteToMeeting } from "../models/guests";
+import { canAsk, deleteJoinRequests, findJoinRequest } from "../models/joinRequests";
 import { zMeeting, zMeetingAccess, zMeetingInviters } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 
@@ -75,10 +76,16 @@ export const door = authedQuery({
   handler: async (ctx, { code }) => {
     const meeting = await findMeetingByCode(ctx, code);
     if (!meeting) return null;
+    const [enterable, request] = await Promise.all([
+      canEnter(ctx, meeting, ctx.userId),
+      findJoinRequest(ctx, meeting._id, ctx.userId),
+    ]);
     return {
       title: meeting.title,
       kind: meeting.kind,
-      canEnter: await canEnter(ctx, meeting, ctx.userId),
+      canEnter: enterable,
+      canAsk: !enterable && canAsk(meeting),
+      request: request?.status ?? null,
     };
   },
 });
@@ -108,6 +115,7 @@ export const cancel = authedMutation({
   args: { meetingId: zid("meetings") },
   handler: async (ctx, { meetingId }) => {
     const rtkMeetingId = await cancelMeeting(ctx, ctx.userId, meetingId);
+    await deleteJoinRequests(ctx, meetingId);
     if (rtkMeetingId) {
       await ctx.scheduler.runAfter(0, internal.internal.realtime.deactivate, { rtkMeetingId });
     }

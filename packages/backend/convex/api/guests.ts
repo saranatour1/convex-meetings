@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { publicMutation, publicQuery } from "../lib/functions";
 import { enforceRateLimit } from "../lib/rateLimits";
-import { enterAsGuest, previewGuestPass, previewMeeting, renameGuest } from "../models/guests";
+import { previewGuestPass, previewMeeting, renameGuest } from "../models/guests";
+import { enterOrAskAsGuest } from "../models/joinRequests";
 import { zUser } from "../tables/users";
 const zName = zUser.shape.name.unwrap();
 
@@ -19,7 +20,7 @@ export const enter = publicMutation({
   args: { code: z.string().max(20), name: zName },
   handler: async (ctx, { code, name }) => {
     await enforceRateLimit(ctx, "guestEnter", code);
-    return enterAsGuest(ctx, code, name);
+    return enterOrAskAsGuest(ctx, code, name);
   },
 });
 
