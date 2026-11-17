@@ -54,9 +54,16 @@ export const FrameSampler = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
       const shared = person.screenShareEnabled ? person.screenShareTracks.video : undefined;
       const camera = person.videoEnabled ? person.videoTrack : undefined;
       const track = shared && (!camera || Math.random() < 0.5) ? shared : camera;
-      const frame = track ? await grabFrame(track) : null;
-      if (!frame) return;
-      const response = await fetch(await uploadUrl({ meetingId, guest }), {
+      const url = track
+        ? await uploadUrl({
+            meetingId,
+            targetMemberId: targetMemberId as Id<"meetingMembers">,
+            guest,
+          })
+        : null;
+      const frame = url && track ? await grabFrame(track) : null;
+      if (!url || !frame) return;
+      const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "image/jpeg" },
         body: frame,
@@ -75,8 +82,18 @@ export const FrameSampler = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
   const keepSampling = useCallback(
     (element: HTMLSpanElement | null) => {
       if (!element) return;
-      const timer = window.setInterval(() => void sample().catch(() => null), SAMPLE_MS);
-      return () => window.clearInterval(timer);
+      let timer = 0;
+      const schedule = () => {
+        timer = window.setTimeout(
+          () => {
+            void sample().catch(() => null);
+            schedule();
+          },
+          SAMPLE_MS * (0.5 + Math.random()),
+        );
+      };
+      schedule();
+      return () => window.clearTimeout(timer);
     },
     [sample],
   );

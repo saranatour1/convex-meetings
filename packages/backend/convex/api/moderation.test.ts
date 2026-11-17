@@ -486,6 +486,26 @@ test("frames are only accepted from people in the call, about someone else in it
   expect(await submit(other, targetMemberId)).toEqual({ accepted: true, kept: true });
 });
 
+test("browsers only get an upload URL when the person can be checked now", async () => {
+  const { outsider, member, other, meetingId, joinCall, storeFrame, stored } = await setup();
+  const targetMemberId = await joinCall(outsider.userId);
+  await joinCall(member.userId);
+  await joinCall(other.userId);
+  const urlFor = (who: typeof member) =>
+    who.asUser.mutation(api.api.moderation.frameUploadUrl, { meetingId, targetMemberId });
+  expect(await urlFor(member)).toBeTypeOf("string");
+  const storageId = await storeFrame();
+  await member.asUser.mutation(api.api.moderation.submitFrame, {
+    meetingId,
+    targetMemberId,
+    storageId,
+  });
+  expect(await stored(storageId)).not.toBeNull();
+  expect(await urlFor(other)).toBeNull();
+  vi.advanceTimersByTime(31_000);
+  expect(await urlFor(other)).toBeTypeOf("string");
+});
+
 test("a summary is public only after it passes the check", async () => {
   const { t, code, outsider, joinCall } = await setup();
   await joinCall(outsider.userId);

@@ -1,5 +1,4 @@
 import { zid } from "convex-helpers/server/zod4";
-import { ConvexError } from "convex/values";
 import {
   meetingMutation,
   meetingQuery,
@@ -7,10 +6,9 @@ import {
   orgQuery,
   zPaginationOpts,
 } from "../lib/functions";
-import { enforceRateLimit } from "../lib/rateLimits";
-import { requireMeetingMember } from "../models/meetingAccess";
 import {
   banFromFlag,
+  frameUploadUrl as frameUploadUrlFor,
   liftBan as liftOrgBan,
   listBans,
   listFlags,
@@ -19,7 +17,6 @@ import {
   submitFrame as submitCallFrame,
   watchList,
 } from "../models/moderation";
-import { isPublicRoom } from "../models/roomAccess";
 
 export const myStatus = meetingQuery({
   args: { meetingId: zid("meetings") },
@@ -32,15 +29,9 @@ export const watch = meetingQuery({
 });
 
 export const frameUploadUrl = meetingMutation({
-  args: { meetingId: zid("meetings") },
-  handler: async (ctx, { meetingId }) => {
-    const { meeting, member } = await requireMeetingMember(ctx, meetingId, ctx.userId);
-    if (!isPublicRoom(meeting) || member.removedAt) {
-      throw new ConvexError("Frames are only checked in public rooms");
-    }
-    await enforceRateLimit(ctx, "frameUpload", ctx.userId);
-    return ctx.storage.generateUploadUrl();
-  },
+  args: { meetingId: zid("meetings"), targetMemberId: zid("meetingMembers") },
+  handler: (ctx, { meetingId, targetMemberId }) =>
+    frameUploadUrlFor(ctx, ctx.userId, meetingId, targetMemberId),
 });
 
 export const submitFrame = meetingMutation({

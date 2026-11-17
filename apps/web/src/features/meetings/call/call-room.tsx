@@ -157,7 +157,7 @@ export const CallRoom = ({
       icon: ChartBarIcon,
       show: kind === "webinar" || kind === "classroom",
     },
-    { side: "plugins", label: "Plugins and whiteboard", icon: PuzzleIcon, show: true },
+    { side: "plugins", label: "Plugins and whiteboard", icon: PuzzleIcon, show: !moderated },
     { side: "ai", label: "AI transcript", icon: SparklesIcon, show: true },
   ];
 
