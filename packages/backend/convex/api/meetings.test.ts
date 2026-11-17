@@ -123,7 +123,14 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
 
   const again = await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
   expect(again.token).toMatch(/^refreshed-/);
-  expect(requests).toHaveLength(3);
+  expect(requests.slice(2).map((r) => `${r.method} ${r.url.split("/kit/app")[1]}`)).toEqual([
+    "PATCH /meetings/rtk-meeting",
+    "POST /meetings/rtk-meeting/participants/participant-2/token",
+  ]);
+  expect(requests[2]?.body).toMatchObject({
+    transcribe_on_end: true,
+    recording_config: { max_seconds: 5400 },
+  });
 
   await setup.host.asUser.action(api.api.meetings.join, { meetingId });
   expect(requests.at(-1)?.body).toMatchObject({ preset_name: "webinar_host" });

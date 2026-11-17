@@ -36,23 +36,46 @@ const call = async <T>(path: string, method: string, body?: unknown): Promise<T>
   return json.data as T;
 };
 
+export type MeetingConfig = { recap: boolean; record: boolean; maxRecordingSeconds: number };
+
+const meetingConfig = (config: MeetingConfig) => ({
+  record_on_start: config.record,
+  transcribe_on_end: config.recap,
+  summarize_on_end: config.recap,
+  recording_config: { max_seconds: Math.min(86_400, Math.max(60, config.maxRecordingSeconds)) },
+  ai_config: config.recap
+    ? {
+        summarization: {
+          summary_type: "team_meeting",
+          text_format: "plain_text",
+          word_limit: 300,
+        },
+      }
+    : undefined,
+});
+
 export const realtimeKit = {
-  createMeeting: (meeting: { title: string; recap: boolean; record: boolean }) =>
-    call<{ id: string }>("/meetings", "POST", {
-      title: meeting.title,
-      record_on_start: meeting.record,
-      transcribe_on_end: meeting.recap,
-      summarize_on_end: meeting.recap,
-      ai_config: meeting.recap
-        ? {
-            summarization: {
-              summary_type: "team_meeting",
-              text_format: "plain_text",
-              word_limit: 300,
-            },
-          }
-        : undefined,
-    }),
+  createMeeting: (meeting: MeetingConfig & { title: string }) =>
+    call<{ id: string }>("/meetings", "POST", { title: meeting.title, ...meetingConfig(meeting) }),
+  updateMeeting: (meetingId: string, config: MeetingConfig) =>
+    call<unknown>(`/meetings/${meetingId}`, "PATCH", meetingConfig(config)),
+  stopRecordings: async (meetingId: string) => {
+    const recordings = await call<{ id: string }[]>(
+      `/recordings?meeting_id=${encodeURIComponent(meetingId)}&status=RECORDING`,
+      "GET",
+    );
+    for (const recording of recordings) {
+      await call<unknown>(`/recordings/${recording.id}`, "PUT", { action: "stop" });
+    }
+  },
+  setLiveText: async (presetNames: string[], on: boolean) => {
+    const presets = await call<{ id: string; name: string }[]>("/presets", "GET");
+    for (const preset of presets.filter((p) => presetNames.includes(p.name))) {
+      await call<unknown>(`/presets/${preset.id}`, "PATCH", {
+        permissions: { transcription_enabled: on },
+      });
+    }
+  },
   deactivateMeeting: (meetingId: string) =>
     call<unknown>(`/meetings/${meetingId}`, "PATCH", { status: "INACTIVE" }),
   addParticipant: (

@@ -18,6 +18,7 @@ import { organizations } from "./tables/organizations";
 import { roles } from "./tables/roles";
 import { schedules } from "./tables/schedules";
 import { tokens } from "./tables/tokens";
+import { usage } from "./tables/usage";
 import { userSettings } from "./tables/userSettings";
 import { users } from "./tables/users";
 import { verifiedSessions } from "./tables/verifiedSessions";
@@ -46,4 +47,5 @@ export default defineSchema({
   annotationSnapshots,
   schedules,
   notifications,
+  usage,
 });

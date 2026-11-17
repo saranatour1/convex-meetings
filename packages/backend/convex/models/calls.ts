@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zMeetingSession } from "../tables/meetingSessions";
 import { audit } from "./audit";
+import { recordPeerUsage } from "./usage";
 import { findMember } from "./members";
 import { grantedPermissions } from "./roles";
 import { getViewer } from "./users";
@@ -49,6 +50,7 @@ export const updateAttendance = async (
 
 export const removePeer = async (ctx: MutationCtx, peer: Doc<"callPeers">, at: number) => {
   await ctx.db.delete("callPeers", peer._id);
+  await recordPeerUsage(ctx, peer, at);
   const { joinedAt } = peer;
   if (joinedAt === undefined) return;
   if ((await sessionPeersOf(ctx, peer.sessionId, peer.meetingId, peer.memberId)).length) return;
