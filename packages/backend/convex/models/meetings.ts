@@ -215,6 +215,15 @@ export const endEmptyMeeting = async (ctx: MutationCtx, meetingId: Id<"meetings"
   return meeting.rtkMeetingId ?? null;
 };
 
+const peopleInCall = async (ctx: QueryCtx, session: Doc<"meetingSessions"> | null) => {
+  if (!session || session.endedAt !== undefined) return 0;
+  const peers = await ctx.db
+    .query("callPeers")
+    .withIndex("by_session_and_peer", (q) => q.eq("sessionId", session._id))
+    .take(1000);
+  return new Set(peers.map((peer) => peer.memberId)).size;
+};
+
 export const listMyMeetings = async (
   ctx: QueryCtx,
   userId: Id<"users">,
@@ -237,6 +246,7 @@ export const listMyMeetings = async (
           .first(),
       ]);
       if (!meeting || !time || isPublicRoom(meeting)) return null;
+      const inCall = await peopleInCall(ctx, lastSession);
       return {
         _id: meeting._id,
         code: meeting.code,
@@ -256,6 +266,7 @@ export const listMyMeetings = async (
               startedAt: lastSession.startedAt,
               hasSummary: Boolean(lastSession.summary),
               hasRecording: Boolean(lastSession.recordingKey || lastSession.recordingUrl),
+              inCall,
             }
           : null,
       };
@@ -275,14 +286,12 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
   ]);
   if (!meeting || !member) return null;
   const isGuest = viewer?.method === "guest";
-  const devicesInCall = (
-    await ctx.db
-      .query("callPeers")
-      .withIndex("by_meeting_and_member", (q) =>
-        q.eq("meetingId", meetingId).eq("memberId", member._id),
-      )
-      .take(20)
-  ).length;
+  const peers = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
+    .take(1000);
+  const devicesInCall = peers.filter((peer) => peer.memberId === member._id).length;
+  const present = new Set(peers.map((peer) => peer.memberId));
   const canControl = !isGuest && (await canControlCall(ctx, meeting, member));
   const [time, members, sessions] = await Promise.all([
     timeOf(ctx, meetingId),
@@ -310,6 +319,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
         response: m.response,
         removed: Boolean(m.removedAt),
         isGuest: user?.method === "guest",
+        inCall: present.has(m._id),
       };
     }),
   );

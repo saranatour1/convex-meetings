@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { api } from "@meetings/backend";
-import { type CallSearch, validateCallSearch } from "#/features/meetings/call/call-search.ts";
 import { MeetingPage } from "#/features/meetings/meeting-page.tsx";
+import { type MeetingSearch, validateMeetingSearch } from "#/features/meetings/meeting-search.ts";
 import { RoomEntry, type RoomPreview } from "#/features/rooms/room-entry.tsx";
 import { PublicShell } from "#/layouts/public-shell/public-shell.tsx";
 import { pageHead } from "#/lib/seo.ts";
@@ -11,9 +11,9 @@ import { convexHttp } from "#/providers/convex.tsx";
 const RoomRoute = () => {
   const { code } = Route.useParams();
   const initial = Route.useLoaderData();
-  const { call, side, expand } = Route.useSearch();
+  const { call, side, expand, tab } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const setSearch = (next: CallSearch) =>
+  const setSearch = (next: MeetingSearch) =>
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true, resetScroll: false });
   const entry = (
     <RoomEntry
@@ -47,6 +47,8 @@ const RoomRoute = () => {
             onSideChange={(next) => setSearch({ side: next })}
             expanded={expand === true}
             onExpandedChange={(next) => setSearch({ expand: next || undefined })}
+            tab={tab}
+            onTabChange={(next) => setSearch({ tab: next })}
           />
         </div>
       </Authenticated>
@@ -56,7 +58,7 @@ const RoomRoute = () => {
 
 export const Route = createFileRoute("/rooms/$code")({
   ssr: true,
-  validateSearch: validateCallSearch,
+  validateSearch: validateMeetingSearch,
   loader: ({ params }): Promise<RoomPreview> =>
     convexHttp.query(api.rooms.preview, { code: params.code }).catch(() => null),
   head: ({ loaderData, params }) =>

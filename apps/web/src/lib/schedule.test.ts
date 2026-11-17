@@ -9,6 +9,7 @@ import {
   nextClockChange,
   repeatDays,
   snapTo,
+  formatElapsed,
   formatTime,
   statusAt,
   wallToUtc,
@@ -96,4 +97,11 @@ test("repeat rules from the RRULE editor expand on the right days", () => {
   expect(days("FREQ=MONTHLY;BYDAY=-1TU", 80)).toEqual(["2026-11-24", "2026-12-29", "2027-01-26"]);
   expect(days("FREQ=WEEKLY;UNTIL=20261201")).toEqual(["2026-11-17", "2026-11-24", "2026-12-01"]);
   expect(days("FREQ=YEARLY;COUNT=5", 400)).toEqual(["2026-11-17", "2027-11-17"]);
+});
+
+test("call time reads as minutes and seconds, then hours", () => {
+  expect(formatElapsed(-5_000)).toBe("00:00");
+  expect(formatElapsed(73_000)).toBe("01:13");
+  expect(formatElapsed(24 * 60_000 + 13_000)).toBe("24:13");
+  expect(formatElapsed(3_725_000)).toBe("1:02:05");
 });

@@ -36,6 +36,8 @@ type MeetingCallProps = {
   isProtected: boolean;
   moderated: boolean;
   devicesInCall: number;
+  peopleInCall: string[];
+  recap: boolean;
 };
 
 type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
@@ -51,6 +53,8 @@ const CallView = ({
   onRejoin,
   rejoining,
   devicesInCall,
+  peopleInCall,
+  recap,
   ...room
 }: CallViewProps) => {
   const switchHere = useAction(api.calls.switchHere);
@@ -64,11 +68,20 @@ const CallView = ({
         kind={kind}
         onBack={onBack}
         devicesInCall={devicesInCall}
+        peopleInCall={peopleInCall}
         onSwitchHere={() => switchHere({ meetingId: room.meetingId, ...pass })}
       />
     );
   }
-  return <CallEnded title={title} onBack={onBack} onRejoin={onRejoin} rejoining={rejoining} />;
+  return (
+    <CallEnded
+      title={title}
+      recap={recap}
+      onBack={onBack}
+      onRejoin={onRejoin}
+      rejoining={rejoining}
+    />
+  );
 };
 
 export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: MeetingCallProps) => {

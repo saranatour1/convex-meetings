@@ -1,0 +1,12 @@
+import { type CallSearch, validateCallSearch } from "./call/call-search.ts";
+
+const MEETING_TABS = ["chat", "recaps"] as const;
+
+export type MeetingTab = (typeof MEETING_TABS)[number];
+
+export type MeetingSearch = CallSearch & { tab?: MeetingTab };
+
+export const validateMeetingSearch = (search: Record<string, unknown>): MeetingSearch => ({
+  ...validateCallSearch(search),
+  tab: MEETING_TABS.find((tab) => tab === search.tab),
+});
