@@ -1,5 +1,6 @@
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
+import { z } from "zod";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -79,6 +80,17 @@ export const setAvatar = async (ctx: MutationCtx, userId: Id<"users">, imageId: 
     throw new ConvexError("Use an image under 5 MB");
   }
   await replaceImage(ctx, userId, imageId);
+};
+
+export const copyUsernameToEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
+  const username = await ctx.runQuery(components.authUsername.public.getUsername, { userId });
+  const email = username?.trim().toLowerCase();
+  if (!email || !z.email().safeParse(email).success) return;
+  await ctx.db.patch(
+    "users",
+    userId,
+    parseOrThrow(zUser.pick({ email: true, name: true }), { email, name: email.split("@")[0] }),
+  );
 };
 
 export const setSeenTimeZone = async (ctx: MutationCtx, userId: Id<"users">, timeZone: string) => {
