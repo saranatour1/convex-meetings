@@ -7,6 +7,7 @@ export const zCallPeer = z.object({
   meetingId: zid("meetings"),
   memberId: zid("meetingMembers"),
   peerId: z.string(),
+  joinedAt: z.number().optional(),
 });
 
 export const callPeers = defineTable(zodToConvexFields(zCallPeer.shape))

@@ -140,6 +140,7 @@ erDiagram
     number startedAt
     number endedAt "optional"
     array attendeeIds
+    array attendance "optional"
     string summary "optional"
     string transcriptUrl "optional"
     string recordingUrl "optional"
@@ -153,6 +154,7 @@ erDiagram
     id meetingId FK "meetings"
     id memberId FK "meetingMembers"
     string peerId
+    number joinedAt "optional"
   }
   messages {
     id _id PK

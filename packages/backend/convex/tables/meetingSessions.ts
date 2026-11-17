@@ -10,6 +10,17 @@ export const zMeetingSession = z.object({
   startedAt: z.number(),
   endedAt: z.number().optional(),
   attendeeIds: z.array(z.string()).max(1000),
+  attendance: z
+    .array(
+      z.object({
+        memberId: zid("meetingMembers"),
+        joinedAt: z.number(),
+        leftAt: z.number().optional(),
+        seconds: z.number().min(0),
+      }),
+    )
+    .max(1000)
+    .optional(),
   summary: z.string().optional(),
   transcriptUrl: z.string().optional(),
   recordingUrl: z.string().optional(),
