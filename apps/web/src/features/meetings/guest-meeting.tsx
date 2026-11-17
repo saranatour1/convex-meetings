@@ -20,6 +20,7 @@ import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
 import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
+import { othersInCall } from "./meeting-people.tsx";
 import type { CallSearch } from "./call/call-search.ts";
 import { GuestPassContext } from "./guest-pass.ts";
 import { MeetingChat } from "./meeting-chat.tsx";
@@ -129,6 +130,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                   devicesInCall={meeting.me.devicesInCall}
                   isProtected={meeting.protected}
                   moderated={room}
+                  peopleInCall={othersInCall(meeting)}
                 />
               </Suspense>
             ) : (

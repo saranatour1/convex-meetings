@@ -8,6 +8,7 @@ import { Badge } from "@meetings/ui/components/badge";
 import { Button } from "@meetings/ui/components/button";
 import { cn } from "@meetings/ui/lib/utils";
 import { EmptyState } from "#/components/empty-state.tsx";
+import { LiveDot } from "#/components/live-dot.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { showError } from "#/lib/errors.ts";
 import {
@@ -23,13 +24,6 @@ import { kindOf } from "./meeting-kinds.ts";
 import { MeetingRow, type MyMeeting } from "./meeting-row.tsx";
 
 const peopleInCall = (meeting: MyMeeting) => meeting.lastSession?.inCall ?? 0;
-
-const LiveDot = () => (
-  <span aria-hidden className="relative flex size-2">
-    <span className="absolute size-full animate-ping rounded-full bg-success opacity-60 motion-reduce:hidden" />
-    <span className="relative size-2 rounded-full bg-success" />
-  </span>
-);
 
 const Name = ({ meeting }: { meeting: MyMeeting }) => (
   <span className="flex min-w-0 items-center gap-2 font-medium text-sm">

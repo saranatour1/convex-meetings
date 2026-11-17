@@ -286,14 +286,12 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
   ]);
   if (!meeting || !member) return null;
   const isGuest = viewer?.method === "guest";
-  const devicesInCall = (
-    await ctx.db
-      .query("callPeers")
-      .withIndex("by_meeting_and_member", (q) =>
-        q.eq("meetingId", meetingId).eq("memberId", member._id),
-      )
-      .take(20)
-  ).length;
+  const peers = await ctx.db
+    .query("callPeers")
+    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
+    .take(1000);
+  const devicesInCall = peers.filter((peer) => peer.memberId === member._id).length;
+  const present = new Set(peers.map((peer) => peer.memberId));
   const canControl = !isGuest && (await canControlCall(ctx, meeting, member));
   const [time, members, sessions] = await Promise.all([
     timeOf(ctx, meetingId),
@@ -321,6 +319,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
         response: m.response,
         removed: Boolean(m.removedAt),
         isGuest: user?.method === "guest",
+        inCall: present.has(m._id),
       };
     }),
   );
