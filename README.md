@@ -25,9 +25,9 @@ pnpm dev
 Env files (gitignored):
 
 - `packages/backend/.env.local`: `CONVEX_DEPLOYMENT`, written by `convex dev`
-- `apps/web/.env.local`: `VITE_CONVEX_URL`, `VITE_DATABUDDY_CLIENT_ID` (Databuddy analytics; tracking is off when unset)
+- `apps/web/.env.local`: `VITE_CONVEX_URL`, `VITE_DATABUDDY_CLIENT_ID` (Databuddy analytics in development; tracking is off when unset)
 
-`apps/web/.env.production` is committed and sets the public Databuddy client ID for production builds.
+Production builds use the public Databuddy client ID set in `apps/web/src/providers/analytics.tsx`. Never commit a `.env.*` file.
 
 Sign-in methods: passkey (default for development), Google, GitHub, username/password.
 Google/GitHub need `AUTH_{GOOGLE,GITHUB}_CLIENT_{ID,SECRET}` on the Convex deployment and the
