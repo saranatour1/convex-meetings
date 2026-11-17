@@ -36,6 +36,7 @@ type Env = {
   readonly AUTH_GOOGLE_CLIENT_SECRET: string;
   readonly CLOUDFLARE_ACCOUNT_ID: string | undefined;
   readonly CLOUDFLARE_API_TOKEN: string | undefined;
+  readonly DEV_EMAIL_SIGN_IN: string | undefined;
   readonly EMAIL_FROM: string | undefined;
   readonly REALTIMEKIT_API_TOKEN: string | undefined;
   readonly REALTIMEKIT_APP_ID: string | undefined;

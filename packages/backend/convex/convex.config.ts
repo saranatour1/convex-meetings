@@ -25,6 +25,7 @@ const app = defineApp({
     REALTIMEKIT_APP_ID: v.optional(v.string()),
     REALTIMEKIT_API_TOKEN: v.optional(v.string()),
     RECORDINGS_PATH: v.optional(v.string()),
+    DEV_EMAIL_SIGN_IN: v.optional(v.string()),
   },
 });
 app.use(auth);
