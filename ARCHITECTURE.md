@@ -126,6 +126,11 @@ Layers depend downward only: `routes` → `layouts` → `features` → `componen
 
 Rules:
 
+- `/` is the public landing page (`features/landing`). It renders on the server (`ssr: true`) so link previews, search engines and agents get the full page without JavaScript. Signed-in visitors are sent to `/home`, the signed-in home.
+- The root route renders on the server only for `/` and is `"data-only"` everywhere else. Other public routes (`/sign-in`, `/invite`, `/join`, `/guest`, `/m`) are `ssr: "data-only"`, so their `head` reaches the server HTML while their components render in the browser. Signed-in routes stay client-only.
+- Heads come from `lib/seo.ts`: `SITE_META` and `SITE_LINKS` on the root (Open Graph image, icons, `noindex` by default), and `pageHead` per public page. Pass `canonicalPath` only for pages search engines should index.
+- `public/robots.txt` allows every crawler. `public/llms.txt` tells agents which pages exist and which URL parameters set their state, so update it with any route or `validateSearch` change. `public/sitemap.xml` lists the indexable pages.
+- The logo is `components/logo.tsx`. `public/favicon.svg`, `public/apple-touch-icon.png` and `public/og.png` are drawn from the same strokes.
 - Settings live behind the user menu at the bottom of the sidebar: `/settings/account`, `/settings/general` (appearance, time zone and hours), `/settings/meetings` and `/settings/org`. Per-person preferences are the `userSettings` table (`api.settings.getMine` / `setMine`, defaults in `models/settings.ts`).
 - Theme: `lib/theme.ts` puts `dark` or `light` on `<html>` (Kloq and COSS both follow it), remembers the choice locally, and an inline `THEME_SCRIPT` restores it before paint. The saved `userSettings.theme` is applied on a new device. Calls pick RealtimeKit's light or dark tokens from it.
 - UI state lives in the URL. Routes declare it with `validateSearch`. Examples: `/schedule?zone=…&zones=…&view=list`, `/calendar?zones=…`, `/sign-in?redirect=…`.

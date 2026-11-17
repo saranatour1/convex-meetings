@@ -2,7 +2,7 @@ import { track } from "@databuddy/sdk";
 import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { KeyRoundIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -122,7 +122,9 @@ const PasskeyStepCard = ({ step }: { step: "enroll" | "verify" }) => {
 };
 
 export const PasskeyGate = ({ children }: { children: ReactNode }) => {
-  const step = useQuery(api.passkeys.step);
+  const { isAuthenticated } = useConvexAuth();
+  const step = useQuery(api.passkeys.step, isAuthenticated ? {} : "skip");
+  if (!isAuthenticated) return children;
   if (step === undefined) return <LoadingScreen />;
   if (step === "oauth") return <OAuthRequiredCard />;
   if (step === "enroll" || step === "verify") return <PasskeyStepCard key={step} step={step} />;

@@ -13,7 +13,7 @@ const MeetingRoute = () => {
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 lg:p-6">
       <MeetingPage
         code={code}
-        onCancelled={() => void navigate({ to: "/" })}
+        onCancelled={() => void navigate({ to: "/home" })}
         inCall={call === true}
         onInCallChange={(inCall) =>
           setSearch({

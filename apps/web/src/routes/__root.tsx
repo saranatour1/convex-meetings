@@ -5,6 +5,7 @@ import { ToastProvider } from "@meetings/ui/components/toast";
 import { ConvexWithAuthProvider } from "#/providers/convex.tsx";
 import { AnalyticsProvider } from "#/providers/analytics.tsx";
 import { PasskeyGate } from "#/features/auth/passkey-gate.tsx";
+import { SITE_LINKS, SITE_META } from "#/lib/seo.ts";
 import appCss from "../styles.css?url";
 
 const RootComponent = () => {
@@ -37,13 +38,10 @@ const RootDocument = ({ children }: { children: ReactNode }) => {
 };
 
 export const Route = createRootRoute({
+  ssr: ({ location }) => (location.pathname === "/" ? true : "data-only"),
   head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Meetings" },
-    ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    meta: SITE_META,
+    links: [...SITE_LINKS, { rel: "stylesheet", href: appCss }],
   }),
   shellComponent: RootDocument,
   component: RootComponent,
