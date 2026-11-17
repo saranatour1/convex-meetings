@@ -3,6 +3,7 @@ import { DatabuddyProvider } from "@databuddy/sdk/react";
 import { useQuery } from "convex/react";
 import { api } from "@meetings/backend";
 import type { MeetingKind } from "#/features/meetings/meeting-kinds.ts";
+import { DATABUDDY_CLIENT_ID } from "#/lib/databuddy.ts";
 
 declare module "@databuddy/sdk" {
   interface Events {
@@ -22,6 +23,8 @@ declare module "@databuddy/sdk" {
     meeting_guests_invited: { members: number; guests: number };
     meeting_cancelled: undefined;
     guest_entered: undefined;
+    join_requested: { guest: boolean };
+    join_request_answered: { admit: boolean };
     call_joined: { kind: MeetingKind; guest: boolean };
     call_ended: undefined;
     chat_message_sent: { guest: boolean };
@@ -30,7 +33,7 @@ declare module "@databuddy/sdk" {
 }
 
 const clientId = import.meta.env.PROD
-  ? "966d6359-e335-4668-9600-eb15b43fd81d"
+  ? DATABUDDY_CLIENT_ID
   : import.meta.env.VITE_DATABUDDY_CLIENT_ID;
 
 export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {

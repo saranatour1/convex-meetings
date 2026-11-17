@@ -31,7 +31,8 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
       onSubmitAsync: async ({ value }) => {
         try {
           onEntered(await enter({ code, name: value.name }));
-          track("guest_entered");
+          if (preview?.access === "ask") track("join_requested", { guest: true });
+          else track("guest_entered");
           return undefined;
         } catch (error) {
           return describeError(error);
@@ -50,7 +51,7 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
     </Button>
   );
 
-  if (preview === null || preview.access !== "link") {
+  if (preview === null || (preview.access !== "link" && preview.access !== "ask")) {
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -69,6 +70,8 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
     );
   }
 
+  const asking = preview.access === "ask";
+
   return (
     <form
       className="w-full max-w-sm"
@@ -81,7 +84,10 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
         <CardHeader>
           <CardTitle>{preview.title}</CardTitle>
           <CardDescription>
-            {kindOf(preview.kind).label}. Join from your browser, no account needed.
+            {kindOf(preview.kind).label}.{" "}
+            {asking
+              ? "Ask to join from your browser, no account needed. A host lets you in."
+              : "Join from your browser, no account needed."}
           </CardDescription>
         </CardHeader>
         <CardPanel>
@@ -106,7 +112,13 @@ export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
             {(isSubmitting) => (
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 <DoorOpenIcon />
-                {isSubmitting ? "Joining…" : "Join as a guest"}
+                {asking
+                  ? isSubmitting
+                    ? "Asking…"
+                    : "Ask to join"
+                  : isSubmitting
+                    ? "Joining…"
+                    : "Join as a guest"}
               </Button>
             )}
           </form.Subscribe>
