@@ -12,6 +12,7 @@ import { VideoIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { FormError } from "#/components/form-error.tsx";
+import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { describeError } from "#/lib/errors.ts";
 import { CallEnded } from "./call/call-ended.tsx";
 import { CallLobby } from "./call/call-lobby.tsx";
@@ -63,6 +64,7 @@ const CallView = ({
   const state = useRealtimeKitSelector((m) => m.self.roomState);
   if (state === "joined") return <CallRoom title={title} kind={kind} {...room} />;
   if (state === "init" || state === "waitlisted") {
+    if (rejoining) return <LoadingScreen />;
     return (
       <CallLobby
         title={title}
@@ -93,17 +95,23 @@ export const MeetingCall = ({
   ...props
 }: MeetingCallProps) => {
   const join = useAction(api.meetings.join);
+  const switchHere = useAction(api.calls.switchHere);
   const pass = useGuestPass();
   const settings = useQuery(api.settings.getMine, pass.guest ? "skip" : {});
   const [meeting, initMeeting] = useRealtimeKitClient();
-  const viewer = watch || (props.moderated && Boolean(pass.guest));
+  const watching = watch || (props.moderated && Boolean(pass.guest));
   const form = useForm({
     defaultValues: {},
     validators: {
       onSubmitAsync: async () => {
         try {
-          const { token } = await join({ meetingId, watch, ...pass });
-          await initMeeting({
+          const { token, viewer } = await join({
+            meetingId,
+            watch,
+            userAgent: pass.guest ? navigator.userAgent : undefined,
+            ...pass,
+          });
+          const client = await initMeeting({
             authToken: token,
             defaults: {
               audio: !viewer && !settings?.joinMuted,
@@ -111,6 +119,10 @@ export const MeetingCall = ({
               plugins: props.moderated ? [] : [whiteboardPlugin(token)],
             },
           });
+          if (viewer && client) {
+            if (props.devicesInCall > 0) await switchHere({ meetingId, ...pass });
+            await client.join();
+          }
           track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });
           onInCallChange(true);
           return undefined;
@@ -168,7 +180,7 @@ export const MeetingCall = ({
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="font-medium text-sm">{kindOf(props.kind).label}</span>
         <span className="text-muted-foreground text-sm">
-          {viewer
+          {watching
             ? "You'll watch and listen without a camera or mic."
             : "Check your camera and mic before you go in."}
         </span>

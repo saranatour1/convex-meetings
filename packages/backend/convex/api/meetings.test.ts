@@ -219,6 +219,47 @@ test("watching joins without mic or camera, and switching modes adds a fresh par
   expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
 });
 
+test("an AI agent's browser joins as a watcher with its logo, and stays an agent", async () => {
+  const setup = await orgWithTwoPeople();
+  const { meetingId, code } = await schedule(setup, { kind: "groupCall" });
+  await setup.host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, access: "link" });
+  const guest = await setup.t.mutation(api.api.guests.enter, { code, name: "Sara's assistant" });
+  const claudeBrowser =
+    "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Claude/5.11492.5 Chrome/156.0 Safari/537.36";
+
+  const first = await setup.t.action(api.api.meetings.join, {
+    meetingId,
+    guest,
+    userAgent: claudeBrowser,
+  });
+  expect(first.viewer).toBe(true);
+  expect(requests.at(-1)?.body).toMatchObject({
+    preset_name: "call_public_guest",
+    name: "Sara's assistant",
+    picture: "http://localhost:3000/agents/claude.svg",
+  });
+
+  const again = await setup.t.action(api.api.meetings.join, { meetingId, guest });
+  expect(again).toMatchObject({ viewer: true, token: expect.stringMatching(/^refreshed-/) });
+
+  const meeting = await setup.host.asUser.query(api.api.meetings.get, { code });
+  expect(meeting?.people.find((person) => person.isGuest)).toMatchObject({
+    agent: "claude",
+    imageUrl: "http://localhost:3000/agents/claude.svg",
+  });
+});
+
+test("signed-in people are never taken for agents", async () => {
+  const setup = await orgWithTwoPeople();
+  const { meetingId } = await schedule(setup, { kind: "groupCall" });
+  const joined = await setup.guest.asUser.action(api.api.meetings.join, {
+    meetingId,
+    userAgent: "Mozilla/5.0 Claude/5.1 Chrome/156.0",
+  });
+  expect(joined.viewer).toBe(false);
+  expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
+});
+
 test("people who weren't invited can't join", async () => {
   const setup = await orgWithTwoPeople();
   const { meetingId } = await schedule(setup);

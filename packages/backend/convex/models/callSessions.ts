@@ -65,8 +65,10 @@ export const joinDetails = async (
     rtkParticipantId: member.rtkParticipantId ?? null,
     rtkPreset: member.rtkPreset ?? null,
     name: user?.name ?? "Guest",
-    imageUrl: open ? undefined : (user?.imageUrl ?? undefined),
-    viewer: open && user?.method === "guest",
+    imageUrl: open && !user?.agent ? undefined : (user?.imageUrl ?? undefined),
+    viewer: (open && user?.method === "guest") || Boolean(user?.agent),
+    isGuest: user?.method === "guest",
+    agent: user?.agent ?? null,
   };
 };
 
