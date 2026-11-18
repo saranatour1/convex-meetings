@@ -12,10 +12,6 @@ const MESSAGES: Record<string, { title: string; description: string }> = {
     description: "A host removed you, or you switched to another device.",
   },
   rejected: { title: "You weren't let in", description: "A host declined your request to join." },
-  disconnected: {
-    title: "Your connection dropped",
-    description: "Check your network, then rejoin.",
-  },
   failed: {
     title: "Couldn't connect to the call",
     description: "Check your network, then try again.",

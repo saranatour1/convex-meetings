@@ -17,6 +17,7 @@ import { describeError } from "#/lib/errors.ts";
 import { CallEnded } from "./call/call-ended.tsx";
 import { CallLobby } from "./call/call-lobby.tsx";
 import { CallRoom } from "./call/call-room.tsx";
+import { FollowAlong } from "./call/follow-along.tsx";
 import { OutgoingRing } from "./call/outgoing-ring.tsx";
 import { applyCallTheme } from "./call/call-theme.ts";
 import { type CallSide, whiteboardPlugin } from "./call/call-ui.ts";
@@ -49,18 +50,6 @@ type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange" | "watch
   joinError?: string;
 };
 
-const NO_MEDIA =
-  "Your browser couldn't connect to the call's audio and video. Some AI agents' browsers block WebRTC. Go back to the meeting page to follow the live transcript and the chat.";
-
-const joinsWithin = (join: () => Promise<unknown>, ms: number) =>
-  Promise.race([
-    join().then(
-      () => true,
-      () => false,
-    ),
-    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
-  ]);
-
 const CallView = ({
   title,
   kind,
@@ -76,8 +65,24 @@ const CallView = ({
   const switchHere = useAction(api.calls.switchHere);
   const pass = useGuestPass();
   const state = useRealtimeKitSelector((m) => m.self.roomState);
+  const watching = useRealtimeKitSelector(
+    (m) =>
+      m.self.permissions.canProduceAudio === "NOT_ALLOWED" &&
+      m.self.permissions.canProduceVideo === "NOT_ALLOWED",
+  );
   const waiting = state === "init" || state === "waitlisted";
   if (state === "joined") return <CallRoom title={title} kind={kind} {...room} />;
+  if (state === "disconnected") return <LoadingScreen label="Reconnecting to the call…" />;
+  if (waiting && watching && !joinError) {
+    return (
+      <FollowAlong
+        meetingId={room.meetingId}
+        title={title}
+        moderated={room.moderated}
+        onBack={onBack}
+      />
+    );
+  }
   if (waiting && rejoining) return <LoadingScreen />;
   if (waiting && !joinError) {
     return (
@@ -127,6 +132,7 @@ export const MeetingCall = ({
             userAgent: pass.guest ? navigator.userAgent : undefined,
             ...pass,
           });
+          if (viewer && props.devicesInCall > 0) await switchHere({ meetingId, ...pass });
           const client = await initMeeting({
             authToken: token,
             defaults: {
@@ -135,13 +141,7 @@ export const MeetingCall = ({
               plugins: props.moderated ? [] : [whiteboardPlugin(token)],
             },
           });
-          if (viewer && client) {
-            if (props.devicesInCall > 0) await switchHere({ meetingId, ...pass });
-            if (!(await joinsWithin(() => client.join(), 15_000))) {
-              await client.leave().catch(() => undefined);
-              return NO_MEDIA;
-            }
-          }
+          if (viewer && client) void client.join().catch(() => undefined);
           track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });
           onInCallChange(true);
           return undefined;
@@ -177,7 +177,9 @@ export const MeetingCall = ({
                   meetingId={meetingId}
                   {...props}
                   onBack={() => {
-                    if (meeting.self.roomState === "joined") void meeting.leave();
+                    if (meeting.self.roomState === "joined" || meeting.self.roomState === "init") {
+                      void meeting.leave().catch(() => undefined);
+                    }
                     onInCallChange(false);
                   }}
                   onRejoin={() => void form.handleSubmit()}

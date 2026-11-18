@@ -212,8 +212,10 @@ export const CallRoom = ({
         element.addEventListener("rtkStateUpdate", sync);
         const stopListening = listenToOwnDevices(meeting);
         const peerId = meeting.self.id;
-        const reportLeft = () =>
+        const reportLeft = ({ state }: { state: string }) => {
+          if (state === "disconnected") return;
           void leftOnDevice({ meetingId, peerId, ...pass }).catch(() => null);
+        };
         meeting.self.on("roomLeft", reportLeft);
         const saveOwnLine = (line: {
           peerId: string;
