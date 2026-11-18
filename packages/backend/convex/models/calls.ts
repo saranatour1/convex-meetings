@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zMeetingSession } from "../tables/meetingSessions";
+import { forgetAgent } from "./agents";
 import { audit } from "./audit";
 import { recordPeerUsage } from "./usage";
 import { findMember } from "./members";
@@ -139,6 +140,7 @@ export const removeFromCall = async (
   }
   await ctx.db.patch("meetingMembers", target._id, { removedAt: Date.now() });
   await kickLater(ctx, meeting.rtkMeetingId, target);
+  await forgetAgent(ctx, meeting._id, target._id);
   await audit(ctx, meeting.orgId, userId, "callMemberRemoved", {
     targetUserId: target.userId,
     detail: meeting.title,

@@ -228,7 +228,7 @@ importers:
         version: 2.0.3
       '@convex-dev/auth':
         specifier: 'catalog:'
-        version: 2.0.0(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+        version: 2.0.0(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@databuddy/sdk':
         specifier: ^3.5.3
         version: 3.5.3(react@19.3.1)
@@ -244,6 +244,15 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))
+      '@tanstack/convex-db-collection':
+        specifier: 1.0.0-rc.1.5
+        version: 1.0.0-rc.1.5(convex@1.50.0(react@19.3.1))(typescript@6.0.3)
+      '@tanstack/db':
+        specifier: 1.0.0-rc.1.5
+        version: 1.0.0-rc.1.5(typescript@6.0.3)
+      '@tanstack/react-db':
+        specifier: 1.0.0-rc.1.5
+        version: 1.0.0-rc.1.5(react@19.3.1)(typescript@6.0.3)
       '@tanstack/react-form':
         specifier: ^1.33.5
         version: 1.33.5(@tanstack/react-start@1.169.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.19)(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -307,19 +316,19 @@ importers:
     dependencies:
       '@convex-dev/aggregate':
         specifier: ^0.3.4
-        version: 0.3.4(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+        version: 0.3.4(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@convex-dev/auth':
         specifier: 'catalog:'
-        version: 2.0.0(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+        version: 2.0.0(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@convex-dev/r2':
         specifier: ^0.10.4
-        version: 0.10.4(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)
+        version: 0.10.4(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)
       '@convex-dev/rate-limiter':
         specifier: ^0.4.3
-        version: 0.4.3(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+        version: 0.4.3(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@convex-dev/workpool':
         specifier: ^0.4.16
-        version: 0.4.16(convex-helpers@0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+        version: 0.4.16(@standard-schema/spec@1.1.0)(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@sarant/cloudflare-email-component':
         specifier: 0.4.0
         version: 0.4.0(convex@1.50.0(react@19.3.1))
@@ -328,7 +337,7 @@ importers:
         version: 1.50.0(react@19.3.1)
       convex-helpers:
         specifier: ^0.1.135
-        version: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+        version: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       luxon:
         specifier: ^3.7.2
         version: 3.7.2
@@ -1929,6 +1938,9 @@ packages:
   '@speed-highlight/core@1.2.24':
     resolution: {integrity: sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==}
 
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
@@ -2025,6 +2037,22 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
 
+  '@tanstack/convex-db-collection@1.0.0-rc.1.5':
+    resolution: {integrity: sha512-U8HLeObpgYDjZQHWn+q1CazumFggeumfHsGG527mngOQTimVov/vwpIImIS92w/uPdYN6UFWVdwYmnVOBXk1mg==}
+    peerDependencies:
+      convex: ^1.47.0
+      typescript: '>=4.7'
+
+  '@tanstack/db-ivm@1.0.0-rc.1.3':
+    resolution: {integrity: sha512-4LhRE/6nypOURscUzRyjqffaANVBK8TDv/011cLz79NMxNpZuNgjzwV3s9Z+Rb1d4je+ooRBfPt8hPmGp6dPMw==}
+    peerDependencies:
+      typescript: '>=4.7'
+
+  '@tanstack/db@1.0.0-rc.1.5':
+    resolution: {integrity: sha512-Cpbrc7e1ZcM5j+l/hltVB4IuA6P2i1Py7WRqUsbb0Whof/eylpEfJzx0wgw/2PiOF+s3wJlIXArmghe/zjZR/g==}
+    peerDependencies:
+      typescript: '>=4.7'
+
   '@tanstack/devtools-event-client@0.4.4':
     resolution: {integrity: sha512-6T5Yop/793YI+H+5J8Hsyj4kCih9sl4t3ElLgKioW5hk3ocn+ZdSJ94tT7vL7uabxSugWYBZlOTMPzEw2puvQw==}
     engines: {node: '>=18'}
@@ -2037,9 +2065,30 @@ packages:
     resolution: {integrity: sha512-w1+YvwmTkwt5n8yUqEH3IWZ9DsmorCZW/EQ3KYHnqEgIkOZpH54NvW6/Epq3Dzb8H0ifIeYX8PExvrNLIH5FIA==}
     engines: {node: '>=20.19'}
 
+  '@tanstack/offline-transactions@1.2.1':
+    resolution: {integrity: sha512-/tOkmOis4xu56ARlCSvSzCkng1YjCrixv9EFRPZZ8qeBz8mr5PAcUuMZWJB1jwD2/ypgjuTiCNFHQz5M/wBWbA==}
+    peerDependencies:
+      '@react-native-community/netinfo': '>=11.0.0'
+      '@tanstack/db': ^1.0.0-rc.0
+      react-native: '>=0.70.0'
+    peerDependenciesMeta:
+      '@react-native-community/netinfo':
+        optional: true
+      react-native:
+        optional: true
+
   '@tanstack/pacer-lite@0.1.1':
     resolution: {integrity: sha512-y/xtNPNt/YeyoVxE/JCx+T7yjEzpezmbb+toK8DDD1P4m7Kzs5YR956+7OKexG3f8aXgC3rLZl7b1V+yNUSy5w==}
     engines: {node: '>=18'}
+
+  '@tanstack/pacer-lite@0.3.0':
+    resolution: {integrity: sha512-+YeHKWX5Zd1Irga2smwAolGtzOcf8VVYhM2QI5XEA5TN58iKKufTjhvrbTCEgLLglR1ynHMGVT/l4m5PkwOdaw==}
+    engines: {node: '>=20'}
+
+  '@tanstack/react-db@1.0.0-rc.1.5':
+    resolution: {integrity: sha512-6IDdNA8iNYtEAfbFkI/32gKC2INlV6b17CweaDpyfLdkQ+LyX/qWxDFBL6rKsS29crkAitepPkG3zXDHZpFBEw==}
+    peerDependencies:
+      react: '>=18.0.0'
 
   '@tanstack/react-form@1.33.5':
     resolution: {integrity: sha512-LlRB28qJwO/QCGaHvWnbdh4haBgTFiZVmzA2uzxSBS3YA7/IqrQ6HOBK70CkFQ+DbflZ7NawsmSln13h5iIdTA==}
@@ -2708,6 +2757,10 @@ packages:
 
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
+
+  fractional-indexing@3.4.0:
+    resolution: {integrity: sha512-8J3glhz2rrpKG6KmI7wmJo3zH1VjeOpN+vTJSw1fOyO+Viqq3zX6/5NGh6oaZB2qIAYdOYuu5Dz9xp4faOO0Pg==}
+    engines: {node: ^14.13.1 || >=16.0.0}
 
   framer-motion@14.0.0:
     resolution: {integrity: sha512-QAtHmybrDFSliyW1sexMtSQTQd+1jw2ajibEmzpuI4XdPVzQkn+dAzJMm2sW3pl9MJuSS4xN51djQ7huhlP/VA==}
@@ -3814,11 +3867,11 @@ snapshots:
     dependencies:
       convex: 1.50.0(react@19.3.1)
 
-  '@convex-dev/aggregate@0.3.4(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/aggregate@0.3.4(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
-      '@convex-dev/batch-worker': 0.3.3(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      '@convex-dev/batch-worker': 0.3.3(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       convex: 1.50.0(react@19.3.1)
-      convex-helpers: 0.1.128(convex@1.50.0(react@19.3.1))(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex-helpers: 0.1.128(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -3827,9 +3880,9 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/auth@2.0.0(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/auth@2.0.0(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(next@16.4.6(@babel/core@7.29.13(supports-color@10.2.2))(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
-      '@convex-dev/batch-worker': 0.3.6(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      '@convex-dev/batch-worker': 0.3.6(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       '@convex-dev/rate-limiter': 0.3.2(convex@1.50.0(react@19.3.1))(react@19.3.1)
       '@simplewebauthn/browser': 14.0.0
       '@simplewebauthn/server': 14.1.0
@@ -3847,10 +3900,10 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/batch-worker@0.3.3(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/batch-worker@0.3.3(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
       convex: 1.50.0(react@19.3.1)
-      convex-helpers: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex-helpers: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       react: 19.3.1
     transitivePeerDependencies:
       - '@standard-schema/spec'
@@ -3859,10 +3912,10 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/batch-worker@0.3.5(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/batch-worker@0.3.5(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
       convex: 1.50.0(react@19.3.1)
-      convex-helpers: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex-helpers: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -3871,10 +3924,10 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/batch-worker@0.3.6(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/batch-worker@0.3.6(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
       convex: 1.50.0(react@19.3.1)
-      convex-helpers: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex-helpers: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -3883,13 +3936,13 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/r2@0.10.4(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/r2@0.10.4(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
       '@aws-sdk/client-s3': 3.1169.0
       '@aws-sdk/s3-request-presigner': 3.1169.0
       '@convex-dev/action-retrier': 0.3.1(convex@1.50.0(react@19.3.1))
       convex: 1.50.0(react@19.3.1)
-      convex-helpers: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex-helpers: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       file-type: 21.3.4(supports-color@10.2.2)
       uuid: 14.0.3
     optionalDependencies:
@@ -3909,9 +3962,9 @@ snapshots:
     optionalDependencies:
       react: 19.3.1
 
-  '@convex-dev/rate-limiter@0.4.3(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/rate-limiter@0.4.3(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
-      '@convex-dev/batch-worker': 0.3.5(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      '@convex-dev/batch-worker': 0.3.5(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       convex: 1.50.0(react@19.3.1)
     optionalDependencies:
       react: 19.3.1
@@ -3922,11 +3975,11 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/workpool@0.4.16(convex-helpers@0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
+  '@convex-dev/workpool@0.4.16(@standard-schema/spec@1.1.0)(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
-      '@convex-dev/batch-worker': 0.3.6(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      '@convex-dev/batch-worker': 0.3.6(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
       convex: 1.50.0(react@19.3.1)
-      convex-helpers: 0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
+      convex-helpers: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -4724,6 +4777,8 @@ snapshots:
 
   '@speed-highlight/core@1.2.24': {}
 
+  '@standard-schema/spec@1.1.0': {}
+
   '@swc/helpers@0.5.23':
     dependencies:
       tslib: 2.9.1
@@ -4797,6 +4852,29 @@ snapshots:
       tailwindcss: 4.3.5
       vite: '@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)'
 
+  '@tanstack/convex-db-collection@1.0.0-rc.1.5(convex@1.50.0(react@19.3.1))(typescript@6.0.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/db': 1.0.0-rc.1.5(typescript@6.0.3)
+      '@tanstack/offline-transactions': 1.2.1(@tanstack/db@1.0.0-rc.1.5(typescript@6.0.3))
+      convex: 1.50.0(react@19.3.1)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - '@react-native-community/netinfo'
+      - react-native
+
+  '@tanstack/db-ivm@1.0.0-rc.1.3(typescript@6.0.3)':
+    dependencies:
+      fractional-indexing: 3.4.0
+      typescript: 6.0.3
+
+  '@tanstack/db@1.0.0-rc.1.5(typescript@6.0.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/db-ivm': 1.0.0-rc.1.3(typescript@6.0.3)
+      '@tanstack/pacer-lite': 0.3.0
+      typescript: 6.0.3
+
   '@tanstack/devtools-event-client@0.4.4': {}
 
   '@tanstack/form-core@1.33.5':
@@ -4807,7 +4885,20 @@ snapshots:
 
   '@tanstack/history@1.162.5': {}
 
+  '@tanstack/offline-transactions@1.2.1(@tanstack/db@1.0.0-rc.1.5(typescript@6.0.3))':
+    dependencies:
+      '@tanstack/db': 1.0.0-rc.1.5(typescript@6.0.3)
+
   '@tanstack/pacer-lite@0.1.1': {}
+
+  '@tanstack/pacer-lite@0.3.0': {}
+
+  '@tanstack/react-db@1.0.0-rc.1.5(react@19.3.1)(typescript@6.0.3)':
+    dependencies:
+      '@tanstack/db': 1.0.0-rc.1.5(typescript@6.0.3)
+      react: 19.3.1
+    transitivePeerDependencies:
+      - typescript
 
   '@tanstack/react-form@1.33.5(@tanstack/react-start@1.169.5(@voidzero-dev/vite-plus-core@1.6.0(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3))(esbuild@0.28.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.19)(supports-color@10.2.2))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
@@ -5299,18 +5390,20 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.128(convex@1.50.0(react@19.3.1))(react@19.3.1)(typescript@6.0.3)(zod@4.6.7):
+  convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(react@19.3.1)(typescript@6.0.3)(zod@4.6.7):
     dependencies:
       convex: 1.50.0(react@19.3.1)
     optionalDependencies:
+      '@standard-schema/spec': 1.1.0
       react: 19.3.1
       typescript: 6.0.3
       zod: 4.6.7
 
-  convex-helpers@0.1.135(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7):
+  convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.50.0(react@19.3.1))(prettier@3.10.1)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7):
     dependencies:
       convex: 1.50.0(react@19.3.1)
     optionalDependencies:
+      '@standard-schema/spec': 1.1.0
       prettier: 3.10.1
       react: 19.3.1
       typescript: 6.0.3
@@ -5455,6 +5548,8 @@ snapshots:
       - supports-color
 
   flatted@3.4.4: {}
+
+  fractional-indexing@3.4.0: {}
 
   framer-motion@14.0.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:

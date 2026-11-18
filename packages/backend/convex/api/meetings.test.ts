@@ -184,7 +184,7 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
   const { meetingId } = await schedule(setup, { kind: "webinar" });
 
   const first = await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
-  expect(first.token).toMatch(/^token-/);
+  expect(first).toMatchObject({ agent: false, token: expect.stringMatching(/^token-/) });
   expect(requests.map((r) => `${r.method} ${r.url.split("/kit/app")[1]}`)).toEqual([
     "POST /meetings",
     "POST /meetings/rtk-meeting/participants",
@@ -193,7 +193,7 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
   expect(requests[1]?.body).toMatchObject({ preset_name: "webinar_attendee", name: "Guest" });
 
   const again = await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
-  expect(again.token).toMatch(/^refreshed-/);
+  expect(again).toMatchObject({ agent: false, token: expect.stringMatching(/^refreshed-/) });
   expect(requests.slice(2).map((r) => `${r.method} ${r.url.split("/kit/app")[1]}`)).toEqual([
     "PATCH /meetings/rtk-meeting",
     "POST /meetings/rtk-meeting/participants/participant-2/token",
@@ -222,7 +222,7 @@ test("watching joins without mic or camera, and switching modes adds a fresh par
   expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
 });
 
-test("an AI agent's browser joins as a watcher with its logo, and stays an agent", async () => {
+test("an AI agent never takes a call seat, and shows with its app icon", async () => {
   const setup = await orgWithTwoPeople();
   const { meetingId, code } = await schedule(setup, { kind: "groupCall" });
   await setup.host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, access: "link" });
@@ -230,21 +230,17 @@ test("an AI agent's browser joins as a watcher with its logo, and stays an agent
   const claudeBrowser =
     "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Claude/5.11492.5 Chrome/156.0 Safari/537.36";
 
-  const first = await setup.t.action(api.api.meetings.join, {
-    meetingId,
-    guest,
-    userAgent: claudeBrowser,
+  expect(
+    await setup.t.action(api.api.meetings.join, { meetingId, guest, userAgent: claudeBrowser }),
+  ).toEqual({ agent: true });
+  expect(await setup.t.action(api.api.meetings.join, { meetingId, guest })).toEqual({
+    agent: true,
   });
-  expect(first.viewer).toBe(true);
-  expect(requests.at(-1)?.body).toMatchObject({
-    preset_name: "call_public_guest",
-    name: "Sara's assistant",
-    picture: expect.stringContaining("is1-ssl.mzstatic.com/image/thumb/Purple221/v4/54/b2"),
+  expect(requests).toHaveLength(0);
+
+  expect(await setup.t.query(api.api.meetings.get, { code, guest })).toMatchObject({
+    me: { agent: "claude" },
   });
-
-  const again = await setup.t.action(api.api.meetings.join, { meetingId, guest });
-  expect(again).toMatchObject({ viewer: true, token: expect.stringMatching(/^refreshed-/) });
-
   const meeting = await setup.host.asUser.query(api.api.meetings.get, { code });
   expect(meeting?.people.find((person) => person.isGuest)).toMatchObject({
     agent: "claude",
@@ -259,7 +255,7 @@ test("signed-in people are never taken for agents", async () => {
     meetingId,
     userAgent: "Mozilla/5.0 Claude/5.1 Chrome/156.0",
   });
-  expect(joined.viewer).toBe(false);
+  expect(joined).toMatchObject({ agent: false, viewer: false });
   expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
 });
 

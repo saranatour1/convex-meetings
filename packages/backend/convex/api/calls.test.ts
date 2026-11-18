@@ -350,6 +350,45 @@ test("the live transcript keeps each speaker's lines while the call is on, then 
   expect(await t.run((ctx) => ctx.db.query("transcriptLines").take(10))).toEqual([]);
 });
 
+test("an AI agent stays in the call while it keeps checking in, and drops out when it stops", async () => {
+  vi.useFakeTimers();
+  const { t, host, guest, meetingId, hostMember, guestMember, event } = await setup();
+  const code = (await t.run((ctx) => ctx.db.get("meetings", meetingId)))!.code;
+  const agentInCall = async () =>
+    (await host.asUser.query(api.api.meetings.get, { code }))!.people.find(
+      (person) => person._id === guestMember,
+    )?.inCall;
+  const attend = () => guest.asUser.mutation(api.api.agents.attend, { meetingId });
+
+  await expect(attend()).rejects.toThrow("Only AI agents");
+  await t.run((ctx) => ctx.db.patch("users", guest.userId, { agent: "grokBot" }));
+  expect(await attend()).toEqual({ live: false });
+
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  expect(await attend()).toEqual({ live: true });
+  expect(await agentInCall()).toBe(true);
+
+  vi.advanceTimersByTime(90_000);
+  await attend();
+  vi.advanceTimersByTime(60_000);
+  await t.finishInProgressScheduledFunctions();
+  expect(await agentInCall()).toBe(true);
+
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(await agentInCall()).toBe(false);
+
+  await attend();
+  await host.asUser.mutation(api.api.calls.remove, { meetingMemberId: guestMember });
+  expect(await agentInCall()).toBe(false);
+  await expect(attend()).rejects.toThrow("removed you");
+
+  await host.asUser.mutation(api.api.calls.letIn, { meetingMemberId: guestMember });
+  await attend();
+  await event("meeting.ended");
+  expect(await agentInCall()).toBe(false);
+});
+
 test("rejoining within two minutes keeps the meeting open", async () => {
   vi.useFakeTimers();
   const { t, host, meetingId, hostMember, event } = await setup();

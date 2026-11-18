@@ -5,6 +5,7 @@ import { parseOrThrow } from "../lib/validate";
 import { zCallPeer } from "../tables/callPeers";
 import { clearStrokes } from "./annotations";
 import { clearTranscript } from "./transcripts";
+import { forgetSessionAgents } from "./agents";
 import {
   canControlCall,
   endWhenEmpty,
@@ -66,8 +67,8 @@ export const joinDetails = async (
     rtkParticipantId: member.rtkParticipantId ?? null,
     rtkPreset: member.rtkPreset ?? null,
     name: user?.name ?? "Guest",
-    imageUrl: open && !user?.agent ? undefined : (user?.imageUrl ?? undefined),
-    viewer: (open && user?.method === "guest") || Boolean(user?.agent),
+    imageUrl: open ? undefined : (user?.imageUrl ?? undefined),
+    viewer: open && user?.method === "guest",
     isGuest: user?.method === "guest",
     agent: user?.agent ?? null,
   };
@@ -229,6 +230,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
     patch.endedAt = toMillis(event.meeting?.endedAt, now);
     await clearStrokes(ctx, meeting._id);
     await clearTranscript(ctx, meeting._id, now);
+    await forgetSessionAgents(ctx, session._id);
   }
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);
   if (event.transcriptDownloadUrl) patch.transcriptUrl = event.transcriptDownloadUrl;

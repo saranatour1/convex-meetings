@@ -5,7 +5,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zTranscriptLine } from "../tables/transcriptLines";
-import { requireMeetingMember } from "./meetingAccess";
+import { openSession, requireMeetingMember } from "./meetingAccess";
 import { isPublicRoom } from "./roomAccess";
 import { createViewerLoader } from "./users";
 
@@ -17,15 +17,6 @@ const requireListener = async (ctx: QueryCtx, meetingId: Id<"meetings">, userId:
   return found;
 };
 
-const liveSession = async (ctx: QueryCtx, meetingId: Id<"meetings">) => {
-  const last = await ctx.db
-    .query("meetingSessions")
-    .withIndex("by_meeting_and_number", (q) => q.eq("meetingId", meetingId))
-    .order("desc")
-    .first();
-  return last && last.endedAt === undefined ? last : null;
-};
-
 export const addTranscriptLine = async (
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -33,7 +24,7 @@ export const addTranscriptLine = async (
   text: string,
 ) => {
   const { meeting, member } = await requireListener(ctx, meetingId, userId);
-  if (isPublicRoom(meeting) || !(await liveSession(ctx, meetingId))) return null;
+  if (isPublicRoom(meeting) || !(await openSession(ctx, meetingId))) return null;
   return ctx.db.insert(
     "transcriptLines",
     parseOrThrow(zTranscriptLine, { meetingId, memberId: member._id, text, at: Date.now() }),
@@ -47,7 +38,7 @@ export const listLiveTranscript = async (
   paginationOpts: PaginationOptions,
 ) => {
   await requireListener(ctx, meetingId, userId);
-  const session = await liveSession(ctx, meetingId);
+  const session = await openSession(ctx, meetingId);
   if (!session) return { page: [], isDone: true, continueCursor: "" };
   const result = await ctx.db
     .query("transcriptLines")
@@ -61,7 +52,13 @@ export const listLiveTranscript = async (
     result.page.map(async (line) => {
       const member = await ctx.db.get("meetingMembers", line.memberId);
       const user = member && (await viewer(member.userId));
-      return { _id: line._id, at: line.at, text: line.text, name: user?.name ?? "Someone" };
+      return {
+        _id: line._id,
+        memberId: line.memberId,
+        at: line.at,
+        text: line.text,
+        name: user?.name ?? "Someone",
+      };
     }),
   );
   return { ...result, page };

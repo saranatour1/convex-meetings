@@ -1,7 +1,8 @@
 import { track } from "@databuddy/sdk";
 import { Fragment, useRef } from "react";
 import type { FunctionReturnType } from "convex/server";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useLiveInfiniteQuery } from "@tanstack/react-db";
+import { useConvex, useMutation } from "convex/react";
 import { ArrowUpIcon, MessagesSquareIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { ChatConversation } from "@meetings/ui/chat/chat-conversation";
@@ -28,6 +29,7 @@ import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { dayOf, formatLongDate, formatTime } from "#/lib/schedule.ts";
 import { ChatStatus } from "./chat-status.tsx";
+import { meetingChat } from "./live-collections.ts";
 import { useGuestPass } from "./guest-pass.ts";
 
 export type ChatLine = FunctionReturnType<typeof api.messages.list>["page"][number];
@@ -170,14 +172,14 @@ type MeetingChatProps = {
 
 export const MeetingChat = ({ meetingId, since, className }: MeetingChatProps) => {
   const pass = useGuestPass();
-  const messages = usePaginatedQuery(
-    api.messages.list,
-    { meetingId, ...pass },
-    { initialNumItems: 50 },
+  const chat = meetingChat(useConvex(), meetingId, pass);
+  const messages = useLiveInfiniteQuery(
+    (q) => q.from({ message: chat }).orderBy(({ message }) => message._creationTime, "desc"),
+    { pageSize: 50 },
   );
   const send = useMutation(api.messages.send);
   const composer = useRef<HTMLFormElement>(null);
-  const ordered = [...messages.results].reverse();
+  const ordered = [...messages.data].reverse();
   const scroll = useChatScroll({ itemCount: ordered.length });
 
   return (
@@ -188,15 +190,15 @@ export const MeetingChat = ({ meetingId, since, className }: MeetingChatProps) =
         jumpLabel="New messages"
         contentClassName="px-1 pt-1"
       >
-        {messages.status === "CanLoadMore" && (
+        {messages.hasNextPage && (
           <div className="flex justify-center pb-2">
-            <Button size="xs" variant="ghost" onClick={() => messages.loadMore(50)}>
+            <Button size="xs" variant="ghost" onClick={() => void messages.fetchNextPage()}>
               <ArrowUpIcon />
               Earlier messages
             </Button>
           </div>
         )}
-        {messages.status === "LoadingFirstPage" ? (
+        {messages.isLoading ? (
           <ChatLoadingState label="Loading messages" />
         ) : ordered.length === 0 ? (
           <ChatEmptyState

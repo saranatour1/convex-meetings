@@ -23,6 +23,7 @@ import { JoinCallCard, MeetingCall, MeetingEnded } from "./call-entry.tsx";
 import { othersInCall } from "./meeting-people.tsx";
 import type { CallSearch } from "./call/call-search.ts";
 import { GuestPassContext } from "./guest-pass.ts";
+import { AgentCall } from "./agent-call.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { TranscriptFeed } from "./transcript-feed.tsx";
 import { kindOf } from "./meeting-kinds.ts";
@@ -116,10 +117,19 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
               </p>
             ) : meeting.endedAt ? (
               <MeetingEnded endedAt={meeting.endedAt} room={room} />
+            ) : search.call === true && meeting.me.agent ? (
+              <AgentCall
+                meetingId={meeting._id}
+                code={meeting.code}
+                title={meeting.title}
+                moderated={room}
+                onLeave={() => onInCallChange(false)}
+              />
             ) : search.call === true ? (
               <Suspense fallback={<Button disabled>Loading call…</Button>}>
                 <MeetingCall
                   meetingId={meeting._id}
+                  code={meeting.code}
                   title={meeting.title}
                   kind={meeting.kind}
                   inCall
@@ -168,7 +178,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
               <CardTitle>Live transcript</CardTitle>
             </CardHeader>
             <CardPanel>
-              <TranscriptFeed meetingId={meeting._id} />
+              <TranscriptFeed meetingId={meeting._id} code={meeting.code} />
             </CardPanel>
           </Card>
         )}
