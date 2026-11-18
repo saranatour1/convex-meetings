@@ -205,7 +205,14 @@ export const CallLobby = ({
                 size="lg"
                 variant={devicesInCall > 0 && !waiting ? "outline" : "default"}
                 disabled={waiting}
-                onClick={() => void meeting.join()}
+                onClick={() =>
+                  void meeting.join().catch(() =>
+                    toastManager.add({
+                      title: "Couldn't join the call. Check your network, then try again.",
+                      type: "error",
+                    }),
+                  )
+                }
               >
                 {waiting
                   ? "Waiting for the host to let you in…"
