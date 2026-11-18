@@ -381,6 +381,17 @@ export const respond = async (
   }
 };
 
+export const renameMeeting = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  title: string,
+) => {
+  const { member } = await requireMeetingMember(ctx, meetingId, userId);
+  if (member.role !== "host") throw new ConvexError("Only the host can rename this meeting");
+  await ctx.db.patch("meetings", meetingId, { title });
+};
+
 export const rescheduleMeeting = async (
   ctx: MutationCtx,
   userId: Id<"users">,
