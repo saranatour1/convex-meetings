@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { track } from "@databuddy/sdk";
 import {
   optimisticallyUpdateValueInPaginatedQuery,
   useMutation,
@@ -21,6 +22,7 @@ import {
 import type { MeetingTime } from "#/features/meetings/find-a-time.tsx";
 import { meetingLink } from "#/features/meetings/meeting-access.tsx";
 import { kindOf } from "#/features/meetings/meeting-kinds.ts";
+import { useActiveOrg } from "#/features/orgs/active-org.tsx";
 import { ZonePicker } from "#/features/meetings/zone-picker.tsx";
 import { showError } from "#/lib/errors.ts";
 import { MINUTE, cityOf, formatOffset } from "#/lib/schedule.ts";
@@ -50,6 +52,11 @@ const toAttendee = (p: Person): Attendee => ({
   status: p.response,
 });
 
+const fail = (error: unknown): never => {
+  showError(error);
+  throw error;
+};
+
 const timeOf = (start: number, end: number): MeetingTime => ({
   start,
   minutes: Math.round((end - start) / MINUTE),
@@ -68,6 +75,15 @@ export const MeetingsCalendar = ({
   const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 200 });
   const viewer = useQuery(api.users.viewer);
   const detail = useQuery(api.meetings.get, selected ? { code: selected } : "skip");
+  const { orgId } = useActiveOrg();
+  const settings = useQuery(api.settings.getMine);
+  const create = useMutation(api.meetings.create);
+  const rename = useMutation(api.meetings.rename).withOptimisticUpdate(
+    (store, { meetingId, title }) =>
+      optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
+        m._id === meetingId ? { ...m, title } : m,
+      ),
+  );
   const reschedule = useMutation(api.meetings.reschedule).withOptimisticUpdate(
     (store, { meetingId, startsAt, minutes }) =>
       optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
@@ -106,22 +122,36 @@ export const MeetingsCalendar = ({
       await Promise.all(change.changes.map(commit));
       return;
     }
-    if (change.type === "add" && !change.event.allDay) {
-      onPlan(timeOf(parseInstant(change.event.start), parseInstant(change.event.end)));
+    if (change.type === "add") {
+      if (change.event.allDay) return;
+      const time = timeOf(parseInstant(change.event.start), parseInstant(change.event.end));
+      if (!settings) return onPlan(time);
+      const { code } = await create({
+        orgId,
+        title: change.event.title.trim() || "New meeting",
+        kind: settings.defaultKind,
+        recap: settings.defaultRecap,
+        startsAt: time.start,
+        minutes: time.minutes,
+        timeZone: zone,
+        inviteeIds: [],
+      }).catch(fail);
+      track("meeting_scheduled", { kind: settings.defaultKind, repeats: false });
+      onSelect(code);
       return;
     }
     if (change.type !== "update" || change.patch.allDay) return;
     const meeting = meetings.results.find((m) => m.code === change.id);
     if (!meeting) return;
+    const title = change.patch.title?.trim();
+    if (title) await rename({ meetingId: meeting._id, title }).catch(fail);
+    if (!change.patch.start && !change.patch.end) return;
     const time = timeOf(
       parseInstant(change.patch.start ?? change.prev.start),
       parseInstant(change.patch.end ?? change.prev.end),
     );
     await reschedule({ meetingId: meeting._id, startsAt: time.start, minutes: time.minutes }).catch(
-      (error: unknown) => {
-        showError(error);
-        throw error;
-      },
+      fail,
     );
   };
 

@@ -108,7 +108,7 @@ test("only org members can be invited, and meetings end on the day they start", 
   ).rejects.toThrow("end on the day it starts");
 });
 
-test("the host moves a meeting and invitees are asked again", async () => {
+test("the host moves and renames a meeting, and invitees are asked again", async () => {
   const setup = await orgWithTwoPeople();
   const { meetingId } = await schedule(setup);
   await setup.guest.asUser.mutation(api.api.meetings.respond, { meetingId, response: "accepted" });
@@ -131,6 +131,12 @@ test("the host moves a meeting and invitees are asked again", async () => {
   ]);
   const inbox = await setup.guest.asUser.query(api.api.inbox.list, { paginationOpts: page });
   expect(inbox.page.map((n) => n.kind)).toContain("meetingMoved");
+  await expect(
+    setup.guest.asUser.mutation(api.api.meetings.rename, { meetingId, title: "Mine now" }),
+  ).rejects.toThrow("Only the host");
+  await setup.host.asUser.mutation(api.api.meetings.rename, { meetingId, title: " Retro " });
+  const renamed = await setup.guest.asUser.query(api.api.meetings.mine, { paginationOpts: page });
+  expect(renamed.page).toMatchObject([{ _id: meetingId, title: "Retro" }]);
   const repeating = await schedule(setup, { rrule: "FREQ=WEEKLY" });
   await expect(
     setup.host.asUser.mutation(api.api.meetings.reschedule, {

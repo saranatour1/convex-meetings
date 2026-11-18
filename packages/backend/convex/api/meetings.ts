@@ -25,6 +25,7 @@ import {
   findMeetingByCode,
   getMeeting,
   listMyMeetings,
+  renameMeeting,
   rescheduleMeeting,
   respond as respondToMeeting,
   startInstantMeeting,
@@ -124,6 +125,11 @@ export const cancel = authedMutation({
       await ctx.scheduler.runAfter(0, internal.internal.realtime.deactivate, { rtkMeetingId });
     }
   },
+});
+
+export const rename = authedMutation({
+  args: { meetingId: zid("meetings"), title: zMeeting.shape.title },
+  handler: (ctx, { meetingId, title }) => renameMeeting(ctx, ctx.userId, meetingId, title),
 });
 
 export const reschedule = authedMutation({
