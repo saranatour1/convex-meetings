@@ -35,6 +35,7 @@ import { JoinCallButton, MeetingCall, MeetingEnded } from "./call-entry.tsx";
 import { JOIN_EARLY, countdown, useMinute } from "./clock.ts";
 import { MeetingDoor, MeetingSettingsCard, meetingLink } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
+import { TranscriptFeed } from "./transcript-feed.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 import { type MeetingDetails, MeetingPeople, othersInCall } from "./meeting-people.tsx";
 import type { MeetingTab } from "./meeting-search.ts";
@@ -271,7 +272,8 @@ export const MeetingPage = ({
   const link = room ? roomLink(meeting.code) : meetingLink(meeting.code);
   const lastCall = meeting.sessions.find((session) => session.endedAt !== null);
   const sideColumn = meeting.me.canControl || lastCall;
-  const current = tab === "recaps" && !meeting.sessions.length ? "overview" : (tab ?? "overview");
+  const hidden = (tab === "recaps" && !meeting.sessions.length) || (tab === "transcript" && room);
+  const current = hidden ? "overview" : (tab ?? "overview");
 
   return (
     <div className="flex flex-col gap-6">
@@ -368,6 +370,11 @@ export const MeetingPage = ({
           <TabsTab value="chat" className="grow-0">
             Chat
           </TabsTab>
+          {!room && (
+            <TabsTab value="transcript" className="grow-0">
+              Transcript
+            </TabsTab>
+          )}
           {meeting.sessions.length > 0 && (
             <TabsTab value="recaps" className="grow-0 gap-1.5">
               Recaps
@@ -421,6 +428,23 @@ export const MeetingPage = ({
             </CardPanel>
           </Card>
         </TabsPanel>
+
+        {!room && (
+          <TabsPanel value="transcript">
+            <Card>
+              <CardHeader>
+                <CardTitle>Live transcript</CardTitle>
+                <CardDescription>
+                  What people say in the call shows up here while it's going, and is cleared when it
+                  ends.
+                </CardDescription>
+              </CardHeader>
+              <CardPanel>
+                <TranscriptFeed meetingId={meeting._id} />
+              </CardPanel>
+            </Card>
+          </TabsPanel>
+        )}
 
         {meeting.sessions.length > 0 && (
           <TabsPanel value="recaps">

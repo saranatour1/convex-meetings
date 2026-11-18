@@ -1,6 +1,6 @@
 import { type CallSearch, validateCallSearch } from "./call/call-search.ts";
 
-const MEETING_TABS = ["chat", "recaps"] as const;
+const MEETING_TABS = ["chat", "transcript", "recaps"] as const;
 
 export type MeetingTab = (typeof MEETING_TABS)[number];
 
