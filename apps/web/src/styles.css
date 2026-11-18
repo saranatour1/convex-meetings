@@ -29,3 +29,11 @@
     background-color: color-mix(in srgb, var(--foreground) 32%, transparent);
   }
 }
+
+[data-event-panel] div:has(> div > [aria-label="Event color"]),
+[data-event-panel] div:has(> div > div > [aria-label="Availability"]),
+[data-event-panel] div:has(> [aria-label="Your RSVP"]),
+[data-event-panel] div:has(> div > div > [aria-label="Add reminder"]:only-child),
+[data-event-panel] [aria-label="Add reminder"] {
+  display: none;
+}
