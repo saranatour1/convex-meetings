@@ -189,7 +189,7 @@ export const join = meetingAction({
     }
     const config: MeetingConfig = {
       record: details.record && budget.recordingSeconds >= 60,
-      recap: details.recap && budget.transcribe,
+      recap: details.recap,
       maxRecordingSeconds: budget.recordingSeconds,
     };
     if (details.rtkMeetingId) await realtimeKit.updateMeeting(details.rtkMeetingId, config);
