@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import { components } from "../_generated/api";
 import { env, internalAction } from "../_generated/server";
 import { escapeHtml, oneLine } from "../lib/html";
-import { meetingIcs, toBase64, type IcsMethod } from "../lib/ics";
+import { icsAttachment, type IcsMethod } from "../lib/ics";
 
 type MeetingEmail = {
   method: IcsMethod;
@@ -43,6 +43,7 @@ export const send = internalAction({
     endsAt: v.number(),
     timeZone: v.string(),
     rrule: v.optional(v.string()),
+    sequence: v.number(),
   },
   handler: async (ctx, event) => {
     if (!env.EMAIL_FROM) return;
@@ -57,13 +58,6 @@ export const send = internalAction({
       link,
       repeats: Boolean(event.rrule),
     });
-    const ics = meetingIcs({
-      ...event,
-      url: link,
-      organizer: { name: event.hostName, email: env.EMAIL_FROM },
-      attendee: event.to,
-      now: Date.now(),
-    });
     await sendEmail(ctx, components.cloudflareEmail, {
       owner: event.orgId,
       email: {
@@ -71,12 +65,13 @@ export const send = internalAction({
         to: { address: event.to.email, name: event.to.name },
         ...content,
         attachments: [
-          {
-            content: toBase64(ics),
-            filename: event.method === "CANCEL" ? "cancel.ics" : "invite.ics",
-            type: `text/calendar; charset=utf-8; method=${event.method}`,
-            disposition: "attachment",
-          },
+          icsAttachment({
+            ...event,
+            url: link,
+            organizer: { name: event.hostName, email: env.EMAIL_FROM },
+            attendee: event.to,
+            now: Date.now(),
+          }),
         ],
       },
       seal: (text) => text,

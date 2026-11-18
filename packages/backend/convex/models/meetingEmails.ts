@@ -3,6 +3,15 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import type { IcsMethod } from "../lib/ics";
 import { emailWorkpool } from "../lib/workpools";
+import { GUEST_PASS_MS, renewToken } from "./invites";
+
+const invitedGuest = async (ctx: MutationCtx, meetingId: Id<"meetings">, userId: Id<"users">) => {
+  const guest = await ctx.db
+    .query("meetingGuests")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+  return guest?.meetingId === meetingId && guest.invitedBy ? guest : null;
+};
 
 export const queueMeetingEmails = async (
   ctx: MutationCtx,
@@ -15,6 +24,18 @@ export const queueMeetingEmails = async (
   for (const userId of userIds) {
     const user = await ctx.db.get("users", userId);
     if (!user?.email) continue;
+    const guest =
+      method === "REQUEST" && user.method === "guest"
+        ? await invitedGuest(ctx, meeting._id, userId)
+        : null;
+    if (guest) {
+      const secret = await renewToken(ctx, guest.tokenId, GUEST_PASS_MS);
+      await emailWorkpool.enqueueAction(ctx, internal.internal.guests.sendInvite, {
+        guestId: guest._id,
+        secret,
+      });
+      continue;
+    }
     await emailWorkpool.enqueueAction(ctx, internal.internal.meetingEmails.send, {
       method,
       orgId: meeting.orgId,
@@ -26,6 +47,7 @@ export const queueMeetingEmails = async (
       endsAt: time.endsAt,
       timeZone: time.timeZone,
       rrule: time.rrule,
+      sequence: time.sequence ?? 0,
     });
   }
 };

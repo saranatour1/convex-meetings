@@ -117,6 +117,7 @@ erDiagram
     number endsAt
     string rrule "optional"
     number repeatUntil
+    number sequence "optional"
   }
   meetingMembers {
     id _id PK
