@@ -182,6 +182,12 @@ const timeOf = (ctx: QueryCtx, meetingId: Id<"meetings">) =>
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))
     .first();
 
+const nextSequence = async (ctx: MutationCtx, time: Doc<"meetingTimes">) => {
+  const sequence = (time.sequence ?? 0) + 1;
+  await ctx.db.patch("meetingTimes", time._id, { sequence });
+  return { ...time, sequence };
+};
+
 const endedTime = (time: Doc<"meetingTimes">, now: number) => {
   if (time.rrule) {
     const rrule = ruleEndingAt(time.rrule, now);
@@ -428,6 +434,7 @@ export const repeatMeeting = async (
   await ctx.db.patch("meetingTimes", time._id, {
     rrule,
     repeatUntil: lastOccurrenceEnd(rrule, time),
+    sequence: (time.sequence ?? 0) + 1,
   });
   const others = await invitedOthers(ctx, meetingId, userId);
   const repeating = await timeOf(ctx, meetingId);
@@ -454,7 +461,9 @@ export const uninvite = async (
   if (target.role === "host") throw new ConvexError("The host can't be removed");
   const time = await timeOf(ctx, meetingId);
   if (time && !meeting.endedAt && time.repeatUntil > Date.now() && target.response !== "declined") {
-    await queueMeetingEmails(ctx, "CANCEL", meeting, time, [target.userId]);
+    await queueMeetingEmails(ctx, "CANCEL", meeting, await nextSequence(ctx, time), [
+      target.userId,
+    ]);
   }
   const guest = await ctx.db
     .query("meetingGuests")
@@ -484,7 +493,11 @@ export const rescheduleMeeting = async (
   const current = await requireOneOffTime(ctx, meeting);
   await enforceRateLimit(ctx, "reschedule", userId);
   const time = meetingTime(startsAt, minutes, current.timeZone);
-  await ctx.db.patch("meetingTimes", current._id, { ...time, repeatUntil: time.endsAt });
+  await ctx.db.patch("meetingTimes", current._id, {
+    ...time,
+    repeatUntil: time.endsAt,
+    sequence: (current.sequence ?? 0) + 1,
+  });
   const others = await invitedOthers(ctx, meetingId, userId);
   for (const other of others) {
     if (other.response !== "pending") {
@@ -538,7 +551,7 @@ export const cancelMeeting = async (
       ctx,
       "CANCEL",
       meeting,
-      time,
+      await nextSequence(ctx, time),
       invited.filter((m) => m.userId !== userId && m.response !== "declined").map((m) => m.userId),
     );
   }

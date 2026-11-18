@@ -136,15 +136,18 @@ test("the host moves and edits a meeting, and invitees are asked again", async (
   ).rejects.toThrow("Only the host");
   await setup.host.asUser.mutation(api.api.meetings.edit, {
     meetingId,
-    title: " Retro ",
+    title: "Retro ",
     description: "Bring notes",
     location: "Room 4",
   });
   await setup.host.asUser.mutation(api.api.meetings.edit, { meetingId, location: "" });
   const edited = await setup.guest.asUser.query(api.api.meetings.mine, { paginationOpts: page });
   expect(edited.page).toMatchObject([
-    { _id: meetingId, title: "Retro", description: "Bring notes", location: null },
+    { _id: meetingId, title: "Retro ", description: "Bring notes", location: null },
   ]);
+  await expect(
+    setup.host.asUser.mutation(api.api.meetings.edit, { meetingId, title: "  " }),
+  ).rejects.toThrow("Give the meeting a title");
   const repeating = await schedule(setup, { rrule: "FREQ=WEEKLY" });
   await expect(
     setup.host.asUser.mutation(api.api.meetings.reschedule, {

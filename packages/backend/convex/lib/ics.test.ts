@@ -10,6 +10,7 @@ const event = {
   endsAt: Date.UTC(2026, 2, 30, 14, 30),
   timeZone: "Europe/London",
   rrule: "FREQ=WEEKLY;BYDAY=MO",
+  sequence: 0,
   organizer: { name: "Ada", email: "meetings@example.com" },
   attendee: { name: "Grace", email: "grace@example.com" },
   now: Date.UTC(2026, 2, 1),
@@ -26,10 +27,10 @@ describe("meetingIcs", () => {
     expect(ics).toContain("SUMMARY:Design review\\; Q4\\, plans\r\n");
   });
 
-  test("cancels with a higher sequence and folds long lines", () => {
-    const ics = meetingIcs({ ...event, method: "CANCEL", title: "x".repeat(200) });
+  test("cancels at the meeting's sequence and folds long lines", () => {
+    const ics = meetingIcs({ ...event, method: "CANCEL", sequence: 3, title: "x".repeat(200) });
     expect(ics).toContain("STATUS:CANCELLED");
-    expect(ics).toContain("SEQUENCE:1");
+    expect(ics).toContain("SEQUENCE:3\r\n");
     for (const line of ics.split("\r\n")) expect(line.length).toBeLessThanOrEqual(75);
   });
 
