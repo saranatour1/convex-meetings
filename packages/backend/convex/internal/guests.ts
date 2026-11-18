@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import { components, internal } from "../_generated/api";
 import { env, internalAction, internalMutation, internalQuery } from "../_generated/server";
 import { escapeHtml, oneLine } from "../lib/html";
+import { icsAttachment } from "../lib/ics";
 import { guestInviteDetails, guestUserId, recordGuestInviteSend } from "../models/guests";
 
 export const guestInviteEmail = ({
@@ -49,16 +50,17 @@ export const sendInvite = internalAction({
       });
       return;
     }
-    const when = invite.startsAt
-      ? DateTime.fromMillis(invite.startsAt, { zone: invite.timeZone }).toFormat(
-          "ccc, LLL d 'at' HH:mm ZZZZ",
-        )
-      : null;
+    const { time } = invite;
+    const link = `${env.SITE_URL}/guest/${secret}`;
     const content = guestInviteEmail({
       title: invite.title,
       inviterName: invite.inviterName,
-      when,
-      link: `${env.SITE_URL}/guest/${secret}`,
+      when: time
+        ? DateTime.fromMillis(time.startsAt, { zone: time.timeZone }).toFormat(
+            "ccc, LLL d 'at' HH:mm ZZZZ",
+          )
+        : null,
+      link,
     });
     const result = await sendEmail(ctx, components.cloudflareEmail, {
       owner: invite.orgId,
@@ -66,6 +68,20 @@ export const sendInvite = internalAction({
         from: { address: env.EMAIL_FROM, name: invite.inviterName },
         to: invite.email,
         ...content,
+        ...(time && {
+          attachments: [
+            icsAttachment({
+              ...time,
+              method: "REQUEST",
+              code: invite.code,
+              title: invite.title,
+              url: link,
+              organizer: { name: invite.inviterName, email: env.EMAIL_FROM },
+              attendee: { name: invite.name, email: invite.email },
+              now: Date.now(),
+            }),
+          ],
+        }),
       },
       seal: (text) => text,
     });
