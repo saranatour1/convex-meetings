@@ -162,8 +162,8 @@ export const busy = orgQuery({
 });
 
 export const join = meetingAction({
-  args: { meetingId: zid("meetings") },
-  handler: async (ctx, { meetingId }): Promise<{ token: string }> => {
+  args: { meetingId: zid("meetings"), watch: z.boolean().optional() },
+  handler: async (ctx, { meetingId, watch }): Promise<{ token: string }> => {
     await enforceRateLimit(ctx, "join", ctx.userId);
     const details: JoinDetails = await ctx.runQuery(internal.internal.realtime.joinDetails, {
       userId: ctx.userId,
@@ -187,7 +187,14 @@ export const join = meetingAction({
         meetingId,
         rtkMeetingId: (await realtimeKit.createMeeting({ title: details.title, ...config })).id,
       }));
-    if (details.rtkParticipantId && details.rtkMeetingId === rtkMeetingId) {
+    const preset = presetName(details.kind, details.role, details.viewer || watch === true);
+    const storedPreset =
+      details.rtkPreset ?? presetName(details.kind, details.role, details.viewer);
+    if (
+      details.rtkParticipantId &&
+      details.rtkMeetingId === rtkMeetingId &&
+      storedPreset === preset
+    ) {
       const refreshed = await realtimeKit
         .refreshToken(rtkMeetingId, details.rtkParticipantId)
         .catch(() => null);
@@ -195,13 +202,14 @@ export const join = meetingAction({
     }
     const participant = await realtimeKit.addParticipant(rtkMeetingId, {
       customId: details.memberId,
-      presetName: presetName(details.kind, details.role, details.viewer),
+      presetName: preset,
       name: details.name,
       picture: details.imageUrl,
     });
     await ctx.runMutation(internal.internal.realtime.setParticipant, {
       memberId: details.memberId,
       rtkParticipantId: participant.id,
+      rtkPreset: preset,
     });
     return { token: participant.token };
   },

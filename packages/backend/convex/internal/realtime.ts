@@ -42,9 +42,9 @@ export const claimMeeting = internalMutation({
 });
 
 export const setParticipant = internalMutation({
-  args: { memberId: v.id("meetingMembers"), rtkParticipantId: v.string() },
-  handler: (ctx, { memberId, rtkParticipantId }) =>
-    setRtkParticipant(ctx, memberId, rtkParticipantId),
+  args: { memberId: v.id("meetingMembers"), rtkParticipantId: v.string(), rtkPreset: v.string() },
+  handler: (ctx, { memberId, rtkParticipantId, rtkPreset }) =>
+    setRtkParticipant(ctx, memberId, rtkParticipantId, rtkPreset),
 });
 
 export const recordEvent = internalMutation({

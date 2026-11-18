@@ -70,7 +70,8 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
   const onInCallChange = (inCall: boolean) =>
     onSearchChange({
       call: inCall || undefined,
-      side: undefined,
+      watch: inCall ? search.watch : undefined,
+      side: inCall ? search.side : undefined,
       expand: undefined,
       draw: undefined,
     });
@@ -122,6 +123,7 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
                   kind={meeting.kind}
                   inCall
                   onInCallChange={onInCallChange}
+                  watch={search.watch === true}
                   side={search.side}
                   onSideChange={(side) => onSearchChange({ side })}
                   expanded={search.expand === true}
@@ -138,6 +140,9 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
               <JoinCallCard
                 kind={meeting.kind}
                 onJoin={() => onInCallChange(true)}
+                onWatch={
+                  room ? undefined : () => onSearchChange({ call: true, watch: true, side: "ai" })
+                }
                 hint={room ? "You'll watch and listen. Chat stays open below." : undefined}
               />
             )}

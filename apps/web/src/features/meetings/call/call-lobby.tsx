@@ -63,7 +63,7 @@ const LobbyToggles = ({ kind }: { kind: MeetingKind }) => {
       {!canAudio && (
         <span className="text-muted-foreground text-sm">
           {audioPermission === "NOT_ALLOWED"
-            ? "You'll join watching and listening. Sign in to use your camera and mic."
+            ? "You'll join watching and listening. The live transcript is under More."
             : "You'll join listening. Ask to speak once you're in."}
         </span>
       )}
