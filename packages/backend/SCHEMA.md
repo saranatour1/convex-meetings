@@ -124,6 +124,7 @@ erDiagram
     enum response
     enum role
     string rtkParticipantId "optional"
+    string rtkPreset "optional"
     number removedAt "optional"
   }
   meetingGuests {

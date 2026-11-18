@@ -28,6 +28,7 @@ type MeetingCallProps = {
   kind: MeetingKind;
   inCall: boolean;
   onInCallChange: (inCall: boolean) => void;
+  watch?: boolean;
   side?: CallSide;
   onSideChange: (side: CallSide | undefined) => void;
   expanded: boolean;
@@ -40,7 +41,7 @@ type MeetingCallProps = {
   recap: boolean;
 };
 
-type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
+type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange" | "watch"> & {
   onBack: () => void;
   onRejoin: () => void;
   rejoining: boolean;
@@ -84,18 +85,24 @@ const CallView = ({
   );
 };
 
-export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: MeetingCallProps) => {
+export const MeetingCall = ({
+  meetingId,
+  inCall,
+  onInCallChange,
+  watch = false,
+  ...props
+}: MeetingCallProps) => {
   const join = useAction(api.meetings.join);
   const pass = useGuestPass();
   const settings = useQuery(api.settings.getMine, pass.guest ? "skip" : {});
   const [meeting, initMeeting] = useRealtimeKitClient();
-  const viewer = props.moderated && Boolean(pass.guest);
+  const viewer = watch || (props.moderated && Boolean(pass.guest));
   const form = useForm({
     defaultValues: {},
     validators: {
       onSubmitAsync: async () => {
         try {
-          const { token } = await join({ meetingId, ...pass });
+          const { token } = await join({ meetingId, watch, ...pass });
           await initMeeting({
             authToken: token,
             defaults: {
@@ -161,7 +168,9 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="font-medium text-sm">{kindOf(props.kind).label}</span>
         <span className="text-muted-foreground text-sm">
-          Check your camera and mic before you go in.
+          {viewer
+            ? "You'll watch and listen without a camera or mic."
+            : "Check your camera and mic before you go in."}
         </span>
         <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
           {(error) => <FormError error={error} />}

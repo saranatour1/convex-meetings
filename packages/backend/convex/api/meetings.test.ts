@@ -205,6 +205,20 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
   expect(requests.filter((r) => r.url.endsWith("/meetings"))).toHaveLength(1);
 });
 
+test("watching joins without mic or camera, and switching modes adds a fresh participant", async () => {
+  const setup = await orgWithTwoPeople();
+  const { meetingId } = await schedule(setup, { kind: "groupCall" });
+
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId, watch: true });
+  expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_public_guest", name: "Guest" });
+
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId, watch: true });
+  expect(requests.at(-1)?.url).toMatch(/\/token$/);
+
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
+  expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
+});
+
 test("people who weren't invited can't join", async () => {
   const setup = await orgWithTwoPeople();
   const { meetingId } = await schedule(setup);
