@@ -22,7 +22,7 @@ import {
   syncRoomPeople,
 } from "./roomAccess";
 import { queueSummaryCheck } from "./moderationQueue";
-import { liveTextOn, recordRecordingStatus, recordTranscriptUsage } from "./usage";
+import { liveTextOn, recordRecordingStatus } from "./usage";
 import { getViewer } from "./users";
 
 const sessionPeersOfMember = (
@@ -234,9 +234,6 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   if (event.transcriptDownloadUrl) patch.transcriptUrl = event.transcriptDownloadUrl;
   if (event.transcriptId) patch.transcriptId = event.transcriptId;
   Object.assign(patch, await recordRecordingStatus(ctx, session, event.recording?.status, now));
-  if (event.event === "meeting.transcript" && !session.transcriptId && !session.transcriptUrl) {
-    await recordTranscriptUsage(ctx, session, now);
-  }
   if (event.recording?.status === "UPLOADED") {
     if (event.recording.downloadUrl) patch.recordingUrl = event.recording.downloadUrl;
     if (event.recordingKey) patch.recordingKey = event.recordingKey;

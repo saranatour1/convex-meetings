@@ -8,15 +8,7 @@ import { zUsage } from "../tables/usage";
 export const LIMITS = {
   callSecondsPerMonth: 9_000 * 60,
   recordingSecondsPerMonth: 90 * 60,
-  liveTextNeuronsPerDay: 5_000,
-  transcribeBelowNeuronsPerDay: 7_000,
   emailsPerMonth: 2_700,
-};
-
-export const NEURONS = {
-  liveTextPerMinute: 836.36,
-  transcriptPerMinute: 46.63,
-  summary: 100,
 };
 
 const LIVE_TEXT_OFF = "liveTextOff";
@@ -24,7 +16,6 @@ const RECORDING_STOPPED = new Set(["UPLOADING", "UPLOADED", "ERRORED"]);
 
 const utc = (now: number) => DateTime.fromMillis(now, { zone: "utc" });
 const monthKey = (kind: string, now: number) => `${kind}:${utc(now).toFormat("yyyy-LL")}`;
-const dayKey = (kind: string, now: number) => `${kind}:${utc(now).toFormat("yyyy-LL-dd")}`;
 const nextMonth = (now: number) => utc(now).startOf("month").plus({ months: 1 }).toFormat("LLLL d");
 
 const rowOf = (ctx: QueryCtx, key: string) =>
@@ -59,9 +50,6 @@ export const markLiveText = (ctx: MutationCtx, on: boolean) =>
 export const recordPeerUsage = async (ctx: MutationCtx, peer: Doc<"callPeers">, at: number) => {
   const minutes = minutesSince(peer.connectedAt, at);
   await addAmount(ctx, monthKey("callSeconds", at), minutes * 60);
-  if (peer.liveText) {
-    await addAmount(ctx, dayKey("neurons", at), minutes * NEURONS.liveTextPerMinute);
-  }
 };
 
 export const recordRecordingStatus = async (
@@ -80,19 +68,6 @@ export const recordRecordingStatus = async (
     return { recordingStartedAt: undefined };
   }
   return {};
-};
-
-export const recordTranscriptUsage = (
-  ctx: MutationCtx,
-  session: Doc<"meetingSessions">,
-  now: number,
-) => {
-  const minutes = sum((session.attendance ?? []).map((entry) => entry.seconds)) / 60;
-  return addAmount(
-    ctx,
-    dayKey("neurons", now),
-    minutes * NEURONS.transcriptPerMinute + NEURONS.summary,
-  );
 };
 
 export const spendEmail = async (ctx: MutationCtx) => {
@@ -121,9 +96,6 @@ const currentUsage = async (ctx: QueryCtx, now: number) => {
     recordingSeconds:
       (await amountOf(ctx, monthKey("recordingSeconds", now))) +
       sum(recordings.map((session) => minutesSince(session.recordingStartedAt, now) * 60)),
-    neurons:
-      (await amountOf(ctx, dayKey("neurons", now))) +
-      peerMinutes(peers.filter((peer) => peer.liveText)) * NEURONS.liveTextPerMinute,
   };
 };
 
@@ -136,7 +108,6 @@ export const joinBudget = async (ctx: QueryCtx) => {
       0,
       Math.floor(LIMITS.recordingSecondsPerMonth - used.recordingSeconds),
     ),
-    transcribe: used.neurons < LIMITS.transcribeBelowNeuronsPerDay,
   };
 };
 
@@ -150,7 +121,6 @@ const rtkMeetingIds = async (ctx: QueryCtx, meetingIds: Id<"meetings">[]) => {
 export const overBudget = async (ctx: QueryCtx) => {
   const now = Date.now();
   const used = await currentUsage(ctx, now);
-  const liveText = used.neurons < LIMITS.liveTextNeuronsPerDay;
   return {
     endCalls:
       used.callSeconds >= LIMITS.callSecondsPerMonth
@@ -166,6 +136,6 @@ export const overBudget = async (ctx: QueryCtx) => {
             used.recordings.map((session) => session.meetingId),
           )
         : [],
-    liveText: liveText === (await liveTextOn(ctx)) ? null : liveText,
+    liveText: (await liveTextOn(ctx)) ? null : true,
   };
 };

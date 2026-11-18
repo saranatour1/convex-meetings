@@ -497,20 +497,22 @@ test("recording minutes are counted and recordings stop at the monthly limit", a
   });
 });
 
-test("live text switches off for the day once its share of free AI usage is spent", async () => {
+test("live text is never switched off for cost, and comes back on if it was", async () => {
   vi.useFakeTimers();
-  const { t, host, meetingId, hostMember, guestMember, event } = await setup();
+  const { t, host, meetingId, hostMember, event } = await setup();
   await host.asUser.action(api.api.meetings.join, { meetingId });
   await event("meeting.participantJoined", hostMember);
-  vi.advanceTimersByTime(6 * 60_000);
+  vi.advanceTimersByTime(60 * 60_000);
+  await t.mutation(internal.internal.usage.enforce, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(calls.some((call) => call.url.includes("/presets/"))).toBe(false);
+
+  await t.run((ctx) => ctx.db.insert("usage", { key: "liveTextOff", amount: 1 }));
   await t.mutation(internal.internal.usage.enforce, {});
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   expect(calls.at(-1)).toMatchObject({
     url: expect.stringContaining("/presets/preset-1"),
-    body: { permissions: { transcription_enabled: false } },
+    body: { permissions: { transcription_enabled: true } },
   });
-  expect(await usageOf(t, "liveTextOff")).toBe(1);
-  await event("meeting.participantJoined", guestMember);
-  const peers = await t.run((ctx) => ctx.db.query("callPeers").collect());
-  expect(peers.find((peer) => peer.memberId === guestMember)?.liveText).toBe(false);
+  expect(await usageOf(t, "liveTextOff")).toBe(0);
 });
