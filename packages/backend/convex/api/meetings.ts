@@ -132,7 +132,11 @@ export const cancel = authedMutation({
 export const edit = authedMutation({
   args: {
     meetingId: zid("meetings"),
-    title: zMeeting.shape.title.optional(),
+    title: z
+      .string()
+      .max(200)
+      .refine((title) => title.trim() !== "", "Give the meeting a title")
+      .optional(),
     description: z.string().max(2000).optional(),
     location: z.string().max(200).optional(),
   },
