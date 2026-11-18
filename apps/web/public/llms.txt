@@ -16,7 +16,7 @@ Page state lives in the URL. An agent can open any page below in the exact state
 
 - [Home](https://convex-meetings.stream/home): upcoming meetings for the active organization
 - [Schedule a meeting](https://convex-meetings.stream/schedule): find a time and send invites. `start` (UTC ms) and `minutes` preselect a slot, `zone` sets the organizer's time zone, `zones` adds time zones to compare, `view=list` shows a list instead of the grid
-- [Calendar](https://convex-meetings.stream/calendar): `event=<code>` opens one meeting with everyone's replies, `declined=true` shows meetings you declined, `zones` adds time zones, `new=true` opens Schedule a meeting over the calendar (`start`, `minutes`, `zone` and `view=list` work as on /schedule)
+- [Calendar](https://convex-meetings.stream/calendar): `event=<code>` opens one meeting with everyone's replies, `declined=true` shows meetings you declined, `zones` adds time zones, `new=true` opens Schedule a meeting over the calendar (`start`, `minutes`, `zone` and `view=list` work as on /schedule), `cancel=<code>` asks before cancelling one of your meetings. Dragging on empty time creates a meeting; your own one-off meetings can be moved, resized and edited in place
 - [Meetings](https://convex-meetings.stream/meetings): upcoming meetings, `tab=past` for past ones
 - `/meetings/<code>`: one meeting. `call=true` joins its call, `side=chat`, `side=participants` or `side=polls` opens a side panel
 - `/meetings/<code>/recaps/<n>`: transcript and recording of the meeting's nth call, `q` searches the transcript
