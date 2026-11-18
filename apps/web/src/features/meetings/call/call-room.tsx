@@ -149,6 +149,7 @@ export const CallRoom = ({
   const { meeting } = useRealtimeKitMeeting();
   const end = useMutation(api.calls.end);
   const leftOnDevice = useMutation(api.calls.leftOnDevice);
+  const addTranscriptLine = useMutation(api.transcripts.add);
   const pass = useGuestPass();
   const startedAt = useRealtimeKitSelector((m) => m.meta.meetingStartedTimestamp);
   const root = useRef<HTMLDivElement | null>(null);
@@ -214,10 +215,21 @@ export const CallRoom = ({
         const reportLeft = () =>
           void leftOnDevice({ meetingId, peerId, ...pass }).catch(() => null);
         meeting.self.on("roomLeft", reportLeft);
+        const saveOwnLine = (line: {
+          peerId: string;
+          transcript: string;
+          isPartialTranscript: boolean;
+        }) => {
+          const text = line.transcript.trim().slice(0, 2000);
+          if (moderated || line.isPartialTranscript || line.peerId !== peerId || !text) return;
+          void addTranscriptLine({ meetingId, text, ...pass }).catch(() => null);
+        };
+        meeting.ai.on("transcript", saveOwnLine);
         return () => {
           element.removeEventListener("rtkStateUpdate", sync);
           stopListening();
           meeting.self.off("roomLeft", reportLeft);
+          meeting.ai.off("transcript", saveOwnLine);
         };
       }}
     >

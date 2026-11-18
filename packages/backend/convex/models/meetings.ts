@@ -10,6 +10,7 @@ import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
 import { clearStrokes } from "./annotations";
+import { clearTranscript } from "./transcripts";
 import { canControlCall, someoneInCall } from "./calls";
 import { requireMeetingMember } from "./meetingAccess";
 import { findRoom, isPublicRoom } from "./roomAccess";
@@ -578,6 +579,7 @@ export const cancelMeeting = async (
     await ctx.db.delete("rings", ring._id);
   }
   await clearStrokes(ctx, meetingId);
+  await clearTranscript(ctx, meetingId, Date.now());
   const snapshots = await ctx.db
     .query("annotationSnapshots")
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))

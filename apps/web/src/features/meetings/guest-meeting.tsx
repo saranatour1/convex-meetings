@@ -24,6 +24,7 @@ import { othersInCall } from "./meeting-people.tsx";
 import type { CallSearch } from "./call/call-search.ts";
 import { GuestPassContext } from "./guest-pass.ts";
 import { MeetingChat } from "./meeting-chat.tsx";
+import { TranscriptFeed } from "./transcript-feed.tsx";
 import { kindOf } from "./meeting-kinds.ts";
 
 type GuestMeetingProps = {
@@ -161,6 +162,16 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
             )}
           </CardPanel>
         </Card>
+        {!room && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Live transcript</CardTitle>
+            </CardHeader>
+            <CardPanel>
+              <TranscriptFeed meetingId={meeting._id} />
+            </CardPanel>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Chat</CardTitle>

@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zCallPeer } from "../tables/callPeers";
 import { clearStrokes } from "./annotations";
+import { clearTranscript } from "./transcripts";
 import {
   canControlCall,
   endWhenEmpty,
@@ -227,6 +228,7 @@ export const recordRealtimeEvent = async (ctx: MutationCtx, event: RealtimeEvent
   if (event.event === "meeting.ended") {
     patch.endedAt = toMillis(event.meeting?.endedAt, now);
     await clearStrokes(ctx, meeting._id);
+    await clearTranscript(ctx, meeting._id, now);
   }
   if (event.summary) patch.summary = event.summary.slice(0, 20_000);
   if (event.transcriptDownloadUrl) patch.transcriptUrl = event.transcriptDownloadUrl;

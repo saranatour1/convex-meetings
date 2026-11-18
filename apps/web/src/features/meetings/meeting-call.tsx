@@ -50,7 +50,7 @@ type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange" | "watch
 };
 
 const NO_MEDIA =
-  "Your browser couldn't connect to the call's audio and video. Some AI agents' browsers block WebRTC. The chat on the meeting page still works.";
+  "Your browser couldn't connect to the call's audio and video. Some AI agents' browsers block WebRTC. Go back to the meeting page to follow the live transcript and the chat.";
 
 const joinsWithin = (join: () => Promise<unknown>, ms: number) =>
   Promise.race([

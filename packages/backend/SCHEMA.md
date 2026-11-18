@@ -211,6 +211,13 @@ erDiagram
     id memberId FK "meetingMembers"
     id storageId FK "_storage"
   }
+  transcriptLines {
+    id _id PK
+    id meetingId FK "meetings"
+    id memberId FK "meetingMembers"
+    string text
+    number at
+  }
   schedules {
     id _id PK
     id userId FK "users"
@@ -325,6 +332,8 @@ erDiagram
   annotationSnapshots }o--|| meetings : meetingId
   annotationSnapshots }o--|| meetingMembers : memberId
   annotationSnapshots }o--|| _storage : storageId
+  transcriptLines }o--|| meetings : meetingId
+  transcriptLines }o--|| meetingMembers : memberId
   schedules }o--|| users : userId
   notifications }o--|| users : userId
   notifications }o--o| meetingSessions : sessionId
@@ -393,6 +402,7 @@ erDiagram
 | messageReactions | by_meeting | meetingId |
 | strokes | by_meeting_and_share | meetingId, shareId |
 | annotationSnapshots | by_meeting | meetingId |
+| transcriptLines | by_meeting_and_at | meetingId, at |
 | schedules | by_user | userId |
 | notifications | by_user | userId |
 | notifications | by_user_and_readAt | userId, readAt |
