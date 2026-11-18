@@ -123,6 +123,7 @@ const Elapsed = () => {
 
 type CallRoomProps = {
   meetingId: Id<"meetings">;
+  code: string;
   title: string;
   kind: MeetingKind;
   side?: CallSide;
@@ -136,6 +137,7 @@ type CallRoomProps = {
 
 export const CallRoom = ({
   meetingId,
+  code,
   title,
   kind,
   side,
@@ -276,7 +278,7 @@ export const CallRoom = ({
           ) : (
             <RtkGrid meeting={meeting} className="size-full" />
           )}
-          {kind === "groupCall" && <AlsoHere />}
+          <AlsoHere code={code} offStage={kind === "groupCall"} />
           <div
             role="toolbar"
             aria-label="Call controls"

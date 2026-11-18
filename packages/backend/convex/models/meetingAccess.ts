@@ -34,3 +34,12 @@ export const findSessionByNumber = (ctx: QueryCtx, meetingId: Id<"meetings">, nu
     .query("meetingSessions")
     .withIndex("by_meeting_and_number", (q) => q.eq("meetingId", meetingId).eq("number", number))
     .unique();
+
+export const openSession = async (ctx: QueryCtx, meetingId: Id<"meetings">) => {
+  const last = await ctx.db
+    .query("meetingSessions")
+    .withIndex("by_meeting_and_number", (q) => q.eq("meetingId", meetingId))
+    .order("desc")
+    .first();
+  return last && last.endedAt === undefined ? last : null;
+};

@@ -11,6 +11,7 @@ import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
 import { clearStrokes } from "./annotations";
 import { clearTranscript } from "./transcripts";
+import { agentsInCall, forgetMeetingAgents } from "./agents";
 import { canControlCall, someoneInCall } from "./calls";
 import { requireMeetingMember } from "./meetingAccess";
 import { findRoom, isPublicRoom } from "./roomAccess";
@@ -296,7 +297,10 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
     .take(1000);
   const devicesInCall = peers.filter((peer) => peer.memberId === member._id).length;
-  const present = new Set(peers.map((peer) => peer.memberId));
+  const present = new Set([
+    ...peers.map((peer) => peer.memberId),
+    ...(await agentsInCall(ctx, meetingId)),
+  ]);
   const canControl = !isGuest && (await canControlCall(ctx, meeting, member));
   const [time, members, sessions] = await Promise.all([
     timeOf(ctx, meetingId),
@@ -350,6 +354,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
       removed: Boolean(member.removedAt),
       devicesInCall,
       isGuest,
+      agent: viewer?.agent ?? null,
       canControl,
       canInvite: !isGuest && (canControl || (meeting.inviters ?? "hosts") === "everyone"),
     },
@@ -580,6 +585,7 @@ export const cancelMeeting = async (
   }
   await clearStrokes(ctx, meetingId);
   await clearTranscript(ctx, meetingId, Date.now());
+  await forgetMeetingAgents(ctx, meetingId);
   const snapshots = await ctx.db
     .query("annotationSnapshots")
     .withIndex("by_meeting", (q) => q.eq("meetingId", meetingId))

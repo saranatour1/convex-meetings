@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as api_agents from "../api/agents.js";
 import type * as api_annotations from "../api/annotations.js";
 import type * as api_audit from "../api/audit.js";
 import type * as api_auth from "../api/auth.js";
@@ -32,6 +33,7 @@ import type * as api_transcripts from "../api/transcripts.js";
 import type * as api_users from "../api/users.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as internal_agents from "../internal/agents.js";
 import type * as internal_guests from "../internal/guests.js";
 import type * as internal_invites from "../internal/invites.js";
 import type * as internal_meetingEmails from "../internal/meetingEmails.js";
@@ -58,6 +60,7 @@ import type * as lib_validate from "../lib/validate.js";
 import type * as lib_webauthn from "../lib/webauthn.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
 import type * as lib_workpools from "../lib/workpools.js";
+import type * as models_agents from "../models/agents.js";
 import type * as models_annotations from "../models/annotations.js";
 import type * as models_audit from "../models/audit.js";
 import type * as models_callSessions from "../models/callSessions.js";
@@ -87,6 +90,7 @@ import type * as models_settings from "../models/settings.js";
 import type * as models_transcripts from "../models/transcripts.js";
 import type * as models_usage from "../models/usage.js";
 import type * as models_users from "../models/users.js";
+import type * as tables_agentPresence from "../tables/agentPresence.js";
 import type * as tables_annotations from "../tables/annotations.js";
 import type * as tables_auditEvents from "../tables/auditEvents.js";
 import type * as tables_bans from "../tables/bans.js";
@@ -124,6 +128,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "api/agents": typeof api_agents;
   "api/annotations": typeof api_annotations;
   "api/audit": typeof api_audit;
   "api/auth": typeof api_auth;
@@ -148,6 +153,7 @@ declare const fullApi: ApiFromModules<{
   "api/users": typeof api_users;
   crons: typeof crons;
   http: typeof http;
+  "internal/agents": typeof internal_agents;
   "internal/guests": typeof internal_guests;
   "internal/invites": typeof internal_invites;
   "internal/meetingEmails": typeof internal_meetingEmails;
@@ -174,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   "lib/webauthn": typeof lib_webauthn;
   "lib/webhooks": typeof lib_webhooks;
   "lib/workpools": typeof lib_workpools;
+  "models/agents": typeof models_agents;
   "models/annotations": typeof models_annotations;
   "models/audit": typeof models_audit;
   "models/callSessions": typeof models_callSessions;
@@ -203,6 +210,7 @@ declare const fullApi: ApiFromModules<{
   "models/transcripts": typeof models_transcripts;
   "models/usage": typeof models_usage;
   "models/users": typeof models_users;
+  "tables/agentPresence": typeof tables_agentPresence;
   "tables/annotations": typeof tables_annotations;
   "tables/auditEvents": typeof tables_auditEvents;
   "tables/bans": typeof tables_bans;

@@ -218,6 +218,13 @@ erDiagram
     string text
     number at
   }
+  agentPresence {
+    id _id PK
+    id meetingId FK "meetings"
+    id sessionId FK "meetingSessions"
+    id memberId FK "meetingMembers"
+    number seenAt
+  }
   schedules {
     id _id PK
     id userId FK "users"
@@ -334,6 +341,9 @@ erDiagram
   annotationSnapshots }o--|| _storage : storageId
   transcriptLines }o--|| meetings : meetingId
   transcriptLines }o--|| meetingMembers : memberId
+  agentPresence }o--|| meetings : meetingId
+  agentPresence }o--|| meetingSessions : sessionId
+  agentPresence }o--|| meetingMembers : memberId
   schedules }o--|| users : userId
   notifications }o--|| users : userId
   notifications }o--o| meetingSessions : sessionId
@@ -403,6 +413,8 @@ erDiagram
 | strokes | by_meeting_and_share | meetingId, shareId |
 | annotationSnapshots | by_meeting | meetingId |
 | transcriptLines | by_meeting_and_at | meetingId, at |
+| agentPresence | by_meeting_and_member | meetingId, memberId |
+| agentPresence | by_session | sessionId |
 | schedules | by_user | userId |
 | notifications | by_user | userId |
 | notifications | by_user_and_readAt | userId, readAt |

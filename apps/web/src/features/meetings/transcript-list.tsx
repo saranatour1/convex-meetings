@@ -8,6 +8,7 @@ export type TranscriptLine = {
   name: string;
   at: number;
   text: string;
+  imageUrl?: string | null;
   partial?: boolean;
 };
 
@@ -34,7 +35,10 @@ export const TranscriptList = ({ lines, empty, earlier, className }: TranscriptL
           <ol className="flex flex-col gap-3">
             {lines.map((line) => (
               <li key={line.id} className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground text-xs tabular-nums">
+                <span className="flex items-center gap-1.5 text-muted-foreground text-xs tabular-nums">
+                  {line.imageUrl && (
+                    <img src={line.imageUrl} alt="" className="size-4 rounded-full" />
+                  )}
                   <span className="font-medium text-foreground">{line.name}</span> ·{" "}
                   <time dateTime={new Date(line.at).toISOString()}>
                     {formatTime(line.at, zone)}

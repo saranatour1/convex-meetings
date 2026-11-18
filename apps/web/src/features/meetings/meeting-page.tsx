@@ -338,6 +338,7 @@ export const MeetingPage = ({
         <Suspense fallback={<Button disabled>Loading call…</Button>}>
           <MeetingCall
             meetingId={meeting._id}
+            code={meeting.code}
             title={meeting.title}
             kind={meeting.kind}
             inCall={inCall}
@@ -440,7 +441,7 @@ export const MeetingPage = ({
                 </CardDescription>
               </CardHeader>
               <CardPanel>
-                <TranscriptFeed meetingId={meeting._id} />
+                <TranscriptFeed meetingId={meeting._id} code={meeting.code} />
               </CardPanel>
             </Card>
           </TabsPanel>

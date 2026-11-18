@@ -28,6 +28,7 @@ import { userSettings } from "./tables/userSettings";
 import { users } from "./tables/users";
 import { verifiedSessions } from "./tables/verifiedSessions";
 import { transcriptLines } from "./tables/transcriptLines";
+import { agentPresence } from "./tables/agentPresence";
 
 export default defineSchema({
   users,
@@ -54,6 +55,7 @@ export default defineSchema({
   strokes,
   annotationSnapshots,
   transcriptLines,
+  agentPresence,
   schedules,
   notifications,
   usage,

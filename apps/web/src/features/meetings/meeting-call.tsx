@@ -26,6 +26,7 @@ import { kindOf, type MeetingKind } from "./meeting-kinds.ts";
 
 type MeetingCallProps = {
   meetingId: Id<"meetings">;
+  code: string;
   title: string;
   kind: MeetingKind;
   inCall: boolean;
@@ -77,8 +78,11 @@ const CallView = ({
     return (
       <FollowAlong
         meetingId={room.meetingId}
+        code={room.code}
         title={title}
         moderated={room.moderated}
+        heading="You're in the call, following along as text"
+        description="Audio and video aren't connected in this browser yet. Everyone sees you in the call, and this switches to the call by itself once they connect."
         onBack={onBack}
       />
     );
@@ -126,12 +130,17 @@ export const MeetingCall = ({
     validators: {
       onSubmitAsync: async () => {
         try {
-          const { token, viewer } = await join({
+          const joined = await join({
             meetingId,
             watch,
             userAgent: pass.guest ? navigator.userAgent : undefined,
             ...pass,
           });
+          if (joined.agent) {
+            onInCallChange(true);
+            return undefined;
+          }
+          const { token, viewer } = joined;
           if (viewer && props.devicesInCall > 0) await switchHere({ meetingId, ...pass });
           const client = await initMeeting({
             authToken: token,
