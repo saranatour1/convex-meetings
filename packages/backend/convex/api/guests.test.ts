@@ -151,6 +151,72 @@ test("inviting the same outside email twice keeps one guest", async () => {
   expect(meeting?.people.filter((p) => p.isGuest)).toHaveLength(1);
 });
 
+test("invites, moves and cancels carry one calendar event, with the guest's own link", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.UTC(2026, 9, 1));
+  vi.stubEnv("CLOUDFLARE_API_TOKEN", "cf-token");
+  vi.stubEnv("EMAIL_FROM", "meetings@example.com");
+  const emails: {
+    to: string | { address: string };
+    text: string;
+    attachments: { content: string }[];
+  }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: string, init: RequestInit) => {
+      emails.push(JSON.parse(init.body as string));
+      return new Response(JSON.stringify({ success: true, result: { message_id: "<m@test>" } }));
+    }),
+  );
+  const { t, host, create } = await setup();
+  const { meetingId, code } = await create("Review");
+  await host.asUser.mutation(api.api.meetings.invite, {
+    meetingId,
+    emails: ["col@acme.com", "client@example.com"],
+  });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  await host.asUser.mutation(api.api.meetings.reschedule, {
+    meetingId,
+    startsAt: Date.UTC(2026, 10, 19, 9, 0),
+    minutes: 30,
+  });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const sentTo = (address: string) =>
+    emails
+      .filter((email) => (typeof email.to === "string" ? email.to : email.to.address) === address)
+      .map((email) => {
+        const ics = atob(email.attachments[0]!.content).replace(/\r\n /g, "");
+        return {
+          text: email.text,
+          event: [/METHOD:(\w+)/, /UID:(\S+)/, /SEQUENCE:(\d+)/, /DTSTART;(\S+)/, /URL:(\S+)/].map(
+            (field) => ics.match(field)?.[1],
+          ),
+        };
+      });
+  const [invited, moved] = sentTo("client@example.com").map(({ event }) => event[4]!);
+  expect(invited).toMatch(/^http:\/\/localhost:3000\/guest\/[0-9a-f]{64}$/);
+  expect(moved).toMatch(/^http:\/\/localhost:3000\/guest\/[0-9a-f]{64}$/);
+  expect(moved).not.toBe(invited);
+  expect(sentTo("client@example.com")[1]?.text).toContain(moved);
+  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toBeNull();
+  expect(await t.query(api.api.guests.pass, { secret: moved!.slice(-64) })).toMatchObject({ code });
+
+  await host.asUser.mutation(api.api.meetings.cancel, { meetingId });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const uid = `${code}@convex-meetings`;
+  const link = `http://localhost:3000/m/${code}`;
+  expect(sentTo("col@acme.com").map(({ event }) => event)).toEqual([
+    ["REQUEST", uid, "0", "TZID=UTC:20261118T090000", link],
+    ["REQUEST", uid, "1", "TZID=UTC:20261119T090000", link],
+    ["CANCEL", uid, "2", "TZID=UTC:20261119T090000", link],
+  ]);
+  expect(sentTo("client@example.com").map(({ event }) => event)).toEqual([
+    ["REQUEST", uid, "0", "TZID=UTC:20261118T090000", invited],
+    ["REQUEST", uid, "1", "TZID=UTC:20261119T090000", moved],
+    ["CANCEL", uid, "2", "TZID=UTC:20261119T090000", link],
+  ]);
+});
+
 test("an invited guest names themselves, and a removed guest stays out", async () => {
   const { t, host, create } = await setup();
   const { meetingId, code } = await create("Interview");
