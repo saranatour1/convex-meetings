@@ -92,6 +92,8 @@ erDiagram
     id userId FK "users"
     string code
     string title
+    string description "optional"
+    string location "optional"
     enum kind
     boolean recap
     boolean record "optional"

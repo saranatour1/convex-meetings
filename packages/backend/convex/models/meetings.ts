@@ -251,6 +251,8 @@ export const listMyMeetings = async (
         _id: meeting._id,
         code: meeting.code,
         title: meeting.title,
+        description: meeting.description ?? null,
+        location: meeting.location ?? null,
         kind: meeting.kind,
         startsAt: time.startsAt,
         endsAt: time.endsAt,
@@ -379,6 +381,128 @@ export const respond = async (
       actorId: userId,
     });
   }
+};
+
+const requireHost = async (ctx: QueryCtx, meetingId: Id<"meetings">, userId: Id<"users">) => {
+  const found = await requireMeetingMember(ctx, meetingId, userId);
+  if (found.member.role !== "host") throw new ConvexError("Only the host can change this meeting");
+  return found;
+};
+
+export const editMeeting = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  changes: { title?: string; description?: string; location?: string },
+) => {
+  await requireHost(ctx, meetingId, userId);
+  await ctx.db.patch("meetings", meetingId, {
+    ...(changes.title !== undefined && { title: changes.title }),
+    ...(changes.description !== undefined && { description: changes.description || undefined }),
+    ...(changes.location !== undefined && { location: changes.location || undefined }),
+  });
+};
+
+const requireOneOffTime = async (ctx: QueryCtx, meeting: Doc<"meetings">) => {
+  if (meeting.endedAt) throw new ConvexError("This meeting has ended");
+  const time = await timeOf(ctx, meeting._id);
+  if (!time) throw new ConvexError("This meeting has no time to change");
+  if (time.rrule) throw new ConvexError("Repeating meetings can't be changed yet");
+  return time;
+};
+
+const invitedOthers = async (ctx: QueryCtx, meetingId: Id<"meetings">, userId: Id<"users">) =>
+  (
+    await ctx.db
+      .query("meetingMembers")
+      .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
+      .take(1000)
+  ).filter((m) => m.userId !== userId);
+
+export const repeatMeeting = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  rrule: string,
+) => {
+  const { meeting } = await requireHost(ctx, meetingId, userId);
+  const time = await requireOneOffTime(ctx, meeting);
+  await enforceRateLimit(ctx, "reschedule", userId);
+  await ctx.db.patch("meetingTimes", time._id, {
+    rrule,
+    repeatUntil: lastOccurrenceEnd(rrule, time),
+  });
+  const others = await invitedOthers(ctx, meetingId, userId);
+  const repeating = await timeOf(ctx, meetingId);
+  if (repeating) {
+    await queueMeetingEmails(
+      ctx,
+      "REQUEST",
+      meeting,
+      repeating,
+      others.filter((m) => m.response !== "declined").map((m) => m.userId),
+    );
+  }
+};
+
+export const uninvite = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  memberId: Id<"meetingMembers">,
+) => {
+  const { meeting } = await requireHost(ctx, meetingId, userId);
+  const target = await ctx.db.get("meetingMembers", memberId);
+  if (!target || target.meetingId !== meetingId) throw new ConvexError("They aren't invited");
+  if (target.role === "host") throw new ConvexError("The host can't be removed");
+  const time = await timeOf(ctx, meetingId);
+  if (time && !meeting.endedAt && time.repeatUntil > Date.now() && target.response !== "declined") {
+    await queueMeetingEmails(ctx, "CANCEL", meeting, time, [target.userId]);
+  }
+  const guest = await ctx.db
+    .query("meetingGuests")
+    .withIndex("by_user", (q) => q.eq("userId", target.userId))
+    .first();
+  if (guest?.meetingId === meetingId) {
+    await ctx.db.delete("tokens", guest.tokenId);
+    await ctx.db.delete("meetingGuests", guest._id);
+  } else {
+    await notify(ctx, [target.userId], {
+      kind: "meetingCancelled",
+      title: meeting.title,
+      actorId: userId,
+    });
+  }
+  await ctx.db.delete("meetingMembers", target._id);
+};
+
+export const rescheduleMeeting = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  startsAt: number,
+  minutes: number,
+) => {
+  const { meeting } = await requireHost(ctx, meetingId, userId);
+  const current = await requireOneOffTime(ctx, meeting);
+  await enforceRateLimit(ctx, "reschedule", userId);
+  const time = meetingTime(startsAt, minutes, current.timeZone);
+  await ctx.db.patch("meetingTimes", current._id, { ...time, repeatUntil: time.endsAt });
+  const others = await invitedOthers(ctx, meetingId, userId);
+  for (const other of others) {
+    if (other.response !== "pending") {
+      await ctx.db.patch("meetingMembers", other._id, { response: "pending" });
+    }
+  }
+  const otherIds = others.map((m) => m.userId);
+  await notify(ctx, otherIds, {
+    kind: "meetingMoved",
+    title: meeting.title,
+    meetingCode: meeting.code,
+    actorId: userId,
+  });
+  const moved = await timeOf(ctx, meetingId);
+  if (moved) await queueMeetingEmails(ctx, "REQUEST", meeting, moved, otherIds);
 };
 
 const deleteAll = async (

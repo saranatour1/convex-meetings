@@ -25,6 +25,10 @@ import {
   findMeetingByCode,
   getMeeting,
   listMyMeetings,
+  editMeeting,
+  repeatMeeting,
+  rescheduleMeeting,
+  uninvite as uninviteFromMeeting,
   respond as respondToMeeting,
   startInstantMeeting,
 } from "../models/meetings";
@@ -123,6 +127,33 @@ export const cancel = authedMutation({
       await ctx.scheduler.runAfter(0, internal.internal.realtime.deactivate, { rtkMeetingId });
     }
   },
+});
+
+export const edit = authedMutation({
+  args: {
+    meetingId: zid("meetings"),
+    title: zMeeting.shape.title.optional(),
+    description: z.string().max(2000).optional(),
+    location: z.string().max(200).optional(),
+  },
+  handler: (ctx, { meetingId, ...changes }) => editMeeting(ctx, ctx.userId, meetingId, changes),
+});
+
+export const repeat = authedMutation({
+  args: { meetingId: zid("meetings"), rrule: z.string().min(1).max(500) },
+  handler: (ctx, { meetingId, rrule }) => repeatMeeting(ctx, ctx.userId, meetingId, rrule),
+});
+
+export const uninvite = authedMutation({
+  args: { meetingId: zid("meetings"), memberId: zid("meetingMembers") },
+  handler: (ctx, { meetingId, memberId }) =>
+    uninviteFromMeeting(ctx, ctx.userId, meetingId, memberId),
+});
+
+export const reschedule = authedMutation({
+  args: { meetingId: zid("meetings"), startsAt: z.number(), minutes: z.number().int() },
+  handler: (ctx, { meetingId, startsAt, minutes }) =>
+    rescheduleMeeting(ctx, ctx.userId, meetingId, startsAt, minutes),
 });
 
 export const busy = orgQuery({
