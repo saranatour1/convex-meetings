@@ -11,6 +11,7 @@ import { addMember, findMember } from "./members";
 import { getViewer } from "./users";
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
 
 const toHex = (bytes: ArrayBuffer | Uint8Array) =>
   [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -29,6 +30,15 @@ export const issueToken = async (ctx: MutationCtx, ttlMs = INVITE_TTL_MS) => {
     expiresAt: Date.now() + ttlMs,
   });
   return { secret, tokenId };
+};
+
+export const renewToken = async (ctx: MutationCtx, tokenId: Id<"tokens">, ttlMs: number) => {
+  const secret = newSecret();
+  await ctx.db.patch("tokens", tokenId, {
+    value: await hashSecret(secret),
+    expiresAt: Date.now() + ttlMs,
+  });
+  return secret;
 };
 
 export const findLiveToken = async (ctx: QueryCtx, secret: string) => {

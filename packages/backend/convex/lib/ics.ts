@@ -11,6 +11,7 @@ export type IcsEvent = {
   endsAt: number;
   timeZone: string;
   rrule?: string;
+  sequence: number;
   organizer: { name: string; email: string };
   attendee: { name: string; email: string };
   now: number;
@@ -42,7 +43,7 @@ export const meetingIcs = (event: IcsEvent) =>
     `METHOD:${event.method}`,
     "BEGIN:VEVENT",
     `UID:${event.code}@convex-meetings`,
-    `SEQUENCE:${event.method === "CANCEL" ? 1 : 0}`,
+    `SEQUENCE:${event.sequence}`,
     `DTSTAMP:${utc(event.now)}`,
     `DTSTART;TZID=${event.timeZone}:${local(event.startsAt, event.timeZone)}`,
     `DTEND;TZID=${event.timeZone}:${local(event.endsAt, event.timeZone)}`,
@@ -65,3 +66,10 @@ export const toBase64 = (text: string) => {
   for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte);
   return btoa(binary);
 };
+
+export const icsAttachment = (event: IcsEvent) => ({
+  content: toBase64(meetingIcs(event)),
+  filename: event.method === "CANCEL" ? "cancel.ics" : "invite.ics",
+  type: `text/calendar; charset=utf-8; method=${event.method}`,
+  disposition: "attachment" as const,
+});
