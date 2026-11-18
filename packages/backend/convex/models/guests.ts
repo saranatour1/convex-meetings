@@ -9,7 +9,7 @@ import { zMeetingGuest } from "../tables/meetingGuests";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zUser } from "../tables/users";
 import { canControlCall } from "./calls";
-import { findLiveToken, issueToken, normalizeEmail } from "./invites";
+import { findLiveToken, GUEST_PASS_MS, issueToken, normalizeEmail } from "./invites";
 import { findMeetingByCode } from "./meetings";
 import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
@@ -22,7 +22,6 @@ import {
 } from "./roomAccess";
 import { notify } from "./notifications";
 
-export const GUEST_PASS_MS = 30 * 24 * 60 * 60 * 1000;
 const SECRET = /^[0-9a-f]{64}$/;
 
 const findGuest = async (ctx: QueryCtx, secret: string) => {
@@ -319,11 +318,18 @@ export const guestInviteDetails = async (ctx: QueryCtx, guestId: Id<"meetingGues
     .first();
   return {
     orgId: meeting.orgId,
+    code: meeting.code,
     email: user.email,
+    name: user.name ?? user.email,
     title: meeting.title,
-    startsAt: time?.startsAt ?? null,
-    timeZone: time?.timeZone ?? "UTC",
     inviterName: inviter?.name ?? "Someone",
+    time: time && {
+      startsAt: time.startsAt,
+      endsAt: time.endsAt,
+      timeZone: time.timeZone,
+      rrule: time.rrule,
+      sequence: time.sequence ?? 0,
+    },
   };
 };
 

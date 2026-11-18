@@ -15,6 +15,7 @@ export const zMeetingTime = z
     endsAt: z.number(),
     rrule: z.string().max(500).optional(),
     repeatUntil: z.number(),
+    sequence: z.number().int().optional(),
   })
   .refine(({ start, end }) => start < end, { message: "End must be after start" });
 
