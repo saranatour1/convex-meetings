@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Dialog, DialogPopup } from "@meetings/ui/components/dialog";
+import { CancelMeetingDialog } from "#/features/calendar/cancel-meeting-dialog.tsx";
 import { MeetingsCalendar } from "#/features/calendar/meetings-calendar.tsx";
 import type { ScheduleDisplay } from "#/features/meetings/find-a-time.tsx";
 import { ScheduleMeeting } from "#/features/meetings/schedule-meeting.tsx";
@@ -7,6 +8,7 @@ import { isTimeZone, parseZones } from "#/lib/zones.ts";
 
 type CalendarSearch = ScheduleDisplay & {
   event?: string;
+  cancel?: string;
   declined?: true;
   new?: true;
   start?: number;
@@ -17,7 +19,17 @@ const positive = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 
 const CalendarPage = () => {
-  const { zones, event, declined, new: scheduling, start, minutes, view, zone } = Route.useSearch();
+  const {
+    zones,
+    event,
+    cancel,
+    declined,
+    new: scheduling,
+    start,
+    minutes,
+    view,
+    zone,
+  } = Route.useSearch();
   const navigate = Route.useNavigate();
   const closeSchedule = (code?: string) =>
     void navigate({
@@ -63,9 +75,33 @@ const CalendarPage = () => {
             resetScroll: false,
           })
         }
+        onCancel={(code) =>
+          void navigate({
+            search: (prev) => ({ ...prev, cancel: code }),
+            replace: true,
+            resetScroll: false,
+          })
+        }
         onPlan={(time) =>
           void navigate({
             search: (prev) => ({ ...prev, new: true, start: time?.start, minutes: time?.minutes }),
+            resetScroll: false,
+          })
+        }
+      />
+      <CancelMeetingDialog
+        code={cancel}
+        onClose={() =>
+          void navigate({
+            search: (prev) => ({ ...prev, cancel: undefined }),
+            replace: true,
+            resetScroll: false,
+          })
+        }
+        onCancelled={() =>
+          void navigate({
+            search: (prev) => ({ ...prev, cancel: undefined, event: undefined }),
+            replace: true,
             resetScroll: false,
           })
         }
@@ -102,6 +138,7 @@ export const Route = createFileRoute("/_app/calendar")({
   validateSearch: (search: Record<string, unknown>): CalendarSearch => ({
     zones: parseZones(search.zones),
     event: typeof search.event === "string" ? search.event : undefined,
+    cancel: typeof search.cancel === "string" ? search.cancel : undefined,
     declined: search.declined === true ? true : undefined,
     new: search.new === true ? true : undefined,
     start: positive(search.start),
