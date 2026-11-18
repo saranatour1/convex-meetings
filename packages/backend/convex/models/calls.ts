@@ -64,12 +64,21 @@ export const removePeer = async (ctx: MutationCtx, peer: Doc<"callPeers">, at: n
   }));
 };
 
-export const endWhenEmpty = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
-  const someone = await ctx.db
+export const someoneInCall = async (ctx: QueryCtx, meetingId: Id<"meetings">) => {
+  const peers = await ctx.db
     .query("callPeers")
     .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
-    .first();
-  if (!someone) {
+    .take(100);
+  for (const memberId of new Set(peers.map((peer) => peer.memberId))) {
+    const member = await ctx.db.get("meetingMembers", memberId);
+    const user = member && (await ctx.db.get("users", member.userId));
+    if (!user?.agent) return true;
+  }
+  return false;
+};
+
+export const endWhenEmpty = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
+  if (!(await someoneInCall(ctx, meetingId))) {
     await ctx.scheduler.runAfter(EMPTY_CALL_GRACE_MS, internal.internal.realtime.endIfEmpty, {
       meetingId,
     });

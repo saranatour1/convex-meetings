@@ -41,7 +41,7 @@ These carry secrets. Open them only when the person gave you the link, and never
 
 - `/m/<code>`: a meeting link from an email invite. Signed-in members go to the meeting, others can ask to join as a guest
 - `/invite/<secret>`, `/join/<secret>`: join an organization
-- `/guest/<secret>`: a guest's pass into one meeting. `call=true` opens the call lobby. Bots and AI assistants add `watch=true&side=ai` (or press Watch only): they join without a camera or mic, so no permission prompt blocks them, read what people say in the "Live transcript" list that opens beside the call (speaker, time and text per line), and show up to everyone by name
+- `/guest/<secret>`: a guest's pass into one meeting. `call=true` opens the call lobby. Bots and AI assistants add `watch=true&side=ai` (or press Watch only): they join without a camera or mic, so no permission prompt blocks them, read what people say in the "Live transcript" list that opens beside the call (speaker, time and text per line), and show up to everyone by name. Agents are recognized by their browser's user agent or by a name like "Claude Code", "Grok" or "ChatGPT agent", and always join this way with their logo as their picture. Press Leave when you're done; the call also ends on its own once only agents are left
 
 ## Source
 

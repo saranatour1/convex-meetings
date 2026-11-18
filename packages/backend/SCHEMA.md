@@ -11,6 +11,7 @@ erDiagram
     string bio "optional"
     id imageId FK "_storage, optional"
     enum method
+    enum agent "optional"
     boolean isVerified
     string seenTimeZone "optional"
   }
