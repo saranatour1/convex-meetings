@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { DoorOpenIcon, LockIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -20,11 +20,12 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { deviceId } from "#/features/rooms/device-id.ts";
 import { describeError } from "#/lib/errors.ts";
 import { kindOf } from "./meeting-kinds.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type GuestEntryProps = { code: string; onEntered: (secret: string) => void };
 
 export const GuestEntry = ({ code, onEntered }: GuestEntryProps) => {
-  const preview = useQuery(api.guests.preview, { code });
+  const preview = useConvexValue(api.guests.preview, { code });
   const enter = useMutation(api.guests.enter);
   const form = useForm({
     defaultValues: { name: "" },

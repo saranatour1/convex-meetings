@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CalendarPlusIcon, CheckIcon, ChevronRightIcon, VideoIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Badge } from "@meetings/ui/components/badge";
@@ -22,6 +22,7 @@ import {
 import { JOIN_EARLY, countdown, useMinute } from "./clock.ts";
 import { kindOf } from "./meeting-kinds.ts";
 import { MeetingRow, type MyMeeting } from "./meeting-row.tsx";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 const peopleInCall = (meeting: MyMeeting) => meeting.lastSession?.inCall ?? 0;
 
@@ -179,7 +180,7 @@ const byDay = (meetings: MyMeeting[], zone: string) => {
 };
 
 export const UpcomingMeetings = () => {
-  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 100 });
+  const meetings = useConvexPages(api.meetings.mine, {}, { initialNumItems: 100 });
   const now = useMinute();
   const zone = browserTimeZone();
   const today = dayOf(now, zone);

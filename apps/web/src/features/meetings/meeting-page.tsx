@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   ArrowRightIcon,
   CalendarClockIcon,
@@ -40,6 +40,7 @@ import { kindOf } from "./meeting-kinds.ts";
 import { type MeetingDetails, MeetingPeople, othersInCall } from "./meeting-people.tsx";
 import type { MeetingTab } from "./meeting-search.ts";
 import { JoinRequests } from "./join-requests.tsx";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type Session = MeetingDetails["sessions"][number];
 
@@ -260,7 +261,7 @@ export const MeetingPage = ({
   tab,
   onTabChange,
 }: MeetingPageProps) => {
-  const meeting = useQuery(api.meetings.get, { code });
+  const meeting = useConvexValue(api.meetings.get, { code });
   const now = useMinute();
   if (meeting === undefined) return <LoadingScreen />;
   if (meeting === null) return <MeetingDoor code={code} />;

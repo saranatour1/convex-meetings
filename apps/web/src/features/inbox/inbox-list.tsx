@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   CalendarCheckIcon,
   CalendarClockIcon,
@@ -24,6 +24,7 @@ import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 type Notification = FunctionReturnType<typeof api.inbox.list>["page"][number];
 
@@ -160,7 +161,7 @@ const Row = ({ notification }: { notification: Notification }) => {
 };
 
 export const InboxList = () => {
-  const notifications = usePaginatedQuery(api.inbox.list, {}, { initialNumItems: 50 });
+  const notifications = useConvexPages(api.inbox.list, {}, { initialNumItems: 50 });
   const readAll = useMutation(api.inbox.readAll);
   const hasUnread = notifications.results.some((n) => !n.readAt);
 

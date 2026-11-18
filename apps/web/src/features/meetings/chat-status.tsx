@@ -1,10 +1,10 @@
-import { useQuery } from "convex/react";
 import { api, type Id } from "@meetings/backend";
 import { reasonLabel } from "#/features/rooms/moderation-labels.ts";
 import { slowModeText } from "#/features/rooms/slow-mode.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
 import { useGuestPass } from "./guest-pass.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const REMOVALS = {
   message: "A message of yours was removed for",
@@ -15,7 +15,7 @@ const REMOVALS = {
 
 export const ChatStatus = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
   const pass = useGuestPass();
-  const status = useQuery(api.moderation.myStatus, { meetingId, ...pass });
+  const status = useConvexValue(api.moderation.myStatus, { meetingId, ...pass });
   if (!status || (!status.moderated && status.slowModeSeconds === 0)) return null;
   const zone = browserTimeZone();
   const { ban, lastRemoval } = status;

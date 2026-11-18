@@ -2,7 +2,7 @@ import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import type { FunctionReturnType } from "convex/server";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   ArrowLeftIcon,
   ChevronRightIcon,
@@ -27,6 +27,7 @@ import { formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
 import { deviceId } from "./device-id.ts";
 import { RoomStatus } from "./room-card.tsx";
 import { slowModeText } from "./slow-mode.tsx";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 export type RoomPreview = FunctionReturnType<typeof api.rooms.preview>;
 
@@ -72,7 +73,7 @@ const roomRules = (room: NonNullable<RoomPreview>) => [
 ];
 
 const RoomRecaps = ({ code }: { code: string }) => {
-  const recaps = usePaginatedQuery(api.rooms.recaps, { code }, { initialNumItems: 5 });
+  const recaps = useConvexPages(api.rooms.recaps, { code }, { initialNumItems: 5 });
   if (recaps.results.length === 0) return null;
   return (
     <section aria-labelledby="room-recaps" className="flex flex-col gap-2">
@@ -124,7 +125,7 @@ type RoomEntryProps = {
 };
 
 export const RoomEntry = ({ code, initial, onEntered }: RoomEntryProps) => {
-  const live = useQuery(api.rooms.preview, { code });
+  const live = useConvexValue(api.rooms.preview, { code });
   const room = live === undefined ? initial : live;
   const enter = useMutation(api.guests.enter);
   const form = useForm({

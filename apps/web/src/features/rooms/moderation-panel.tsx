@@ -1,4 +1,4 @@
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { ShieldCheckIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Badge } from "@meetings/ui/components/badge";
@@ -16,6 +16,7 @@ import { browserTimeZone } from "#/lib/browser.ts";
 import { showError } from "#/lib/errors.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
 import { actionLabel, reasonLabel } from "./moderation-labels.ts";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 const KINDS = { message: "Message", name: "Name", frame: "Video frame", summary: "Summary" };
 
@@ -23,8 +24,8 @@ const when = (ms: number, zone: string) => `${formatDate(ms, zone)} · ${formatT
 
 export const ModerationPanel = () => {
   const { orgId } = useActiveOrg();
-  const flags = usePaginatedQuery(api.moderation.flags, { orgId }, { initialNumItems: 25 });
-  const bans = usePaginatedQuery(api.moderation.bans, { orgId }, { initialNumItems: 25 });
+  const flags = useConvexPages(api.moderation.flags, { orgId }, { initialNumItems: 25 });
+  const bans = useConvexPages(api.moderation.bans, { orgId }, { initialNumItems: 25 });
   const resolve = useMutation(api.moderation.resolveFlag);
   const ban = useMutation(api.moderation.ban);
   const lift = useMutation(api.moderation.liftBan);

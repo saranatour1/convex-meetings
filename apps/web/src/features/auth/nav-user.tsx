@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   BadgeCheckIcon,
   BuildingIcon,
@@ -32,6 +32,7 @@ import {
 import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { applyTheme, storedTheme, type ThemePreference } from "#/lib/theme.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const SETTINGS_LINKS = [
   { to: "/settings/account", label: "Account", icon: UserIcon },
@@ -49,8 +50,8 @@ const THEMES: { value: ThemePreference; label: string }[] = [
 export const NavUser = () => {
   const { signOut } = useAuthActions();
   const { isMobile } = useSidebar();
-  const viewer = useQuery(api.users.viewer);
-  const settings = useQuery(api.settings.getMine);
+  const viewer = useConvexValue(api.users.viewer, {});
+  const settings = useConvexValue(api.settings.getMine, {});
   const saveSettings = useMutation(api.settings.setMine);
   const theme = settings?.theme ?? storedTheme();
   const subtitle = viewer?.email ?? (viewer ? "Signed in with a username" : "…");

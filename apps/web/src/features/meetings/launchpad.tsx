@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { useQuery } from "convex/react";
+
 import { CalendarClockIcon, LinkIcon, PlusIcon, VideoIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -12,6 +12,7 @@ import { parseMeetingCode } from "#/lib/meeting-code.ts";
 import { formatDayHeading, wallMinutes } from "#/lib/schedule.ts";
 import { useMinute } from "./clock.ts";
 import { useStartMeeting } from "./start-meeting.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const greetingAt = (now: number, timeZone: string) => {
   const minutes = wallMinutes(now, timeZone);
@@ -35,7 +36,7 @@ const Action = ({ icon, title, description, children }: ActionProps) => (
 );
 
 export const Launchpad = ({ onOpenCall }: { onOpenCall: (code: string) => void }) => {
-  const viewer = useQuery(api.users.viewer);
+  const viewer = useConvexValue(api.users.viewer, {});
   const now = useMinute();
   const zone = browserTimeZone();
   const startMeeting = useStartMeeting(onOpenCall);

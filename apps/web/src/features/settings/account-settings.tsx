@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { BadgeCheckIcon, CameraIcon, LogOutIcon, MonitorIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
@@ -21,9 +21,10 @@ import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { describeError, showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { formatAgo } from "#/lib/schedule.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type Viewer = NonNullable<ReturnType<typeof useViewer>>;
-const useViewer = () => useQuery(api.users.viewer);
+const useViewer = () => useConvexValue(api.users.viewer, {});
 
 const PhotoButton = () => {
   const generateUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
@@ -191,7 +192,7 @@ const ProfileCard = ({ viewer }: { viewer: Viewer }) => {
 };
 
 const SessionsCard = () => {
-  const sessions = useQuery(api.users.sessions);
+  const sessions = useConvexValue(api.users.sessions, {});
   const signOutEverywhere = useMutation(api.users.signOutEverywhere);
 
   return (

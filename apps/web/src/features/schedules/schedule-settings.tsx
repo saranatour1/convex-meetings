@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { GlobeIcon, XIcon } from "lucide-react";
 import { api, type Doc } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -20,6 +20,7 @@ import { ZonePicker } from "#/features/meetings/zone-picker.tsx";
 import { describeError } from "#/lib/errors.ts";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { cityOf, formatOffset } from "#/lib/schedule.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const MAX_EXTRA_ZONES = 5;
@@ -222,7 +223,7 @@ const ScheduleSettingsForm = ({ schedule }: { schedule: Doc<"schedules"> | null 
 };
 
 export const ScheduleSettings = () => {
-  const schedule = useQuery(api.schedules.getMine);
+  const schedule = useConvexValue(api.schedules.getMine, {});
   if (schedule === undefined) return <LoadingScreen />;
   return <ScheduleSettingsForm schedule={schedule} />;
 };

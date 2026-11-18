@@ -1,5 +1,5 @@
 import { track } from "@databuddy/sdk";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { BuildingIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -12,9 +12,10 @@ import {
 } from "@meetings/ui/components/card";
 import { toastManager } from "@meetings/ui/components/toast";
 import { describeError } from "#/lib/errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 export const JoinableOrgs = ({ onJoined }: { onJoined: (orgId: Id<"organizations">) => void }) => {
-  const orgs = useQuery(api.orgs.joinable);
+  const orgs = useConvexValue(api.orgs.joinable, {});
   const join = useMutation(api.orgs.joinWithDomain);
   if (!orgs?.length) return null;
 

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { DoorOpenIcon, UserIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -27,6 +27,7 @@ import { AgentCall } from "./agent-call.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
 import { TranscriptFeed } from "./transcript-feed.tsx";
 import { kindOf } from "./meeting-kinds.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type GuestMeetingProps = {
   secret: string;
@@ -35,9 +36,9 @@ type GuestMeetingProps = {
 };
 
 export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingProps) => {
-  const pass = useQuery(api.guests.pass, { secret });
+  const pass = useConvexValue(api.guests.pass, { secret });
   const admitted = pass?.status === "in";
-  const meeting = useQuery(
+  const meeting = useConvexValue(
     api.meetings.get,
     pass && admitted ? { code: pass.code, guest: secret } : "skip",
   );

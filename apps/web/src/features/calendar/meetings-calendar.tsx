@@ -1,11 +1,8 @@
 import { useMemo } from "react";
 import { track } from "@databuddy/sdk";
-import {
-  optimisticallyUpdateValueInPaginatedQuery,
-  useMutation,
-  usePaginatedQuery,
-  useQuery,
-} from "convex/react";
+import { createOptimisticAction } from "@tanstack/db";
+import { useConvex, useMutation } from "convex/react";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "@meetings/backend";
 import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
@@ -28,6 +25,9 @@ import { useActiveOrg } from "#/features/orgs/active-org.tsx";
 import { ZonePicker } from "#/features/meetings/zone-picker.tsx";
 import { showError } from "#/lib/errors.ts";
 import { MINUTE, cityOf, formatOffset } from "#/lib/schedule.ts";
+import { pagesCollection, useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
+
+type MyMeeting = FunctionReturnType<typeof api.meetings.mine>["page"][number];
 
 type MeetingsCalendarProps = {
   zone: string;
@@ -84,27 +84,37 @@ export const MeetingsCalendar = ({
   onShowDeclinedChange,
   onCancel,
 }: MeetingsCalendarProps) => {
-  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 200 });
-  const viewer = useQuery(api.users.viewer);
-  const detail = useQuery(api.meetings.get, selected ? { code: selected } : "skip");
+  const meetings = useConvexPages(api.meetings.mine, {}, { initialNumItems: 200 });
+  const viewer = useConvexValue(api.users.viewer, {});
+  const detail = useConvexValue(api.meetings.get, selected ? { code: selected } : "skip");
   const { orgId } = useActiveOrg();
-  const settings = useQuery(api.settings.getMine);
+  const settings = useConvexValue(api.settings.getMine, {});
   const create = useMutation(api.meetings.create);
-  const edit = useMutation(api.meetings.edit).withOptimisticUpdate(
-    (store, { meetingId, ...changes }) =>
-      optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
-        m._id === meetingId ? { ...m, ...changes } : m,
-      ),
-  );
+  const client = useConvex();
+  const mine = pagesCollection(client, api.meetings.mine, {});
+  const changeMeeting = (meetingId: string, change: (meeting: MyMeeting) => void) => {
+    for (const [key, meeting] of mine.state)
+      if (meeting._id === meetingId) mine.update(key, change);
+  };
+  const editNow = createOptimisticAction<FunctionArgs<typeof api.meetings.edit>>({
+    onMutate: ({ meetingId, ...changes }) =>
+      changeMeeting(meetingId, (meeting) => Object.assign(meeting, changes)),
+    mutationFn: (args) => client.mutation(api.meetings.edit, args),
+  });
+  const edit = (args: FunctionArgs<typeof api.meetings.edit>) => editNow(args).when("settled");
   const repeat = useMutation(api.meetings.repeat);
   const invite = useMutation(api.meetings.invite);
   const uninvite = useMutation(api.meetings.uninvite);
-  const reschedule = useMutation(api.meetings.reschedule).withOptimisticUpdate(
-    (store, { meetingId, startsAt, minutes }) =>
-      optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
-        m._id === meetingId ? { ...m, startsAt, endsAt: startsAt + minutes * MINUTE } : m,
-      ),
-  );
+  const rescheduleNow = createOptimisticAction<FunctionArgs<typeof api.meetings.reschedule>>({
+    onMutate: ({ meetingId, startsAt, minutes }) =>
+      changeMeeting(meetingId, (meeting) => {
+        meeting.startsAt = startsAt;
+        meeting.endsAt = startsAt + minutes * MINUTE;
+      }),
+    mutationFn: (args) => client.mutation(api.meetings.reschedule, args),
+  });
+  const reschedule = (args: FunctionArgs<typeof api.meetings.reschedule>) =>
+    rescheduleNow(args).when("settled");
   const me = viewer?.email ?? undefined;
   const events = useMemo(
     () =>

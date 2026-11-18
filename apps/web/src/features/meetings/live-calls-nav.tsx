@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { usePaginatedQuery } from "convex/react";
+
 import { api } from "@meetings/backend";
 import {
   SidebarGroup,
@@ -11,9 +11,10 @@ import {
 } from "@meetings/ui/components/sidebar";
 import { LiveDot } from "#/components/live-dot.tsx";
 import { isLive } from "./upcoming-meetings.tsx";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 export const LiveCallsNav = () => {
-  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 100 });
+  const meetings = useConvexPages(api.meetings.mine, {}, { initialNumItems: 100 });
   const live = meetings.results.filter(isLive);
   if (!live.length) return null;
 

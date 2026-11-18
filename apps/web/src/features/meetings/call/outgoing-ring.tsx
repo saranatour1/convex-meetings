@@ -1,11 +1,12 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { PhoneMissedIcon, PhoneOffIcon, PhoneOutgoingIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { showError } from "#/lib/errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 export const OutgoingRing = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
-  const ring = useQuery(api.rings.outgoing, { meetingId });
+  const ring = useConvexValue(api.rings.outgoing, { meetingId });
   const cancel = useMutation(api.rings.cancel);
   if (!ring || ring.status === "accepted" || ring.status === "cancelled") return null;
   const ringing = ring.status === "ringing";

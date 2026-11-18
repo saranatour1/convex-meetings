@@ -1,18 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { useQuery } from "convex/react";
+
 import { ArrowLeftIcon, FileTextIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { EmptyState } from "#/components/empty-state.tsx";
 import { formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 export type PublicRecapData = FunctionReturnType<typeof api.rooms.recap>;
 
 type PublicRecapProps = { code: string; number: number; initial: PublicRecapData };
 
 export const PublicRecap = ({ code, number, initial }: PublicRecapProps) => {
-  const live = useQuery(api.rooms.recap, { code, number });
+  const live = useConvexValue(api.rooms.recap, { code, number });
   const recap = live === undefined ? initial : live;
   const back = (
     <Button

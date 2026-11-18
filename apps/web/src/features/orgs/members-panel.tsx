@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   BadgeCheckIcon,
   LogOutIcon,
@@ -68,6 +68,7 @@ import { cityOf, formatAgo, formatLongDate, formatTime } from "#/lib/schedule.ts
 import { useActiveOrg } from "./active-org.tsx";
 import { LiveCalls } from "./live-calls.tsx";
 import type { Member } from "./people.ts";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 export type MemberConfirm = { action: "remove" | "leave" | "signOut"; memberId: string };
 
@@ -414,7 +415,7 @@ const InviteForm = ({ roles }: { roles: (Doc<"roles"> & { grantable: boolean })[
 
 const PendingInvites = () => {
   const { orgId } = useActiveOrg();
-  const invites = usePaginatedQuery(api.invites.list, { orgId }, { initialNumItems: 50 });
+  const invites = useConvexPages(api.invites.list, { orgId }, { initialNumItems: 50 });
   const resend = useMutation(api.invites.resend);
   const revoke = useMutation(api.invites.revoke);
   if (!invites.results.length) return null;
@@ -474,13 +475,13 @@ export const MembersPanel = ({
   onCalling,
 }: MembersPanelProps) => {
   const { orgId, name } = useActiveOrg();
-  const org = useQuery(api.orgs.get, { orgId });
-  const viewer = useQuery(api.users.viewer);
-  const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
-  const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
+  const org = useConvexValue(api.orgs.get, { orgId });
+  const viewer = useConvexValue(api.users.viewer, {});
+  const members = useConvexPages(api.members.list, { orgId }, { initialNumItems: 100 });
+  const roles = useConvexPages(api.orgs.roles, { orgId }, { initialNumItems: 50 });
   const ring = useMutation(api.rings.ring);
   const can = (permission: string) => org?.permissions.includes(permission as never) ?? false;
-  const lastActive = useQuery(
+  const lastActive = useConvexValue(
     api.members.lastActive,
     can("manageOrganization")
       ? { orgId, userIds: members.results.slice(0, 100).map((m) => m.userId) }

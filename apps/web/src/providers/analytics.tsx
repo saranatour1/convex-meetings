@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { DatabuddyProvider } from "@databuddy/sdk/react";
-import { useQuery } from "convex/react";
+
 import { api } from "@meetings/backend";
 import type { MeetingKind } from "#/features/meetings/meeting-kinds.ts";
 import { DATABUDDY_CLIENT_ID } from "#/lib/databuddy.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 declare module "@databuddy/sdk" {
   interface Events {
@@ -40,7 +41,7 @@ const clientId = import.meta.env.PROD
   : import.meta.env.VITE_DATABUDDY_CLIENT_ID;
 
 export const AnalyticsProvider = ({ children }: { children: ReactNode }) => {
-  const viewer = useQuery(api.users.viewer);
+  const viewer = useConvexValue(api.users.viewer, {});
 
   return (
     <DatabuddyProvider

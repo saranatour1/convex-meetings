@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CameraIcon, EraserIcon, PencilIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -8,6 +8,7 @@ import { cn } from "@meetings/ui/lib/utils";
 import { showError } from "#/lib/errors.ts";
 import { useGuestPass } from "../guest-pass.ts";
 import { PEN_COLORS, type PenColor } from "./pen-colors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const INK: Record<PenColor, string> = {
   red: "#ef4444",
@@ -81,7 +82,7 @@ export const AnnotationLayer = ({
   const pen = PEN_COLORS.find((color) => color === draw);
   const navigate = useNavigate();
   const pass = useGuestPass();
-  const strokes = useQuery(api.annotations.strokes, { meetingId, shareId, ...pass }) ?? [];
+  const strokes = useConvexValue(api.annotations.strokes, { meetingId, shareId, ...pass }) ?? [];
   const add = useMutation(api.annotations.draw);
   const clear = useMutation(api.annotations.clear);
   const uploadUrl = useMutation(api.annotations.snapshotUploadUrl);

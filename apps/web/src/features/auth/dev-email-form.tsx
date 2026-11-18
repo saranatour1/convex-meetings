@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useQuery } from "convex/react";
+
 import {
   useSignInWithUsernamePassword,
   useSignUpWithUsernamePassword,
@@ -13,11 +13,12 @@ import { Separator } from "@meetings/ui/components/separator";
 import { FormError } from "#/components/form-error.tsx";
 import { describeError } from "#/lib/errors.ts";
 import { describeAuthError } from "./auth-errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type Mode = "signIn" | "signUp";
 
 export const DevEmailForm = () => {
-  const enabled = useQuery(api.auth.devEmailSignIn, {});
+  const enabled = useConvexValue(api.auth.devEmailSignIn, {});
   const { signIn } = useSignInWithUsernamePassword(api.auth);
   const { signUp } = useSignUpWithUsernamePassword(api.auth);
   const form = useForm({

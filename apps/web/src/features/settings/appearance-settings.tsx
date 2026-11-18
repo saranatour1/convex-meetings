@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import {
@@ -11,6 +11,7 @@ import {
 import { cn } from "@meetings/ui/lib/utils";
 import { showError } from "#/lib/errors.ts";
 import { applyTheme, storedTheme, type ThemePreference } from "#/lib/theme.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const OPTIONS: { value: ThemePreference; label: string; icon: typeof SunIcon }[] = [
   { value: "light", label: "Light", icon: SunIcon },
@@ -19,7 +20,7 @@ const OPTIONS: { value: ThemePreference; label: string; icon: typeof SunIcon }[]
 ];
 
 export const AppearanceSettings = () => {
-  const settings = useQuery(api.settings.getMine);
+  const settings = useConvexValue(api.settings.getMine, {});
   const save = useMutation(api.settings.setMine);
   const theme = settings?.theme ?? storedTheme();
 

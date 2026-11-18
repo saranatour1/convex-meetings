@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -23,9 +23,10 @@ import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { MEETING_KINDS, type MeetingKind } from "#/features/meetings/meeting-kinds.ts";
 import { describeError } from "#/lib/errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type Settings = NonNullable<ReturnType<typeof useSettings>>;
-const useSettings = () => useQuery(api.settings.getMine);
+const useSettings = () => useConvexValue(api.settings.getMine, {});
 
 const LENGTHS = [15, 30, 45, 60, 90];
 const INVITES = [
