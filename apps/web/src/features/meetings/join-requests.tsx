@@ -1,5 +1,5 @@
 import { track } from "@databuddy/sdk";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CheckIcon, XIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Avatar, AvatarFallback, AvatarImage } from "@meetings/ui/components/avatar";
@@ -7,11 +7,12 @@ import { Button } from "@meetings/ui/components/button";
 import { cn } from "@meetings/ui/lib/utils";
 import { showError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 type JoinRequestsProps = { meetingId: Id<"meetings">; className?: string };
 
 export const JoinRequests = ({ meetingId, className }: JoinRequestsProps) => {
-  const { results, status, loadMore } = usePaginatedQuery(
+  const { results, status, loadMore } = useConvexPages(
     api.joinRequests.waiting,
     { meetingId },
     { initialNumItems: 5 },

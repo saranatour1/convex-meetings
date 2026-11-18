@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { LogOutIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { api, type Doc } from "@meetings/backend";
 import {
@@ -30,6 +30,7 @@ import { describeError, showError } from "#/lib/errors.ts";
 import { BUILT_IN_ROLES, LOCKED_ROLES, PERMISSIONS, canGrant } from "#/lib/roles.ts";
 import { ActivityCard, InviteLinksCard, JoinDomainCard } from "./access-settings.tsx";
 import { useActiveOrg } from "./active-org.tsx";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 const NameCard = ({ canEdit }: { canEdit: boolean }) => {
   const { orgId, name } = useActiveOrg();
@@ -283,8 +284,8 @@ const LeaveCard = ({ onLeft }: { onLeft: () => void }) => {
 
 export const OrgSettings = ({ onLeft }: { onLeft: () => void }) => {
   const { orgId } = useActiveOrg();
-  const org = useQuery(api.orgs.get, { orgId });
-  const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
+  const org = useConvexValue(api.orgs.get, { orgId });
+  const roles = useConvexPages(api.orgs.roles, { orgId }, { initialNumItems: 50 });
   const canManageRoles = org?.permissions.includes("manageRoles") ?? false;
   const canManageOrg = org?.permissions.includes("manageOrganization") ?? false;
 

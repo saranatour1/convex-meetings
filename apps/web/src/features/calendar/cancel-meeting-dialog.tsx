@@ -1,6 +1,6 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@meetings/backend";
 import {
   AlertDialog,
@@ -14,6 +14,7 @@ import {
 import { Button } from "@meetings/ui/components/button";
 import { FormError } from "#/components/form-error.tsx";
 import { describeError, showError } from "#/lib/errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 export const CancelMeetingDialog = ({
   code,
@@ -24,7 +25,7 @@ export const CancelMeetingDialog = ({
   onClose: () => void;
   onCancelled: () => void;
 }) => {
-  const meeting = useQuery(api.meetings.get, code ? { code } : "skip");
+  const meeting = useConvexValue(api.meetings.get, code ? { code } : "skip");
   const cancel = useMutation(api.meetings.cancel);
   const form = useForm({
     defaultValues: {},

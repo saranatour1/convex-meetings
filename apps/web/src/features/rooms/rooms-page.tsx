@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { ArmchairIcon, CopyIcon, DoorOpenIcon, ShieldAlertIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -11,6 +11,7 @@ import { ModerationPanel } from "./moderation-panel.tsx";
 import { NewRoomForm } from "./new-room-form.tsx";
 import { RoomCard } from "./room-card.tsx";
 import { roomLink } from "./room-link.ts";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 export type RoomsTab = "browse" | "ours" | "moderation";
 
@@ -21,7 +22,7 @@ const TABS: { value: RoomsTab; label: string }[] = [
 ];
 
 const BrowseRooms = () => {
-  const rooms = usePaginatedQuery(api.rooms.directory, {}, { initialNumItems: 24 });
+  const rooms = useConvexPages(api.rooms.directory, {}, { initialNumItems: 24 });
   if (rooms.status !== "LoadingFirstPage" && rooms.results.length === 0) {
     return (
       <EmptyState
@@ -61,7 +62,7 @@ type OurRoomsProps = { canManage: boolean; onCreated: (code: string) => void };
 
 const OurRooms = ({ canManage, onCreated }: OurRoomsProps) => {
   const { orgId, name } = useActiveOrg();
-  const rooms = usePaginatedQuery(api.rooms.ours, { orgId }, { initialNumItems: 25 });
+  const rooms = useConvexPages(api.rooms.ours, { orgId }, { initialNumItems: 25 });
   const close = useMutation(api.rooms.close);
   return (
     <>
@@ -127,7 +128,7 @@ type RoomsPageProps = { tab: RoomsTab; onCreated: (code: string) => void };
 
 export const RoomsPage = ({ tab, onCreated }: RoomsPageProps) => {
   const { orgId } = useActiveOrg();
-  const org = useQuery(api.orgs.get, { orgId });
+  const org = useConvexValue(api.orgs.get, { orgId });
   const canManage = org?.permissions.includes("manageMeetings") ?? false;
 
   return (

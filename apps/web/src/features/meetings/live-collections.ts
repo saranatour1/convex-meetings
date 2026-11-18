@@ -5,18 +5,9 @@ import {
 } from "@tanstack/convex-db-collection";
 import type { ConvexReactClient } from "convex/react";
 import { api, type Id } from "@meetings/backend";
+import { shared } from "../data/live-query.ts";
 
 type Pass = { guest?: string };
-
-const collections = new Map<string, { status: string }>();
-
-const shared = <T extends { status: string }>(key: string, create: (id: string) => T): T => {
-  const found = collections.get(key) as T | undefined;
-  if (found && found.status !== "cleaned-up") return found;
-  const created = create(`${key}:${crypto.randomUUID()}`);
-  collections.set(key, created);
-  return created;
-};
 
 export const meetingPeople = (client: ConvexReactClient, code: string, pass: Pass) =>
   shared(`people:${code}:${pass.guest ?? ""}`, (id) =>

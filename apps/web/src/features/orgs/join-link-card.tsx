@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { AuthLoading, Authenticated, Unauthenticated, useMutation, useQuery } from "convex/react";
+import { AuthLoading, Authenticated, Unauthenticated, useMutation } from "convex/react";
 import { LinkIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -16,6 +16,7 @@ import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { describeError } from "#/lib/errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type JoinLinkCardProps = {
   secret: string;
@@ -63,7 +64,7 @@ const JoinButton = ({ secret, onJoined }: JoinLinkCardProps) => {
 };
 
 export const JoinLinkCard = ({ secret, onJoined }: JoinLinkCardProps) => {
-  const link = useQuery(api.joinLinks.preview, { secret });
+  const link = useConvexValue(api.joinLinks.preview, { secret });
   if (link === undefined) return <LoadingScreen />;
 
   return (

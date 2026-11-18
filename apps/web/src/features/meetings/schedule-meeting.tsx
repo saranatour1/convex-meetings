@@ -1,5 +1,5 @@
 import { track } from "@databuddy/sdk";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api, type Id } from "@meetings/backend";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { useActiveOrg } from "#/features/orgs/active-org.tsx";
@@ -9,6 +9,7 @@ import { describeError } from "#/lib/errors.ts";
 import { getInitials } from "#/lib/initials.ts";
 import { cityOf } from "#/lib/schedule.ts";
 import { ScheduleForm, type ScheduleFormProps } from "./schedule-form.tsx";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -21,11 +22,11 @@ export const ScheduleMeeting = ({ onScheduled, ...props }: ScheduleMeetingProps)
   const { orgId } = useActiveOrg();
   const create = useMutation(api.meetings.create);
   const from = Math.floor(Date.now() / DAY_MS) * DAY_MS - DAY_MS;
-  const busy = useQuery(api.meetings.busy, { orgId, from, to: from + 62 * DAY_MS });
-  const members = usePaginatedQuery(api.members.list, { orgId }, { initialNumItems: 100 });
-  const viewer = useQuery(api.users.viewer);
-  const schedule = useQuery(api.schedules.getMine);
-  const settings = useQuery(api.settings.getMine);
+  const busy = useConvexValue(api.meetings.busy, { orgId, from, to: from + 62 * DAY_MS });
+  const members = useConvexPages(api.members.list, { orgId }, { initialNumItems: 100 });
+  const viewer = useConvexValue(api.users.viewer, {});
+  const schedule = useConvexValue(api.schedules.getMine, {});
+  const settings = useConvexValue(api.settings.getMine, {});
   if (
     members.status === "LoadingFirstPage" ||
     viewer === undefined ||

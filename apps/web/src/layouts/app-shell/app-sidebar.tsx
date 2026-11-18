@@ -19,11 +19,12 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@meetings/ui/components/sidebar";
-import { useQuery } from "convex/react";
+
 import { api } from "@meetings/backend";
 import { NavUser } from "#/features/auth/nav-user.tsx";
 import { LiveCallsNav } from "#/features/meetings/live-calls-nav.tsx";
 import { OrgSwitcher } from "#/features/orgs/org-switcher.tsx";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const LINKS = [
   { title: "Home", to: "/home", icon: HouseIcon },
@@ -36,7 +37,7 @@ const LINKS = [
 
 export const AppSidebar = () => {
   const matchRoute = useMatchRoute();
-  const unread = useQuery(api.inbox.unreadCount) ?? 0;
+  const unread = useConvexValue(api.inbox.unreadCount, {}) ?? 0;
 
   return (
     <Sidebar collapsible="icon">

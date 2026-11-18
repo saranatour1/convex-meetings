@@ -1,6 +1,6 @@
 import { track } from "@databuddy/sdk";
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { PhoneOffIcon, RadioIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -16,10 +16,11 @@ import { describeError } from "#/lib/errors.ts";
 import { formatAgo } from "#/lib/schedule.ts";
 import { kindOf } from "#/features/meetings/meeting-kinds.ts";
 import { useActiveOrg } from "./active-org.tsx";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 export const LiveCalls = ({ canEnd }: { canEnd: boolean }) => {
   const { orgId } = useActiveOrg();
-  const calls = useQuery(api.calls.live, { orgId });
+  const calls = useConvexValue(api.calls.live, { orgId });
   const end = useMutation(api.calls.end);
   if (!calls?.length) return null;
 

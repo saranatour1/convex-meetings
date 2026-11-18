@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { usePaginatedQuery } from "convex/react";
+
 import { ArmchairIcon, DoorOpenIcon, EyeIcon, FileTextIcon, ShieldCheckIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { EmptyState } from "#/components/empty-state.tsx";
 import { RoomCard, type Room } from "./room-card.tsx";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 const PAGE = 24;
 
@@ -27,7 +28,7 @@ const HOW_ROOMS_WORK = [
 ];
 
 export const RoomsDirectory = ({ initial }: { initial: Room[] }) => {
-  const rooms = usePaginatedQuery(api.rooms.directory, {}, { initialNumItems: PAGE });
+  const rooms = useConvexPages(api.rooms.directory, {}, { initialNumItems: PAGE });
   const shown = rooms.status === "LoadingFirstPage" ? initial : rooms.results;
 
   return (

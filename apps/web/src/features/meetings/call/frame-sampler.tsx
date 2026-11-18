@@ -1,8 +1,9 @@
 import { useCallback } from "react";
 import { useRealtimeKitMeeting } from "@cloudflare/realtimekit-react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api, type Id } from "@meetings/backend";
 import { useGuestPass } from "../guest-pass.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 const SAMPLE_MS = 45_000;
 const LONG_SIDE = 640;
@@ -40,7 +41,7 @@ export const FrameSampler = ({ meetingId }: { meetingId: Id<"meetings"> }) => {
   const { guest } = useGuestPass();
   const uploadUrl = useMutation(api.moderation.frameUploadUrl);
   const submit = useMutation(api.moderation.submitFrame);
-  const watch = useQuery(api.moderation.watch, { meetingId, guest });
+  const watch = useConvexValue(api.moderation.watch, { meetingId, guest });
 
   const sample = useCallback(
     async (only?: string[]) => {

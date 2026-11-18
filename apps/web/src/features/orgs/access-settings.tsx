@@ -1,6 +1,6 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CopyIcon, LinkIcon, XIcon } from "lucide-react";
 import { api, type Doc, type Id } from "@meetings/backend";
 import { Badge } from "@meetings/ui/components/badge";
@@ -28,12 +28,13 @@ import { copyWithToast, describeError, showError } from "#/lib/errors.ts";
 import { canGrant } from "#/lib/roles.ts";
 import { formatAgo, formatLongDate } from "#/lib/schedule.ts";
 import { useActiveOrg } from "./active-org.tsx";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 type OrgView = NonNullable<ReturnType<typeof useOrg>>;
 
 const useOrg = () => {
   const { orgId } = useActiveOrg();
-  return useQuery(api.orgs.get, { orgId });
+  return useConvexValue(api.orgs.get, { orgId });
 };
 
 const RolePicker = ({
@@ -67,7 +68,7 @@ const RolePicker = ({
 
 const useGrantableRoles = (org: OrgView) => {
   const { orgId } = useActiveOrg();
-  const roles = usePaginatedQuery(api.orgs.roles, { orgId }, { initialNumItems: 50 });
+  const roles = useConvexPages(api.orgs.roles, { orgId }, { initialNumItems: 50 });
   const grantable = roles.results.filter((role) => canGrant(role, org));
   const member = grantable.find((role) => role.name === "Member") ?? grantable[0];
   return { grantable, member };
@@ -204,7 +205,7 @@ const NewLinkForm = ({ org }: { org: OrgView }) => {
 
 const LinksList = () => {
   const { orgId } = useActiveOrg();
-  const links = usePaginatedQuery(api.joinLinks.list, { orgId }, { initialNumItems: 20 });
+  const links = useConvexPages(api.joinLinks.list, { orgId }, { initialNumItems: 20 });
   const revoke = useMutation(api.joinLinks.revoke);
   const zone = browserTimeZone();
   if (!links.results.length) return null;
@@ -388,7 +389,7 @@ export const ActivityCard = () => {
   const { orgId } = useActiveOrg();
   const org = useOrg();
   const canView = org?.permissions.includes("manageOrganization") ?? false;
-  const events = usePaginatedQuery(api.audit.list, canView ? { orgId } : "skip", {
+  const events = useConvexPages(api.audit.list, canView ? { orgId } : "skip", {
     initialNumItems: 25,
   });
   if (!canView) return null;

@@ -1,7 +1,7 @@
 import { track } from "@databuddy/sdk";
 import { useCallback } from "react";
 import { useForm } from "@tanstack/react-form";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import {
   RealtimeKitProvider,
   useRealtimeKitClient,
@@ -23,6 +23,7 @@ import { applyCallTheme } from "./call/call-theme.ts";
 import { type CallSide, whiteboardPlugin } from "./call/call-ui.ts";
 import { useGuestPass } from "./guest-pass.ts";
 import { kindOf, type MeetingKind } from "./meeting-kinds.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type MeetingCallProps = {
   meetingId: Id<"meetings">;
@@ -122,7 +123,7 @@ export const MeetingCall = ({
   const join = useAction(api.meetings.join);
   const switchHere = useAction(api.calls.switchHere);
   const pass = useGuestPass();
-  const settings = useQuery(api.settings.getMine, pass.guest ? "skip" : {});
+  const settings = useConvexValue(api.settings.getMine, pass.guest ? "skip" : {});
   const [meeting, initMeeting] = useRealtimeKitClient();
   const watching = watch || (props.moderated && Boolean(pass.guest));
   const form = useForm({

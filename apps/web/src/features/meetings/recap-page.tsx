@@ -1,6 +1,6 @@
 import { Suspense, use } from "react";
 import { Link } from "@tanstack/react-router";
-import { usePaginatedQuery, useQuery } from "convex/react";
+
 import {
   ArrowLeftIcon,
   DownloadIcon,
@@ -27,6 +27,7 @@ import { browserTimeZone } from "#/lib/browser.ts";
 import { formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
 import { ChatLines } from "./meeting-chat.tsx";
 import { kindOf } from "./meeting-kinds.ts";
+import { useConvexPages, useConvexValue } from "#/features/data/live-query.ts";
 
 type TranscriptLine = {
   startTime: number;
@@ -86,11 +87,7 @@ const Transcript = ({ url, search }: { url: string; search: string }) => {
 };
 
 const RecapChat = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
-  const messages = usePaginatedQuery(
-    api.meetings.recapChat,
-    { sessionId },
-    { initialNumItems: 100 },
-  );
+  const messages = useConvexPages(api.meetings.recapChat, { sessionId }, { initialNumItems: 100 });
   if (messages.status === "LoadingFirstPage") return null;
   if (!messages.results.length) {
     return (
@@ -115,7 +112,7 @@ const RecapChat = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
 };
 
 const Snapshots = ({ sessionId }: { sessionId: Id<"meetingSessions"> }) => {
-  const snapshots = useQuery(api.annotations.snapshots, { sessionId });
+  const snapshots = useConvexValue(api.annotations.snapshots, { sessionId });
   if (!snapshots?.length) return null;
   const zone = browserTimeZone();
   return (
@@ -157,7 +154,7 @@ const Recording = ({
   sessionId: Id<"meetingSessions">;
   canDownload: boolean;
 }) => {
-  const url = useQuery(api.meetings.recordingUrl, { sessionId });
+  const url = useConvexValue(api.meetings.recordingUrl, { sessionId });
   if (url === undefined) return null;
   if (!url) {
     return (
@@ -201,7 +198,7 @@ type RecapPageProps = {
 };
 
 export const RecapPage = ({ code, number, search, onSearchChange }: RecapPageProps) => {
-  const recap = useQuery(api.meetings.recap, { code, number });
+  const recap = useConvexValue(api.meetings.recap, { code, number });
   if (recap === undefined) return <LoadingScreen />;
   if (recap === null) {
     return (

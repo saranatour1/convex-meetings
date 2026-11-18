@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { usePaginatedQuery } from "convex/react";
+
 import { CalendarPlusIcon, HistoryIcon } from "lucide-react";
 import { api } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -8,6 +8,7 @@ import { EmptyState } from "#/components/empty-state.tsx";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { dayOf, formatLongDate, formatWeekday } from "#/lib/schedule.ts";
 import { MeetingRow, type MyMeeting } from "./meeting-row.tsx";
+import { useConvexPages } from "#/features/data/live-query.ts";
 
 export type MeetingsTab = "upcoming" | "past";
 
@@ -22,7 +23,7 @@ const byDay = (meetings: MyMeeting[]) => {
 };
 
 export const MeetingsList = ({ tab }: { tab: MeetingsTab }) => {
-  const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 100 });
+  const meetings = useConvexPages(api.meetings.mine, {}, { initialNumItems: 100 });
   const now = Date.now();
   const zone = browserTimeZone();
   const past = tab === "past";

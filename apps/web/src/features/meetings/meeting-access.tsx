@@ -1,6 +1,6 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { DoorOpenIcon, GlobeIcon, HandIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
@@ -29,6 +29,7 @@ import { FormError } from "#/components/form-error.tsx";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { splitEmails } from "#/lib/emails.ts";
 import { describeError, showError } from "#/lib/errors.ts";
+import { useConvexValue } from "#/features/data/live-query.ts";
 
 type Access = "invited" | "org" | "ask" | "link" | "public";
 type PrivateAccess = Exclude<Access, "public">;
@@ -83,7 +84,10 @@ export const MeetingSettingsCard = ({
 }: SettingsProps) => {
   const update = useMutation(api.meetings.updateSettings);
   const updateRoom = useMutation(api.rooms.update);
-  const waiting = useQuery(api.rooms.waitingRoom, access === "public" ? { meetingId } : "skip");
+  const waiting = useConvexValue(
+    api.rooms.waitingRoom,
+    access === "public" ? { meetingId } : "skip",
+  );
   const save = (changes: Omit<Parameters<typeof update>[0], "meetingId">) =>
     void update({ meetingId, ...changes }).catch(showError);
   const slowMode = (
@@ -285,7 +289,7 @@ export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) =>
 };
 
 export const MeetingDoor = ({ code }: { code: string }) => {
-  const door = useQuery(api.meetings.door, { code });
+  const door = useConvexValue(api.meetings.door, { code });
   const enter = useMutation(api.meetings.enter);
   const ask = useMutation(api.joinRequests.ask);
   if (door === undefined) return <LoadingScreen />;
