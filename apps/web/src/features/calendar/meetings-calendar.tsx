@@ -36,6 +36,7 @@ type MeetingsCalendarProps = {
   onSelect: (code: string | undefined) => void;
   showDeclined: boolean;
   onShowDeclinedChange: (show: boolean) => void;
+  onCancel: (code: string) => void;
 };
 
 type Person = {
@@ -71,6 +72,7 @@ export const MeetingsCalendar = ({
   onSelect,
   showDeclined,
   onShowDeclinedChange,
+  onCancel,
 }: MeetingsCalendarProps) => {
   const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 200 });
   const viewer = useQuery(api.users.viewer);
@@ -84,6 +86,8 @@ export const MeetingsCalendar = ({
         m._id === meetingId ? { ...m, title } : m,
       ),
   );
+  const invite = useMutation(api.meetings.invite);
+  const respond = useMutation(api.meetings.respond);
   const reschedule = useMutation(api.meetings.reschedule).withOptimisticUpdate(
     (store, { meetingId, startsAt, minutes }) =>
       optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
@@ -140,11 +144,21 @@ export const MeetingsCalendar = ({
       onSelect(code);
       return;
     }
+    if (change.type === "remove") return onCancel(change.event.id);
     if (change.type !== "update" || change.patch.allDay) return;
     const meeting = meetings.results.find((m) => m.code === change.id);
     if (!meeting) return;
-    const title = change.patch.title?.trim();
-    if (title) await rename({ meetingId: meeting._id, title }).catch(fail);
+    const { title, attendees } = change.patch;
+    if (title?.trim()) await rename({ meetingId: meeting._id, title }).catch(fail);
+    if (attendees) {
+      const before = new Set(change.prev.attendees?.map((a) => a.email));
+      const emails = attendees.map((a) => a.email).filter((email) => !before.has(email));
+      if (emails.length) await invite({ meetingId: meeting._id, emails }).catch(fail);
+      const mine = attendees.find((a) => a.email === me)?.status;
+      if (mine && mine !== "tentative" && mine !== meeting.response) {
+        await respond({ meetingId: meeting._id, response: mine }).catch(fail);
+      }
+    }
     if (!change.patch.start && !change.patch.end) return;
     const time = timeOf(
       parseInstant(change.patch.start ?? change.prev.start),
