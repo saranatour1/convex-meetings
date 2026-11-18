@@ -236,7 +236,7 @@ test("an AI agent's browser joins as a watcher with its logo, and stays an agent
   expect(requests.at(-1)?.body).toMatchObject({
     preset_name: "call_public_guest",
     name: "Sara's assistant",
-    picture: "http://localhost:3000/agents/claude.svg",
+    picture: expect.stringContaining("is1-ssl.mzstatic.com/image/thumb/Purple221/v4/54/b2"),
   });
 
   const again = await setup.t.action(api.api.meetings.join, { meetingId, guest });
@@ -245,7 +245,7 @@ test("an AI agent's browser joins as a watcher with its logo, and stays an agent
   const meeting = await setup.host.asUser.query(api.api.meetings.get, { code });
   expect(meeting?.people.find((person) => person.isGuest)).toMatchObject({
     agent: "claude",
-    imageUrl: "http://localhost:3000/agents/claude.svg",
+    imageUrl: expect.stringContaining("/256x256bb.png"),
   });
 });
 
