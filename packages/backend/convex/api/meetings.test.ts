@@ -108,6 +108,39 @@ test("only org members can be invited, and meetings end on the day they start", 
   ).rejects.toThrow("end on the day it starts");
 });
 
+test("the host moves a meeting and invitees are asked again", async () => {
+  const setup = await orgWithTwoPeople();
+  const { meetingId } = await schedule(setup);
+  await setup.guest.asUser.mutation(api.api.meetings.respond, { meetingId, response: "accepted" });
+  const later = startsAt + 2 * HOUR;
+  await expect(
+    setup.guest.asUser.mutation(api.api.meetings.reschedule, {
+      meetingId,
+      startsAt: later,
+      minutes: 45,
+    }),
+  ).rejects.toThrow("Only the host");
+  await setup.host.asUser.mutation(api.api.meetings.reschedule, {
+    meetingId,
+    startsAt: later,
+    minutes: 45,
+  });
+  const guestView = await setup.guest.asUser.query(api.api.meetings.mine, { paginationOpts: page });
+  expect(guestView.page).toMatchObject([
+    { _id: meetingId, response: "pending", startsAt: later, endsAt: later + 45 * 60_000 },
+  ]);
+  const inbox = await setup.guest.asUser.query(api.api.inbox.list, { paginationOpts: page });
+  expect(inbox.page.map((n) => n.kind)).toContain("meetingMoved");
+  const repeating = await schedule(setup, { rrule: "FREQ=WEEKLY" });
+  await expect(
+    setup.host.asUser.mutation(api.api.meetings.reschedule, {
+      meetingId: repeating.meetingId,
+      startsAt: later,
+      minutes: 30,
+    }),
+  ).rejects.toThrow("Repeating meetings");
+});
+
 test("joining creates the call once, uses the attendee preset, then refreshes the token", async () => {
   const setup = await orgWithTwoPeople();
   const { meetingId } = await schedule(setup, { kind: "webinar" });

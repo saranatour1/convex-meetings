@@ -381,6 +381,43 @@ export const respond = async (
   }
 };
 
+export const rescheduleMeeting = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+  startsAt: number,
+  minutes: number,
+) => {
+  const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
+  if (member.role !== "host") throw new ConvexError("Only the host can move this meeting");
+  if (meeting.endedAt) throw new ConvexError("This meeting has ended");
+  const current = await timeOf(ctx, meetingId);
+  if (!current) throw new ConvexError("This meeting has no time to move");
+  if (current.rrule) throw new ConvexError("Repeating meetings can't be moved yet");
+  await enforceRateLimit(ctx, "reschedule", userId);
+  const time = meetingTime(startsAt, minutes, current.timeZone);
+  await ctx.db.patch("meetingTimes", current._id, { ...time, repeatUntil: time.endsAt });
+  const invited = await ctx.db
+    .query("meetingMembers")
+    .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId))
+    .take(1000);
+  const others = invited.filter((m) => m.userId !== userId);
+  for (const other of others) {
+    if (other.response !== "pending") {
+      await ctx.db.patch("meetingMembers", other._id, { response: "pending" });
+    }
+  }
+  const otherIds = others.map((m) => m.userId);
+  await notify(ctx, otherIds, {
+    kind: "meetingMoved",
+    title: meeting.title,
+    meetingCode: meeting.code,
+    actorId: userId,
+  });
+  const moved = await timeOf(ctx, meetingId);
+  if (moved) await queueMeetingEmails(ctx, "REQUEST", meeting, moved, otherIds);
+};
+
 const deleteAll = async (
   ctx: MutationCtx,
   docs: {

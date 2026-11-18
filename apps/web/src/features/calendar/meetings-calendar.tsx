@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import {
+  optimisticallyUpdateValueInPaginatedQuery,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import { api } from "@meetings/backend";
 import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
@@ -11,11 +16,13 @@ import {
   parseInstant,
   type Attendee,
   type CalEvent,
+  type KloqChange,
 } from "@meetings/ui/kloq";
 import type { MeetingTime } from "#/features/meetings/find-a-time.tsx";
 import { meetingLink } from "#/features/meetings/meeting-access.tsx";
 import { kindOf } from "#/features/meetings/meeting-kinds.ts";
 import { ZonePicker } from "#/features/meetings/zone-picker.tsx";
+import { showError } from "#/lib/errors.ts";
 import { MINUTE, cityOf, formatOffset } from "#/lib/schedule.ts";
 
 type MeetingsCalendarProps = {
@@ -61,6 +68,12 @@ export const MeetingsCalendar = ({
   const meetings = usePaginatedQuery(api.meetings.mine, {}, { initialNumItems: 200 });
   const viewer = useQuery(api.users.viewer);
   const detail = useQuery(api.meetings.get, selected ? { code: selected } : "skip");
+  const reschedule = useMutation(api.meetings.reschedule).withOptimisticUpdate(
+    (store, { meetingId, startsAt, minutes }) =>
+      optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
+        m._id === meetingId ? { ...m, startsAt, endsAt: startsAt + minutes * MINUTE } : m,
+      ),
+  );
   const me = viewer?.email ?? undefined;
   const events = useMemo(
     () =>
@@ -76,7 +89,7 @@ export const MeetingsCalendar = ({
           end: formatInstant(new Date(m.endsAt), m.timeZone),
           timeZone: m.timeZone,
           meetingUrl: meetingLink(m.code),
-          readOnly: true,
+          readOnly: m.role !== "host" || m.rrule !== null || m.endedAt !== null,
           busy: m.response !== "pending",
           organizer: host ? toAttendee(host).email : m.role === "host" ? me : undefined,
           attendees: people
@@ -88,6 +101,29 @@ export const MeetingsCalendar = ({
       }),
     [meetings.results, detail, me, viewer?.name],
   );
+  const commit = async (change: KloqChange): Promise<void> => {
+    if (change.type === "batch") {
+      await Promise.all(change.changes.map(commit));
+      return;
+    }
+    if (change.type === "add" && !change.event.allDay) {
+      onPlan(timeOf(parseInstant(change.event.start), parseInstant(change.event.end)));
+      return;
+    }
+    if (change.type !== "update" || change.patch.allDay) return;
+    const meeting = meetings.results.find((m) => m.code === change.id);
+    if (!meeting) return;
+    const time = timeOf(
+      parseInstant(change.patch.start ?? change.prev.start),
+      parseInstant(change.patch.end ?? change.prev.end),
+    );
+    await reschedule({ meetingId: meeting._id, startsAt: time.start, minutes: time.minutes }).catch(
+      (error: unknown) => {
+        showError(error);
+        throw error;
+      },
+    );
+  };
 
   return (
     <Kloq
@@ -104,11 +140,7 @@ export const MeetingsCalendar = ({
       onSlotClick={(slot) =>
         !slot.allDay && onPlan(timeOf(slot.start.getTime(), slot.end.getTime()))
       }
-      onCommit={(change) => {
-        if (change.type === "add" && !change.event.allDay) {
-          onPlan(timeOf(parseInstant(change.event.start), parseInstant(change.event.end)));
-        }
-      }}
+      onCommit={commit}
     >
       <KloqToolbar>
         <KloqNav />

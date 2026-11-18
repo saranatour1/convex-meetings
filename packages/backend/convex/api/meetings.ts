@@ -25,6 +25,7 @@ import {
   findMeetingByCode,
   getMeeting,
   listMyMeetings,
+  rescheduleMeeting,
   respond as respondToMeeting,
   startInstantMeeting,
 } from "../models/meetings";
@@ -123,6 +124,12 @@ export const cancel = authedMutation({
       await ctx.scheduler.runAfter(0, internal.internal.realtime.deactivate, { rtkMeetingId });
     }
   },
+});
+
+export const reschedule = authedMutation({
+  args: { meetingId: zid("meetings"), startsAt: z.number(), minutes: z.number().int() },
+  handler: (ctx, { meetingId, startsAt, minutes }) =>
+    rescheduleMeeting(ctx, ctx.userId, meetingId, startsAt, minutes),
 });
 
 export const busy = orgQuery({

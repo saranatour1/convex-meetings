@@ -5,6 +5,7 @@ import { z } from "zod";
 export const zNotificationKind = z.enum([
   "meetingInvite",
   "meetingCancelled",
+  "meetingMoved",
   "rsvp",
   "recapReady",
   "missedCall",

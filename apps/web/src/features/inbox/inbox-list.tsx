@@ -4,6 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import {
   CalendarCheckIcon,
+  CalendarClockIcon,
   CalendarXIcon,
   CheckCheckIcon,
   FileTextIcon,
@@ -29,6 +30,7 @@ type Notification = FunctionReturnType<typeof api.inbox.list>["page"][number];
 const ICONS = {
   meetingInvite: MailIcon,
   meetingCancelled: CalendarXIcon,
+  meetingMoved: CalendarClockIcon,
   rsvp: CalendarCheckIcon,
   recapReady: FileTextIcon,
   missedCall: PhoneMissedIcon,
@@ -43,6 +45,8 @@ const sentence = (n: Notification) => {
       return `${actor} invited you to ${n.title}`;
     case "meetingCancelled":
       return `${actor} cancelled ${n.title}`;
+    case "meetingMoved":
+      return `${actor} moved ${n.title}`;
     case "rsvp":
       return `${actor} ${n.detail ?? "replied to"} ${n.title}`;
     case "recapReady":
@@ -140,16 +144,17 @@ const Row = ({ notification }: { notification: Notification }) => {
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-accent/40">
       {link}
-      {notification.kind === "meetingInvite" && notification.meetingCode && (
-        <span className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => reply("accepted")}>
-            Going
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => reply("declined")}>
-            Not going
-          </Button>
-        </span>
-      )}
+      {(notification.kind === "meetingInvite" || notification.kind === "meetingMoved") &&
+        notification.meetingCode && (
+          <span className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => reply("accepted")}>
+              Going
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => reply("declined")}>
+              Not going
+            </Button>
+          </span>
+        )}
     </li>
   );
 };
