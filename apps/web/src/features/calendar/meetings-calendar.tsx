@@ -10,6 +10,7 @@ import { api } from "@meetings/backend";
 import { EyeIcon, EyeOffIcon, PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import {
+  DEFAULT_COMPONENTS,
   Kloq,
   KloqNav,
   KloqToolbar,
@@ -17,6 +18,7 @@ import {
   parseInstant,
   type Attendee,
   type CalEvent,
+  type EventPanelProps,
   type KloqChange,
 } from "@meetings/ui/kloq";
 import type { MeetingTime } from "#/features/meetings/find-a-time.tsx";
@@ -53,6 +55,14 @@ const toAttendee = (p: Person): Attendee => ({
   status: p.response,
 });
 
+const MeetingPanel = (props: EventPanelProps) => (
+  <DEFAULT_COMPONENTS.EventPanel {...props} onToggleAllDay={undefined} />
+);
+
+const PANEL = { EventPanel: MeetingPanel };
+
+const emailsOf = (attendees: Attendee[] | undefined) => new Set(attendees?.map((a) => a.email));
+
 const fail = (error: unknown): never => {
   showError(error);
   throw error;
@@ -80,14 +90,15 @@ export const MeetingsCalendar = ({
   const { orgId } = useActiveOrg();
   const settings = useQuery(api.settings.getMine);
   const create = useMutation(api.meetings.create);
-  const rename = useMutation(api.meetings.rename).withOptimisticUpdate(
-    (store, { meetingId, title }) =>
+  const edit = useMutation(api.meetings.edit).withOptimisticUpdate(
+    (store, { meetingId, ...changes }) =>
       optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
-        m._id === meetingId ? { ...m, title } : m,
+        m._id === meetingId ? { ...m, ...changes } : m,
       ),
   );
+  const repeat = useMutation(api.meetings.repeat);
   const invite = useMutation(api.meetings.invite);
-  const respond = useMutation(api.meetings.respond);
+  const uninvite = useMutation(api.meetings.uninvite);
   const reschedule = useMutation(api.meetings.reschedule).withOptimisticUpdate(
     (store, { meetingId, startsAt, minutes }) =>
       optimisticallyUpdateValueInPaginatedQuery(store, api.meetings.mine, {}, (m) =>
@@ -103,6 +114,8 @@ export const MeetingsCalendar = ({
         return {
           id: m.code,
           title: m.title,
+          description: m.description ?? undefined,
+          location: m.location ?? undefined,
           color: kindOf(m.kind).color,
           rrule: m.rrule ?? undefined,
           start: formatInstant(new Date(m.startsAt), m.timeZone),
@@ -148,15 +161,25 @@ export const MeetingsCalendar = ({
     if (change.type !== "update" || change.patch.allDay) return;
     const meeting = meetings.results.find((m) => m.code === change.id);
     if (!meeting) return;
-    const { title, attendees } = change.patch;
-    if (title?.trim()) await rename({ meetingId: meeting._id, title }).catch(fail);
+    const { title, description, location, rrule, attendees } = change.patch;
+    const text = {
+      ...(title?.trim() && { title }),
+      ...(description !== undefined && { description }),
+      ...(location !== undefined && { location }),
+    };
+    if (Object.keys(text).length) await edit({ meetingId: meeting._id, ...text }).catch(fail);
+    if (rrule) await repeat({ meetingId: meeting._id, rrule }).catch(fail);
     if (attendees) {
-      const before = new Set(change.prev.attendees?.map((a) => a.email));
-      const emails = attendees.map((a) => a.email).filter((email) => !before.has(email));
-      if (emails.length) await invite({ meetingId: meeting._id, emails }).catch(fail);
-      const mine = attendees.find((a) => a.email === me)?.status;
-      if (mine && mine !== "tentative" && mine !== meeting.response) {
-        await respond({ meetingId: meeting._id, response: mine }).catch(fail);
+      const before = emailsOf(change.prev.attendees);
+      const after = emailsOf(attendees);
+      const added = [...after].filter((email) => !before.has(email));
+      if (added.length) await invite({ meetingId: meeting._id, emails: added }).catch(fail);
+      const removed = (detail?.people ?? []).filter((p) => {
+        const email = p.email ?? p._id;
+        return before.has(email) && !after.has(email);
+      });
+      for (const person of removed) {
+        await uninvite({ meetingId: meeting._id, memberId: person._id }).catch(fail);
       }
     }
     if (!change.patch.start && !change.patch.end) return;
@@ -185,6 +208,7 @@ export const MeetingsCalendar = ({
         !slot.allDay && onPlan(timeOf(slot.start.getTime(), slot.end.getTime()))
       }
       onCommit={commit}
+      components={PANEL}
     >
       <KloqToolbar>
         <KloqNav />

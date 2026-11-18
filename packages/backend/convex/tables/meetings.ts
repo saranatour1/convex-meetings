@@ -16,6 +16,8 @@ export const zMeeting = z.object({
   userId: zid("users"),
   code: zMeetingCode,
   title: z.string().trim().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  location: z.string().max(200).optional(),
   kind: zMeetingKind,
   recap: z.boolean(),
   record: z.boolean().optional(),
