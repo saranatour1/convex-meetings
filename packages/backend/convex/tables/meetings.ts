@@ -21,6 +21,7 @@ export const zMeeting = z.object({
   kind: zMeetingKind,
   recap: z.boolean(),
   record: z.boolean().optional(),
+  liveTextOff: z.boolean().optional(),
   protected: z.boolean().optional(),
   access: zMeetingAccess.optional(),
   inviters: zMeetingInviters.optional(),

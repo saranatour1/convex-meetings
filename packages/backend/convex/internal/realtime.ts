@@ -120,7 +120,9 @@ export const setLiveText = internalAction({
   args: { on: v.boolean() },
   handler: async (ctx, { on }) => {
     await realtimeKit.setLiveText(
-      allPresets().map((preset) => preset.name),
+      allPresets()
+        .filter((preset) => preset.permissions.transcription_enabled)
+        .map((preset) => preset.name),
       on,
     );
     await ctx.runMutation(internal.internal.realtime.markLiveText, { on });

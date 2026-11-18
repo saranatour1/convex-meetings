@@ -222,6 +222,23 @@ test("watching joins without mic or camera, and switching modes adds a fresh par
   expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
 });
 
+test("turning live transcript off joins people with a preset that doesn't transcribe", async () => {
+  const setup = await orgWithTwoPeople();
+  const { meetingId, code } = await schedule(setup, { kind: "groupCall" });
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
+
+  await setup.host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, liveText: false });
+  expect(await setup.host.asUser.query(api.api.meetings.get, { code })).toMatchObject({
+    liveText: false,
+  });
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
+  expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant_no_text" });
+
+  await setup.host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, liveText: true });
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
+  expect(requests.at(-1)?.body).toMatchObject({ preset_name: "call_participant" });
+});
+
 test("an AI agent never takes a call seat, and shows with its app icon", async () => {
   const setup = await orgWithTwoPeople();
   const { meetingId, code } = await schedule(setup, { kind: "groupCall" });
@@ -304,8 +321,11 @@ test("busy times include later occurrences of a repeating meeting", async () => 
 
 test("presets keep chat in Convex and audio rooms voice-only", () => {
   const presets = allPresets();
-  expect(new Set(presets.map((p) => p.name)).size).toBe(9);
+  expect(new Set(presets.map((p) => p.name)).size).toBe(18);
   expect(presets.every((p) => !p.permissions.chat.public.can_send)).toBe(true);
+  expect(
+    presets.every((p) => p.permissions.transcription_enabled === !p.name.endsWith("_no_text")),
+  ).toBe(true);
   const listener = presets.find((p) => p.name === "audio_listener");
   expect(listener?.config.view_type).toBe("AUDIO_ROOM");
   expect(listener?.permissions.media.video.can_produce).toBe("NOT_ALLOWED");

@@ -208,7 +208,7 @@ export const join = meetingAction({
         rtkMeetingId: (await realtimeKit.createMeeting({ title: details.title, ...config })).id,
       }));
     const viewer = details.viewer || watch === true;
-    const preset = presetName(details.kind, details.role, viewer);
+    const preset = presetName(details.kind, details.role, viewer, details.liveText);
     const storedPreset =
       details.rtkPreset ?? presetName(details.kind, details.role, details.viewer);
     if (
@@ -285,6 +285,7 @@ export const updateSettings = authedMutation({
     access: zMeetingAccess.exclude(["public"]).optional(),
     inviters: zMeetingInviters.optional(),
     slowModeSeconds: zMeeting.shape.slowModeSeconds,
+    liveText: z.boolean().optional(),
   },
   handler: async (ctx, { meetingId, ...changes }) => {
     const { meeting } = await requireCallControl(ctx, meetingId, ctx.userId);
@@ -298,6 +299,7 @@ export const updateSettings = authedMutation({
       ...(changes.slowModeSeconds !== undefined && {
         slowModeSeconds: changes.slowModeSeconds || undefined,
       }),
+      ...(changes.liveText !== undefined && { liveTextOff: !changes.liveText || undefined }),
     });
   },
 });
