@@ -63,9 +63,12 @@ export const joinDetails = async (
     memberId: member._id,
     role: member.role,
     rtkParticipantId: member.rtkParticipantId ?? null,
+    rtkPreset: member.rtkPreset ?? null,
     name: user?.name ?? "Guest",
-    imageUrl: open ? undefined : (user?.imageUrl ?? undefined),
-    viewer: open && user?.method === "guest",
+    imageUrl: open && !user?.agent ? undefined : (user?.imageUrl ?? undefined),
+    viewer: (open && user?.method === "guest") || Boolean(user?.agent),
+    isGuest: user?.method === "guest",
+    agent: user?.agent ?? null,
   };
 };
 
@@ -87,7 +90,8 @@ export const setRtkParticipant = (
   ctx: MutationCtx,
   memberId: Id<"meetingMembers">,
   rtkParticipantId: string,
-) => ctx.db.patch("meetingMembers", memberId, { rtkParticipantId });
+  rtkPreset: string,
+) => ctx.db.patch("meetingMembers", memberId, { rtkParticipantId, rtkPreset });
 
 export type RealtimeEvent = {
   event: string;

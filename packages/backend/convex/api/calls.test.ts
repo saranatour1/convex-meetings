@@ -310,6 +310,23 @@ test("a meeting ends once its call has been empty for two minutes", async () => 
   );
 });
 
+test("a call with only AI agents left ends and the agents are kicked", async () => {
+  vi.useFakeTimers();
+  const { t, host, guest, meetingId, hostMember, guestMember, event } = await setup();
+  await t.run((ctx) => ctx.db.patch("users", guest.userId, { agent: "grok" }));
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  await event("meeting.participantJoined", guestMember);
+
+  await event("meeting.participantLeft", hostMember);
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+  expect((await meetingDoc(t, meetingId))?.endedAt).toBeTypeOf("number");
+  expect(calls.map((call) => call.url)).toContainEqual(
+    expect.stringMatching(/\/meetings\/rtk-meeting\/active-session\/kick-all$/),
+  );
+});
+
 test("rejoining within two minutes keeps the meeting open", async () => {
   vi.useFakeTimers();
   const { t, host, meetingId, hostMember, event } = await setup();

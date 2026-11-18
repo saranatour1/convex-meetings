@@ -1,6 +1,6 @@
 export type CallSide = "chat" | "participants" | "polls" | "plugins" | "ai";
 
-export const RTK_SECTIONS: CallSide[] = ["participants", "polls", "plugins", "ai"];
+export const RTK_SECTIONS: CallSide[] = ["participants", "polls", "plugins"];
 
 export const emitCallUi = (element: Element | null, detail: Record<string, unknown>) =>
   element?.dispatchEvent(

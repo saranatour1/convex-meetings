@@ -10,7 +10,7 @@ import { zMeeting } from "../tables/meetings";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zMeetingTime } from "../tables/meetingTimes";
 import { clearStrokes } from "./annotations";
-import { canControlCall } from "./calls";
+import { canControlCall, someoneInCall } from "./calls";
 import { requireMeetingMember } from "./meetingAccess";
 import { findRoom, isPublicRoom } from "./roomAccess";
 import { findMember } from "./members";
@@ -202,11 +202,7 @@ const endedTime = (time: Doc<"meetingTimes">, now: number) => {
 export const endEmptyMeeting = async (ctx: MutationCtx, meetingId: Id<"meetings">) => {
   const meeting = await ctx.db.get("meetings", meetingId);
   if (!meeting || meeting.endedAt || isPublicRoom(meeting)) return null;
-  const someone = await ctx.db
-    .query("callPeers")
-    .withIndex("by_meeting_and_member", (q) => q.eq("meetingId", meetingId))
-    .first();
-  if (someone) return null;
+  if (await someoneInCall(ctx, meetingId)) return null;
   const now = Date.now();
   await ctx.db.patch("meetings", meetingId, parseOrThrow(zMeeting, { ...meeting, endedAt: now }));
   const time = await timeOf(ctx, meetingId);
@@ -322,11 +318,12 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
         _id: m._id,
         name: user?.name ?? "Anonymous",
         email: isGuest || open ? null : (user?.email ?? null),
-        imageUrl: open ? null : (user?.imageUrl ?? null),
+        imageUrl: open && !user?.agent ? null : (user?.imageUrl ?? null),
         role: m.role,
         response: m.response,
         removed: Boolean(m.removedAt),
         isGuest: user?.method === "guest",
+        agent: user?.agent ?? null,
         inCall: present.has(m._id),
       };
     }),

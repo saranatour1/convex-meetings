@@ -98,7 +98,7 @@ export const MeetingPeople = ({ meeting, room }: { meeting: MeetingDetails; room
                     )}
                     {person.isGuest && (
                       <Badge variant="outline" size="sm">
-                        Guest
+                        {person.agent ? "AI agent" : "Guest"}
                       </Badge>
                     )}
                     {person.removed && (

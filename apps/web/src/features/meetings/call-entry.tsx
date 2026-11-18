@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { VideoIcon, VideoOffIcon } from "lucide-react";
+import { EyeIcon, VideoIcon, VideoOffIcon } from "lucide-react";
 import { Button } from "@meetings/ui/components/button";
 import { browserTimeZone } from "#/lib/browser.ts";
 import { formatDate, formatTime } from "#/lib/schedule.ts";
@@ -23,9 +23,14 @@ export const JoinCallButton = ({ onJoin }: { onJoin: () => void }) => (
   </Button>
 );
 
-type JoinCallCardProps = { kind: MeetingKind; onJoin: () => void; hint?: string };
+type JoinCallCardProps = {
+  kind: MeetingKind;
+  onJoin: () => void;
+  onWatch?: () => void;
+  hint?: string;
+};
 
-export const JoinCallCard = ({ kind, onJoin, hint }: JoinCallCardProps) => (
+export const JoinCallCard = ({ kind, onJoin, onWatch, hint }: JoinCallCardProps) => (
   <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-4">
     <span className="grid size-10 place-items-center rounded-full bg-muted">
       <VideoIcon className="size-5" />
@@ -36,6 +41,17 @@ export const JoinCallCard = ({ kind, onJoin, hint }: JoinCallCardProps) => (
         {hint ?? "Check your camera and mic before you go in."}
       </span>
     </div>
+    {onWatch && (
+      <Button
+        variant="outline"
+        onPointerEnter={() => void loadMeetingCall()}
+        onFocus={() => void loadMeetingCall()}
+        onClick={onWatch}
+      >
+        <EyeIcon />
+        Watch only
+      </Button>
+    )}
     <Button
       onPointerEnter={() => void loadMeetingCall()}
       onFocus={() => void loadMeetingCall()}

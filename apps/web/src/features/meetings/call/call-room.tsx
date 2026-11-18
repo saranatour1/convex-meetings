@@ -1,5 +1,5 @@
 import { track } from "@databuddy/sdk";
-import { type ComponentProps, useRef } from "react";
+import { type ComponentProps, type ReactNode, useRef } from "react";
 import { useMutation } from "convex/react";
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
 import {
@@ -20,8 +20,8 @@ import {
   PhoneOffIcon,
   PictureInPicture2Icon,
   PuzzleIcon,
+  ScrollTextIcon,
   SettingsIcon,
-  SparklesIcon,
   SquareIcon,
   SplitIcon,
   UsersIcon,
@@ -47,6 +47,7 @@ import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 import { RTK_SECTIONS, emitCallUi, type CallSide } from "./call-ui.ts";
 import { FrameSampler } from "./frame-sampler.tsx";
+import { LiveTranscript } from "./live-transcript.tsx";
 import { MediaControls } from "./media-controls.tsx";
 import { JoinRequests } from "../join-requests.tsx";
 import { OtherDevices, listenToOwnDevices } from "./other-devices.tsx";
@@ -93,6 +94,20 @@ const StageButton = () => {
     </Button>
   );
 };
+
+type SidePanelProps = { title: string; onClose: () => void; children: ReactNode };
+
+const SidePanel = ({ title, onClose, children }: SidePanelProps) => (
+  <aside aria-label={title} className="flex w-80 shrink-0 flex-col border-s">
+    <div className="flex items-center justify-between border-b px-3 py-2">
+      <span className="font-medium text-sm">{title}</span>
+      <Button size="icon-sm" variant="ghost" aria-label={`Close ${title}`} onClick={onClose}>
+        <XIcon />
+      </Button>
+    </div>
+    {children}
+  </aside>
+);
 
 const Elapsed = () => {
   const startedAt = useRealtimeKitSelector((m) => m.meta.meetingStartedTimestamp);
@@ -174,7 +189,7 @@ export const CallRoom = ({
       show: kind === "webinar" || kind === "classroom",
     },
     { side: "plugins", label: "Whiteboard and plugins", icon: PuzzleIcon, show: !moderated },
-    { side: "ai", label: "AI transcript", icon: SparklesIcon, show: true },
+    { side: "ai", label: "Transcript", icon: ScrollTextIcon, show: true },
   ];
 
   return (
@@ -379,24 +394,18 @@ export const CallRoom = ({
           className={cn("shrink-0 border-s", !(side && RTK_SECTIONS.includes(side)) && "hidden")}
         />
         {side === "chat" && (
-          <aside className="flex w-80 shrink-0 flex-col border-s">
-            <div className="flex items-center justify-between border-b px-3 py-2">
-              <span className="font-medium text-sm">Chat</span>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label="Close chat"
-                onClick={() => openSide(undefined)}
-              >
-                <XIcon />
-              </Button>
-            </div>
+          <SidePanel title="Chat" onClose={() => openSide(undefined)}>
             <MeetingChat
               className="min-h-0 flex-1 p-3"
               meetingId={meetingId}
               since={startedAt ? new Date(startedAt).getTime() : undefined}
             />
-          </aside>
+          </SidePanel>
+        )}
+        {side === "ai" && (
+          <SidePanel title="Transcript" onClose={() => openSide(undefined)}>
+            <LiveTranscript />
+          </SidePanel>
         )}
       </div>
 

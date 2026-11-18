@@ -1,11 +1,14 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { env, internalAction, internalMutation, internalQuery } from "../_generated/server";
+import { zodToConvex } from "convex-helpers/server/zod4";
+import { zAgent } from "../lib/agents";
 import { allPresets } from "../lib/presets";
 import { realtimeKit } from "../lib/realtimekit";
 import { forgetDevices } from "../models/calls";
 import { joinBudget, markLiveText as markLiveTextState } from "../models/usage";
 import { endEmptyMeeting } from "../models/meetings";
+import { setAgent as setUserAgent } from "../models/users";
 import {
   claimRtkMeeting,
   joinDetails as readJoinDetails,
@@ -42,9 +45,14 @@ export const claimMeeting = internalMutation({
 });
 
 export const setParticipant = internalMutation({
-  args: { memberId: v.id("meetingMembers"), rtkParticipantId: v.string() },
-  handler: (ctx, { memberId, rtkParticipantId }) =>
-    setRtkParticipant(ctx, memberId, rtkParticipantId),
+  args: { memberId: v.id("meetingMembers"), rtkParticipantId: v.string(), rtkPreset: v.string() },
+  handler: (ctx, { memberId, rtkParticipantId, rtkPreset }) =>
+    setRtkParticipant(ctx, memberId, rtkParticipantId, rtkPreset),
+});
+
+export const setAgent = internalMutation({
+  args: { userId: v.id("users"), agent: zodToConvex(zAgent) },
+  handler: (ctx, { userId, agent }) => setUserAgent(ctx, userId, agent),
 });
 
 export const recordEvent = internalMutation({
@@ -55,6 +63,7 @@ export const recordEvent = internalMutation({
 export const deactivate = internalAction({
   args: { rtkMeetingId: v.string() },
   handler: async (_ctx, { rtkMeetingId }) => {
+    await realtimeKit.kickAll(rtkMeetingId).catch(() => null);
     await realtimeKit.deactivateMeeting(rtkMeetingId);
   },
 });

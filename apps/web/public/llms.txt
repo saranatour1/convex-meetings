@@ -18,7 +18,7 @@ Page state lives in the URL. An agent can open any page below in the exact state
 - [Schedule a meeting](https://convex-meetings.stream/schedule): find a time and send invites. `start` (UTC ms) and `minutes` preselect a slot, `zone` sets the organizer's time zone, `zones` adds time zones to compare, `view=list` shows a list instead of the grid
 - [Calendar](https://convex-meetings.stream/calendar): `event=<code>` opens one meeting with everyone's replies, `declined=true` shows meetings you declined, `zones` adds time zones, `new=true` opens Schedule a meeting over the calendar (`start`, `minutes`, `zone` and `view=list` work as on /schedule), `cancel=<code>` asks before cancelling one of your meetings. Dragging on empty time creates a meeting; your own one-off meetings can be moved, resized and edited in place
 - [Meetings](https://convex-meetings.stream/meetings): upcoming meetings, `tab=past` for past ones
-- `/meetings/<code>`: one meeting. `call=true` joins its call, `side=chat`, `side=participants` or `side=polls` opens a side panel
+- `/meetings/<code>`: one meeting. `call=true` joins its call, `side=chat`, `side=participants`, `side=polls` or `side=ai` (the live transcript as plain text) opens a side panel
 - `/meetings/<code>/recaps/<n>`: transcript and recording of the meeting's nth call, `q` searches the transcript
 - [Inbox](https://convex-meetings.stream/inbox): notifications, such as meeting invites and replies
 - [Members](https://convex-meetings.stream/members): people in the organization, `q` filters them
@@ -41,7 +41,7 @@ These carry secrets. Open them only when the person gave you the link, and never
 
 - `/m/<code>`: a meeting link from an email invite. Signed-in members go to the meeting, others can ask to join as a guest
 - `/invite/<secret>`, `/join/<secret>`: join an organization
-- `/guest/<secret>`: a guest's pass into one meeting
+- `/guest/<secret>`: a guest's pass into one meeting. `call=true` opens the call lobby. Bots and AI assistants add `watch=true&side=ai` (or press Watch only): they join without a camera or mic, so no permission prompt blocks them, read what people say in the "Live transcript" list that opens beside the call (speaker, time and text per line), and show up to everyone by name. Agents are recognized by their browser's user agent or by a name like "Claude Duet", "Grok Bot", "ChatGPT agent" or "Claude Code", and always join this way with their app's icon as their picture. Press Leave when you're done; the call also ends on its own once only agents are left
 
 ## Source
 

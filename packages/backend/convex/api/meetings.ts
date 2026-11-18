@@ -11,6 +11,7 @@ import {
   orgQuery,
   zPaginationOpts,
 } from "../lib/functions";
+import { agentImageUrl, detectAgent } from "../lib/agents";
 import { presetName } from "../lib/presets";
 import { enforceRateLimit } from "../lib/rateLimits";
 import { r2Configured, signedRecordingUrl } from "../lib/r2";
@@ -166,8 +167,15 @@ export const busy = orgQuery({
 });
 
 export const join = meetingAction({
-  args: { meetingId: zid("meetings") },
-  handler: async (ctx, { meetingId }): Promise<{ token: string }> => {
+  args: {
+    meetingId: zid("meetings"),
+    watch: z.boolean().optional(),
+    userAgent: z.string().max(1000).optional(),
+  },
+  handler: async (
+    ctx,
+    { meetingId, watch, userAgent },
+  ): Promise<{ token: string; viewer: boolean }> => {
     await enforceRateLimit(ctx, "join", ctx.userId);
     const details: JoinDetails = await ctx.runQuery(internal.internal.realtime.joinDetails, {
       userId: ctx.userId,
@@ -191,23 +199,42 @@ export const join = meetingAction({
         meetingId,
         rtkMeetingId: (await realtimeKit.createMeeting({ title: details.title, ...config })).id,
       }));
-    if (details.rtkParticipantId && details.rtkMeetingId === rtkMeetingId) {
+    const detected = details.isGuest ? detectAgent(userAgent ?? "", details.name) : null;
+    const newAgent = detected !== null && detected !== details.agent;
+    if (newAgent) {
+      await ctx.runMutation(internal.internal.realtime.setAgent, {
+        userId: ctx.userId,
+        agent: detected,
+      });
+    }
+    const agent = detected ?? details.agent;
+    const viewer = details.viewer || agent !== null || watch === true;
+    const preset = presetName(details.kind, details.role, viewer);
+    const storedPreset =
+      details.rtkPreset ?? presetName(details.kind, details.role, details.viewer);
+    if (
+      details.rtkParticipantId &&
+      details.rtkMeetingId === rtkMeetingId &&
+      storedPreset === preset &&
+      !newAgent
+    ) {
       const refreshed = await realtimeKit
         .refreshToken(rtkMeetingId, details.rtkParticipantId)
         .catch(() => null);
-      if (refreshed) return { token: refreshed.token };
+      if (refreshed) return { token: refreshed.token, viewer };
     }
     const participant = await realtimeKit.addParticipant(rtkMeetingId, {
       customId: details.memberId,
-      presetName: presetName(details.kind, details.role, details.viewer),
+      presetName: preset,
       name: details.name,
-      picture: details.imageUrl,
+      picture: agent ? agentImageUrl(agent) : details.imageUrl,
     });
     await ctx.runMutation(internal.internal.realtime.setParticipant, {
       memberId: details.memberId,
       rtkParticipantId: participant.id,
+      rtkPreset: preset,
     });
-    return { token: participant.token };
+    return { token: participant.token, viewer };
   },
 });
 

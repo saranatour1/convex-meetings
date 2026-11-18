@@ -4,6 +4,7 @@ import { z } from "zod";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { type Agent, agentImageUrl } from "../lib/agents";
 import { parseOrThrow } from "../lib/validate";
 import { avatarWorkpool } from "../lib/workpools";
 import { zUser } from "../tables/users";
@@ -35,7 +36,11 @@ export const getViewer = async (ctx: QueryCtx, userId: Id<"users">) => {
   return {
     ...user,
     name: user.name ?? username ?? "Anonymous",
-    imageUrl: user.imageId ? await ctx.storage.getUrl(user.imageId) : null,
+    imageUrl: user.imageId
+      ? await ctx.storage.getUrl(user.imageId)
+      : user.agent
+        ? agentImageUrl(user.agent)
+        : null,
   };
 };
 
@@ -100,3 +105,6 @@ export const setSeenTimeZone = async (ctx: MutationCtx, userId: Id<"users">, tim
     seenTimeZone: parseOrThrow(zUser.shape.seenTimeZone.unwrap(), timeZone),
   });
 };
+
+export const setAgent = (ctx: MutationCtx, userId: Id<"users">, agent: Agent) =>
+  ctx.db.patch("users", userId, parseOrThrow(zUser.pick({ agent: true }), { agent }));

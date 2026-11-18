@@ -11,6 +11,7 @@ erDiagram
     string bio "optional"
     id imageId FK "_storage, optional"
     enum method
+    enum agent "optional"
     boolean isVerified
     string seenTimeZone "optional"
   }
@@ -125,6 +126,7 @@ erDiagram
     enum response
     enum role
     string rtkParticipantId "optional"
+    string rtkPreset "optional"
     number removedAt "optional"
   }
   meetingGuests {

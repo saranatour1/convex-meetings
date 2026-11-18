@@ -40,6 +40,7 @@ import type * as internal_realtime from "../internal/realtime.js";
 import type * as internal_rings from "../internal/rings.js";
 import type * as internal_usage from "../internal/usage.js";
 import type * as internal_users from "../internal/users.js";
+import type * as lib_agents from "../lib/agents.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_html from "../lib/html.js";
@@ -152,6 +153,7 @@ declare const fullApi: ApiFromModules<{
   "internal/rings": typeof internal_rings;
   "internal/usage": typeof internal_usage;
   "internal/users": typeof internal_users;
+  "lib/agents": typeof lib_agents;
   "lib/aggregates": typeof lib_aggregates;
   "lib/functions": typeof lib_functions;
   "lib/html": typeof lib_html;

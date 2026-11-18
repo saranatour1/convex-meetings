@@ -12,6 +12,7 @@ import { VideoIcon } from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { FormError } from "#/components/form-error.tsx";
+import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { describeError } from "#/lib/errors.ts";
 import { CallEnded } from "./call/call-ended.tsx";
 import { CallLobby } from "./call/call-lobby.tsx";
@@ -28,6 +29,7 @@ type MeetingCallProps = {
   kind: MeetingKind;
   inCall: boolean;
   onInCallChange: (inCall: boolean) => void;
+  watch?: boolean;
   side?: CallSide;
   onSideChange: (side: CallSide | undefined) => void;
   expanded: boolean;
@@ -40,7 +42,7 @@ type MeetingCallProps = {
   recap: boolean;
 };
 
-type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange"> & {
+type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange" | "watch"> & {
   onBack: () => void;
   onRejoin: () => void;
   rejoining: boolean;
@@ -62,6 +64,7 @@ const CallView = ({
   const state = useRealtimeKitSelector((m) => m.self.roomState);
   if (state === "joined") return <CallRoom title={title} kind={kind} {...room} />;
   if (state === "init" || state === "waitlisted") {
+    if (rejoining) return <LoadingScreen />;
     return (
       <CallLobby
         title={title}
@@ -84,19 +87,31 @@ const CallView = ({
   );
 };
 
-export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: MeetingCallProps) => {
+export const MeetingCall = ({
+  meetingId,
+  inCall,
+  onInCallChange,
+  watch = false,
+  ...props
+}: MeetingCallProps) => {
   const join = useAction(api.meetings.join);
+  const switchHere = useAction(api.calls.switchHere);
   const pass = useGuestPass();
   const settings = useQuery(api.settings.getMine, pass.guest ? "skip" : {});
   const [meeting, initMeeting] = useRealtimeKitClient();
-  const viewer = props.moderated && Boolean(pass.guest);
+  const watching = watch || (props.moderated && Boolean(pass.guest));
   const form = useForm({
     defaultValues: {},
     validators: {
       onSubmitAsync: async () => {
         try {
-          const { token } = await join({ meetingId, ...pass });
-          await initMeeting({
+          const { token, viewer } = await join({
+            meetingId,
+            watch,
+            userAgent: pass.guest ? navigator.userAgent : undefined,
+            ...pass,
+          });
+          const client = await initMeeting({
             authToken: token,
             defaults: {
               audio: !viewer && !settings?.joinMuted,
@@ -104,6 +119,10 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
               plugins: props.moderated ? [] : [whiteboardPlugin(token)],
             },
           });
+          if (viewer && client) {
+            if (props.devicesInCall > 0) await switchHere({ meetingId, ...pass });
+            await client.join();
+          }
           track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });
           onInCallChange(true);
           return undefined;
@@ -161,7 +180,9 @@ export const MeetingCall = ({ meetingId, inCall, onInCallChange, ...props }: Mee
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="font-medium text-sm">{kindOf(props.kind).label}</span>
         <span className="text-muted-foreground text-sm">
-          Check your camera and mic before you go in.
+          {watching
+            ? "You'll watch and listen without a camera or mic."
+            : "Check your camera and mic before you go in."}
         </span>
         <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
           {(error) => <FormError error={error} />}
