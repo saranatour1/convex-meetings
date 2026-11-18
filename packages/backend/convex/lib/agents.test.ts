@@ -18,6 +18,7 @@ test("a plain browser is named by what the agent typed", () => {
   expect(detectAgent(CHROME, "ChatGPT agent")).toBe("chatgpt");
   expect(detectAgent(CHROME, "Duet")).toBe("duet");
   expect(detectAgent(CHROME, "Claude Code")).toBe("claude");
+  expect(detectAgent(CHROME, "Claude (Sara's assistant)")).toBe("claude");
   expect(detectAgent(CHROME, "Meeting bot")).toBe("bot");
 });
 

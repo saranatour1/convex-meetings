@@ -46,6 +46,7 @@ import { useGuestPass } from "../guest-pass.ts";
 import { MeetingChat } from "../meeting-chat.tsx";
 import { kindOf, type MeetingKind } from "../meeting-kinds.ts";
 import { RTK_SECTIONS, emitCallUi, type CallSide } from "./call-ui.ts";
+import { AlsoHere } from "./also-here.tsx";
 import { FrameSampler } from "./frame-sampler.tsx";
 import { LiveTranscript } from "./live-transcript.tsx";
 import { MediaControls } from "./media-controls.tsx";
@@ -261,6 +262,7 @@ export const CallRoom = ({
           ) : (
             <RtkGrid meeting={meeting} className="size-full" />
           )}
+          {kind === "groupCall" && <AlsoHere />}
           <div
             role="toolbar"
             aria-label="Call controls"
