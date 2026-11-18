@@ -1,7 +1,15 @@
 import { track } from "@databuddy/sdk";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
-import { DoorOpenIcon, GlobeIcon, HandIcon, LockIcon, MailIcon, ShieldIcon } from "lucide-react";
+import {
+  DoorOpenIcon,
+  GlobeIcon,
+  HandIcon,
+  LockIcon,
+  MailIcon,
+  ScrollTextIcon,
+  ShieldIcon,
+} from "lucide-react";
 import { api, type Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import {
@@ -72,6 +80,7 @@ type SettingsProps = {
   isProtected: boolean;
   slowModeSeconds: number;
   waitingRoom: boolean;
+  liveText: boolean;
 };
 
 export const MeetingSettingsCard = ({
@@ -81,6 +90,7 @@ export const MeetingSettingsCard = ({
   isProtected,
   slowModeSeconds,
   waitingRoom,
+  liveText,
 }: SettingsProps) => {
   const update = useMutation(api.meetings.updateSettings);
   const updateRoom = useMutation(api.rooms.update);
@@ -208,6 +218,19 @@ export const MeetingSettingsCard = ({
             </span>
           </span>
           <Switch checked={isProtected} onCheckedChange={(on) => save({ protected: on })} />
+        </Label>
+        <Label className="justify-between gap-3 font-normal">
+          <span className="flex flex-col gap-0.5">
+            <span className="flex items-center gap-1.5 font-medium">
+              <ScrollTextIcon className="size-4" />
+              Live transcript
+            </span>
+            <span className="text-muted-foreground text-xs">
+              Shows what people say as text during the call. Applies to people as they join or
+              rejoin.
+            </span>
+          </span>
+          <Switch checked={liveText} onCheckedChange={(on) => save({ liveText: on })} />
         </Label>
         {slowMode}
       </CardPanel>

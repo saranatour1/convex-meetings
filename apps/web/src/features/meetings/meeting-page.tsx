@@ -405,6 +405,7 @@ export const MeetingPage = ({
                     isProtected={meeting.protected}
                     slowModeSeconds={meeting.slowModeSeconds}
                     waitingRoom={meeting.waitingRoom}
+                    liveText={meeting.liveText}
                   />
                 )}
                 {lastCall && (

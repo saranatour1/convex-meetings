@@ -12,9 +12,10 @@ const PRESET_NAMES: Record<Kind, Record<Role, string>> = {
 };
 
 export const PUBLIC_GUEST_PRESET = "call_public_guest";
+const NO_LIVE_TEXT = "_no_text";
 
-export const presetName = (kind: Kind, role: Role, viewer = false) =>
-  viewer ? PUBLIC_GUEST_PRESET : PRESET_NAMES[kind][role];
+export const presetName = (kind: Kind, role: Role, viewer = false, liveText = true) =>
+  `${viewer ? PUBLIC_GUEST_PRESET : PRESET_NAMES[kind][role]}${liveText ? "" : NO_LIVE_TEXT}`;
 
 const DESIGN_TOKENS = {
   theme: "light",
@@ -51,13 +52,13 @@ const NO_CHAT = {
   private: { can_send: false, can_receive: false, text: false, files: false },
 };
 
-const preset = (kind: Kind, role: Role) => {
+const preset = (kind: Kind, role: Role, liveText: boolean) => {
   const host = role === "host";
   const staged = kind === "webinar" || kind === "classroom" || kind === "audioRoom";
   const speaks: Produce = host || !staged ? "ALLOWED" : "CAN_REQUEST";
   const video: Produce = kind === "audioRoom" ? "NOT_ALLOWED" : speaks;
   return {
-    name: presetName(kind, role),
+    name: presetName(kind, role, false, liveText),
     config: {
       view_type:
         kind === "audioRoom" ? "AUDIO_ROOM" : kind === "groupCall" ? "GROUP_CALL" : "WEBINAR",
@@ -101,18 +102,18 @@ const preset = (kind: Kind, role: Role) => {
       stage_enabled: staged,
       stage_access: staged ? speaks : undefined,
       accept_stage_requests: staged && host,
-      transcription_enabled: true,
+      transcription_enabled: liveText,
     },
     ui: { design_tokens: DESIGN_TOKENS },
   };
 };
 
-const publicGuestPreset = () => {
-  const base = preset("groupCall", "participant");
+const publicGuestPreset = (liveText: boolean) => {
+  const base = preset("groupCall", "participant", liveText);
   const silent: { can_produce: Produce } = { can_produce: "NOT_ALLOWED" };
   return {
     ...base,
-    name: PUBLIC_GUEST_PRESET,
+    name: presetName("groupCall", "participant", true, liveText),
     permissions: {
       ...base.permissions,
       media: { audio: silent, video: silent, screenshare: silent },
@@ -120,9 +121,10 @@ const publicGuestPreset = () => {
   };
 };
 
-export const allPresets = () => [
-  ...(Object.keys(PRESET_NAMES) as Kind[]).flatMap((kind) =>
-    (["host", "participant"] as const).map((role) => preset(kind, role)),
-  ),
-  publicGuestPreset(),
-];
+export const allPresets = () =>
+  [true, false].flatMap((liveText) => [
+    ...(Object.keys(PRESET_NAMES) as Kind[]).flatMap((kind) =>
+      (["host", "participant"] as const).map((role) => preset(kind, role, liveText)),
+    ),
+    publicGuestPreset(liveText),
+  ]);

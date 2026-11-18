@@ -98,6 +98,7 @@ erDiagram
     enum kind
     boolean recap
     boolean record "optional"
+    boolean liveTextOff "optional"
     boolean protected "optional"
     enum access "optional"
     enum inviters "optional"

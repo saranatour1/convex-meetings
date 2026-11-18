@@ -60,6 +60,7 @@ export const joinDetails = async (
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
+    liveText: !meeting.liveTextOff,
     record: !open && !meeting.protected && (meeting.record ?? false),
     rtkMeetingId: meeting.rtkMeetingId ?? null,
     memberId: member._id,

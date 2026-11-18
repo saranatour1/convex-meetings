@@ -340,6 +340,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
     title: meeting.title,
     kind: meeting.kind,
     recap: meeting.recap,
+    liveText: !meeting.liveTextOff,
     protected: open || (meeting.protected ?? false),
     access: meeting.access ?? "invited",
     inviters: meeting.inviters ?? "hosts",
