@@ -8,6 +8,7 @@ import { realtimeKit } from "../lib/realtimekit";
 import { forgetDevices } from "../models/calls";
 import { joinBudget, markLiveText as markLiveTextState } from "../models/usage";
 import { endEmptyMeeting } from "../models/meetings";
+import { clearTranscript as clearTranscriptLines } from "../models/transcripts";
 import { setAgent as setUserAgent } from "../models/users";
 import {
   claimRtkMeeting,
@@ -48,6 +49,11 @@ export const setParticipant = internalMutation({
   args: { memberId: v.id("meetingMembers"), rtkParticipantId: v.string(), rtkPreset: v.string() },
   handler: (ctx, { memberId, rtkParticipantId, rtkPreset }) =>
     setRtkParticipant(ctx, memberId, rtkParticipantId, rtkPreset),
+});
+
+export const clearTranscript = internalMutation({
+  args: { meetingId: v.id("meetings"), until: v.number() },
+  handler: (ctx, { meetingId, until }) => clearTranscriptLines(ctx, meetingId, until),
 });
 
 export const setAgent = internalMutation({

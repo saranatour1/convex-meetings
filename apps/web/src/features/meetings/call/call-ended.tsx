@@ -46,12 +46,15 @@ type CallEndedProps = {
   onRejoin: () => void;
   onBack: () => void;
   rejoining: boolean;
+  error?: string;
 };
 
-export const CallEnded = ({ title, recap, onRejoin, onBack, rejoining }: CallEndedProps) => {
+export const CallEnded = ({ title, recap, onRejoin, onBack, rejoining, error }: CallEndedProps) => {
   const state = useRealtimeKitSelector((m) => m.self.roomState);
   const pass = useGuestPass();
-  const message = MESSAGES[state] ?? MESSAGES.left!;
+  const message = error
+    ? { title: "Couldn't connect to the call", description: error }
+    : (MESSAGES[state] ?? MESSAGES.left!);
 
   return (
     <div className="grid h-dvh place-items-center p-6">
@@ -79,7 +82,7 @@ export const CallEnded = ({ title, recap, onRejoin, onBack, rejoining }: CallEnd
             )}
           </div>
         </div>
-        {recap && (state === "left" || state === "ended") && (
+        {recap && !error && (state === "left" || state === "ended") && (
           <RecapOnItsWay guest={Boolean(pass.guest)} />
         )}
       </div>

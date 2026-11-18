@@ -27,6 +27,7 @@ import { usage } from "./tables/usage";
 import { userSettings } from "./tables/userSettings";
 import { users } from "./tables/users";
 import { verifiedSessions } from "./tables/verifiedSessions";
+import { transcriptLines } from "./tables/transcriptLines";
 
 export default defineSchema({
   users,
@@ -52,6 +53,7 @@ export default defineSchema({
   messageReactions,
   strokes,
   annotationSnapshots,
+  transcriptLines,
   schedules,
   notifications,
   usage,

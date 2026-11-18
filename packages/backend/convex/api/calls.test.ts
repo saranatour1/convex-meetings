@@ -327,6 +327,29 @@ test("a call with only AI agents left ends and the agents are kicked", async () 
   );
 });
 
+test("the live transcript keeps each speaker's lines while the call is on, then forgets them", async () => {
+  vi.useFakeTimers();
+  const { t, host, guest, meetingId, hostMember, event } = await setup();
+  const live = async (user: typeof guest) =>
+    (
+      await user.asUser.query(api.api.transcripts.live, { meetingId, paginationOpts: page })
+    ).page.map((line) => `${line.name}: ${line.text}`);
+
+  expect(
+    await host.asUser.mutation(api.api.transcripts.add, { meetingId, text: "Early" }),
+  ).toBeNull();
+  await host.asUser.action(api.api.meetings.join, { meetingId });
+  await event("meeting.participantJoined", hostMember);
+  await host.asUser.mutation(api.api.transcripts.add, { meetingId, text: "Welcome, everyone" });
+  vi.advanceTimersByTime(1000);
+  await guest.asUser.mutation(api.api.transcripts.add, { meetingId, text: "Thanks" });
+  expect(await live(guest)).toEqual(["Guest: Thanks", "Host: Welcome, everyone"]);
+
+  await event("meeting.ended");
+  expect(await live(guest)).toEqual([]);
+  expect(await t.run((ctx) => ctx.db.query("transcriptLines").take(10))).toEqual([]);
+});
+
 test("rejoining within two minutes keeps the meeting open", async () => {
   vi.useFakeTimers();
   const { t, host, meetingId, hostMember, event } = await setup();

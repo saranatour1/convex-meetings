@@ -10,7 +10,11 @@ const SIGNS: { agent: Agent; userAgent: RegExp; name: RegExp }[] = [
   { agent: "grokBot", userAgent: /\bGrok ?Bot\b/i, name: /\bgrok[\s-]*bot\b/i },
   { agent: "grok", userAgent: /\b(Grok|xAI)\b/i, name: /\bgrok\b/i },
   { agent: "chatgpt", userAgent: /\b(ChatGPT|OpenAI)\b/i, name: /\b(chatgpt|openai|codex)\b/i },
-  { agent: "claude", userAgent: /\bClaude\//, name: /\bclaude[\s-]+(code|bot|ai|agent)\b/i },
+  {
+    agent: "claude",
+    userAgent: /\bClaude\//,
+    name: /\bclaude\b.*\b(code|bot|ai|agent|assistant)\b/i,
+  },
   { agent: "bot", userAgent: /\b(HeadlessChrome|bot)\b/i, name: /\b(bot|ai agent)\b/i },
 ];
 

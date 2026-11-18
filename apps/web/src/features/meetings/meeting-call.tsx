@@ -46,7 +46,20 @@ type CallViewProps = Omit<MeetingCallProps, "inCall" | "onInCallChange" | "watch
   onBack: () => void;
   onRejoin: () => void;
   rejoining: boolean;
+  joinError?: string;
 };
+
+const NO_MEDIA =
+  "Your browser couldn't connect to the call's audio and video. Some AI agents' browsers block WebRTC. Go back to the meeting page to follow the live transcript and the chat.";
+
+const joinsWithin = (join: () => Promise<unknown>, ms: number) =>
+  Promise.race([
+    join().then(
+      () => true,
+      () => false,
+    ),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
+  ]);
 
 const CallView = ({
   title,
@@ -54,6 +67,7 @@ const CallView = ({
   onBack,
   onRejoin,
   rejoining,
+  joinError,
   devicesInCall,
   peopleInCall,
   recap,
@@ -62,9 +76,10 @@ const CallView = ({
   const switchHere = useAction(api.calls.switchHere);
   const pass = useGuestPass();
   const state = useRealtimeKitSelector((m) => m.self.roomState);
+  const waiting = state === "init" || state === "waitlisted";
   if (state === "joined") return <CallRoom title={title} kind={kind} {...room} />;
-  if (state === "init" || state === "waitlisted") {
-    if (rejoining) return <LoadingScreen />;
+  if (waiting && rejoining) return <LoadingScreen />;
+  if (waiting && !joinError) {
     return (
       <CallLobby
         title={title}
@@ -83,6 +98,7 @@ const CallView = ({
       onBack={onBack}
       onRejoin={onRejoin}
       rejoining={rejoining}
+      error={joinError}
     />
   );
 };
@@ -121,7 +137,10 @@ export const MeetingCall = ({
           });
           if (viewer && client) {
             if (props.devicesInCall > 0) await switchHere({ meetingId, ...pass });
-            await client.join();
+            if (!(await joinsWithin(() => client.join(), 15_000))) {
+              await client.leave().catch(() => undefined);
+              return NO_MEDIA;
+            }
           }
           track("call_joined", { kind: props.kind, guest: Boolean(pass.guest) });
           onInCallChange(true);
@@ -147,8 +166,13 @@ export const MeetingCall = ({
         {!pass.guest && <OutgoingRing meetingId={meetingId} />}
         <RealtimeKitProvider value={meeting}>
           <RtkUiProvider meeting={meeting} showSetupScreen>
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(rejoining) => (
+            <form.Subscribe
+              selector={(state) => ({
+                rejoining: state.isSubmitting,
+                joinError: state.errorMap.onSubmit,
+              })}
+            >
+              {({ rejoining, joinError }) => (
                 <CallView
                   meetingId={meetingId}
                   {...props}
@@ -158,6 +182,7 @@ export const MeetingCall = ({
                   }}
                   onRejoin={() => void form.handleSubmit()}
                   rejoining={rejoining}
+                  joinError={joinError}
                 />
               )}
             </form.Subscribe>
