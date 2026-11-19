@@ -94,9 +94,11 @@ export const setStrokesRemoved = async (
   requireDrawing(meeting);
   if (!removed) await requireUnlocked(ctx, { meetingId, shareId }, member);
   let canClear: boolean | undefined;
+  let changed = 0;
   for (const id of ids) {
     const stroke = await ctx.db.get("strokes", id);
     if (!stroke || stroke.meetingId !== meetingId || stroke.shareId !== shareId) continue;
+    if ((stroke.removedAt !== undefined) === removed) continue;
     if (stroke.memberId !== member._id) {
       canClear ??= await canClearShare(ctx, meeting, member, shareId);
       if (!canClear) {
@@ -104,7 +106,9 @@ export const setStrokesRemoved = async (
       }
     }
     await ctx.db.patch("strokes", id, { removedAt: removed ? Date.now() : undefined });
+    changed += 1;
   }
+  return changed;
 };
 
 export const setShareLock = async (

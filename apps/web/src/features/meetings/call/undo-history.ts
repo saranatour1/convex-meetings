@@ -35,14 +35,15 @@ export const takeStep = (shareId: string, from: keyof History) => {
   const history = historyOf(shareId);
   const step = history[from].at(-1);
   if (!step) return undefined;
-  const to = from === "undo" ? "redo" : "undo";
-  histories.set(shareId, {
-    ...history,
-    [from]: history[from].slice(0, -1),
-    [to]: [...history[to], step],
-  } as History);
+  histories.set(shareId, { ...history, [from]: history[from].slice(0, -1) });
   emit();
   return step;
+};
+
+export const putStep = (shareId: string, to: keyof History, step: Step) => {
+  const history = historyOf(shareId);
+  histories.set(shareId, { ...history, [to]: [...history[to], step] });
+  emit();
 };
 
 export const useHistory = (shareId: string) =>

@@ -234,12 +234,17 @@ test("people take back their own marks, and the presenter can keep drawing to th
   await expect(
     guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [theirs] }),
   ).rejects.toThrow("erase other people's marks");
-  await guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] });
+  expect(await guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] })).toBe(
+    1,
+  );
   expect(await visible()).toEqual([theirs]);
   await guest.asUser.mutation(api.api.annotations.restore, { ...share, ids: [mine] });
   expect(await visible()).toEqual([mine, theirs]);
   await host.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] });
   expect(await visible()).toEqual([theirs]);
+  expect(await guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] })).toBe(
+    0,
+  );
 
   await expect(
     guest.asUser.mutation(api.api.annotations.lock, { ...share, locked: true }),

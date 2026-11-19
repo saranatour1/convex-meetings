@@ -1,13 +1,13 @@
 import { expect, test } from "vite-plus/test";
-import { forget, historyOf, record, takeStep } from "./undo-history.ts";
+import { forget, historyOf, putStep, record, takeStep } from "./undo-history.ts";
 
-test("undo and redo walk back and forth, and a new mark drops the redo stack", () => {
+test("steps move between undo and redo, and a new mark drops the redo stack", () => {
   record("share", { kind: "add", ids: ["a"] });
   record("share", { kind: "remove", ids: ["a"] });
-  expect(takeStep("share", "undo")).toEqual({ kind: "remove", ids: ["a"] });
-  expect(historyOf("share").redo).toHaveLength(1);
-  expect(takeStep("share", "redo")).toEqual({ kind: "remove", ids: ["a"] });
-  takeStep("share", "undo");
+  const step = takeStep("share", "undo");
+  expect(step).toEqual({ kind: "remove", ids: ["a"] });
+  putStep("share", "redo", step!);
+  expect(historyOf("share").redo).toEqual([step]);
   record("share", { kind: "add", ids: ["b"] });
   expect(historyOf("share")).toEqual({
     undo: [

@@ -40,7 +40,7 @@ import {
   type Mark,
 } from "./marks.ts";
 import { PEN_COLORS, PEN_TOOLS, type MarkTool, type PenColor, type PenTool } from "./pens.ts";
-import { forget, record, takeStep, useHistory, type Step } from "./undo-history.ts";
+import { forget, putStep, record, takeStep, useHistory, type History } from "./undo-history.ts";
 
 const TOOLS: { tool: PenTool; label: string; key: string; icon: typeof PencilIcon }[] = [
   { tool: "pen", label: "Pen", key: "P", icon: PencilIcon },
@@ -213,21 +213,24 @@ export const AnnotationLayer = ({
       .catch(showError)
       .finally(() => pending?.remove());
 
-  const apply = (step: Step, undoing: boolean) => {
+  const walk = (from: keyof History): Promise<void> => {
+    const step = takeStep(shareId, from);
+    if (!step) return Promise.resolve();
+    const removing = (step.kind === "add") === (from === "undo");
     const ids = step.ids as Id<"strokes">[];
-    const removing = (step.kind === "add") === undoing;
-    void (removing ? remove : restore)({ ...share, ids }).catch(showError);
+    return (removing ? remove : restore)({ ...share, ids }).then(
+      (changed) =>
+        changed > 0 ? putStep(shareId, from === "undo" ? "redo" : "undo", step) : walk(from),
+      (error: unknown) => {
+        putStep(shareId, from, step);
+        showError(error);
+      },
+    );
   };
 
-  const undo = () => {
-    const step = takeStep(shareId, "undo");
-    if (step) apply(step, true);
-  };
+  const undo = () => void walk("undo");
 
-  const redo = () => {
-    const step = takeStep(shareId, "redo");
-    if (step) apply(step, false);
-  };
+  const redo = () => void walk("redo");
 
   const snapshot = async () => {
     if (!track) return;
