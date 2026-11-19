@@ -1,4 +1,5 @@
 import { zid } from "convex-helpers/server/zod4";
+import { z } from "zod";
 import { authedQuery, meetingMutation, meetingQuery } from "../lib/functions";
 import { enforceRateLimit } from "../lib/rateLimits";
 import {
@@ -8,20 +9,26 @@ import {
   listStrokes,
   requireSnapshotRights,
   saveSnapshot,
+  setShareLock,
+  setStrokesRemoved,
 } from "../models/annotations";
 import { zStroke } from "../tables/annotations";
 
+const share = { meetingId: zid("meetings"), shareId: zStroke.shape.shareId };
+const marks = { ...share, ids: z.array(zid("strokes")).min(1).max(100) };
+
 export const strokes = meetingQuery({
-  args: { meetingId: zid("meetings"), shareId: zStroke.shape.shareId },
+  args: share,
   handler: (ctx, { meetingId, shareId }) => listStrokes(ctx, ctx.userId, meetingId, shareId),
 });
 
 export const draw = meetingMutation({
   args: {
-    meetingId: zid("meetings"),
-    shareId: zStroke.shape.shareId,
+    ...share,
+    tool: zStroke.shape.tool,
     color: zStroke.shape.color,
     points: zStroke.shape.points,
+    text: zStroke.shape.text,
   },
   handler: async (ctx, stroke) => {
     await enforceRateLimit(ctx, "stroke", ctx.userId);
@@ -29,8 +36,29 @@ export const draw = meetingMutation({
   },
 });
 
+export const remove = meetingMutation({
+  args: marks,
+  handler: async (ctx, args) => {
+    await enforceRateLimit(ctx, "stroke", ctx.userId);
+    return setStrokesRemoved(ctx, ctx.userId, args, true);
+  },
+});
+
+export const restore = meetingMutation({
+  args: marks,
+  handler: async (ctx, args) => {
+    await enforceRateLimit(ctx, "stroke", ctx.userId);
+    return setStrokesRemoved(ctx, ctx.userId, args, false);
+  },
+});
+
+export const lock = meetingMutation({
+  args: { ...share, locked: z.boolean() },
+  handler: (ctx, args) => setShareLock(ctx, ctx.userId, args),
+});
+
 export const clear = meetingMutation({
-  args: { meetingId: zid("meetings"), shareId: zStroke.shape.shareId },
+  args: share,
   handler: (ctx, { meetingId, shareId }) => clearShareStrokes(ctx, ctx.userId, meetingId, shareId),
 });
 

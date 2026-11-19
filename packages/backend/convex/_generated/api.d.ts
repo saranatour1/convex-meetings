@@ -91,6 +91,7 @@ import type * as models_transcripts from "../models/transcripts.js";
 import type * as models_usage from "../models/usage.js";
 import type * as models_users from "../models/users.js";
 import type * as tables_agentPresence from "../tables/agentPresence.js";
+import type * as tables_annotationLocks from "../tables/annotationLocks.js";
 import type * as tables_annotations from "../tables/annotations.js";
 import type * as tables_auditEvents from "../tables/auditEvents.js";
 import type * as tables_bans from "../tables/bans.js";
@@ -211,6 +212,7 @@ declare const fullApi: ApiFromModules<{
   "models/usage": typeof models_usage;
   "models/users": typeof models_users;
   "tables/agentPresence": typeof tables_agentPresence;
+  "tables/annotationLocks": typeof tables_annotationLocks;
   "tables/annotations": typeof tables_annotations;
   "tables/auditEvents": typeof tables_auditEvents;
   "tables/bans": typeof tables_bans;
