@@ -271,12 +271,18 @@ importers:
       luxon:
         specifier: ^3.7.2
         version: 3.7.2
+      perfect-freehand:
+        specifier: 1.2.3
+        version: 1.2.3
       react:
         specifier: 'catalog:'
         version: 19.3.1
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
+      roughjs:
+        specifier: 4.6.6
+        version: 4.6.6
       tailwindcss:
         specifier: ^4.3.5
         version: 4.3.5
@@ -2785,6 +2791,9 @@ packages:
   graceful-fs@4.2.12:
     resolution: {integrity: sha512-iuyGF2E4oafQfPsRrG2wtY2ILupMhvtdrhzrxB+0VcjsPpSPttpfYdjnGFGsTi5MaJFjI1jOKHPQ6UTbTj9TAw==}
 
+  hachure-fill@0.5.2:
+    resolution: {integrity: sha512-3GKBOn+m2LX9iq+JC1064cSFprJY4jL1jCXTcpnfER5HYE2l/4EfWSGzkPa/ZDBmYI0ZOEj5VHV/eKnPGkHuOg==}
+
   hark@1.2.3:
     resolution: {integrity: sha512-u68vz9SCa38ESiFJSDjqK8XbXqWzyot7Cj6Y2b6jk2NJ+II3MY2dIrLMg/kjtIAun4Y1DHF/20hfx4rq1G5GMg==}
 
@@ -3037,11 +3046,17 @@ packages:
   password-hash-wasm@0.0.0:
     resolution: {integrity: sha512-SpVGWB4mMf8VuHM1LqrZWLPtH7B4K2vVqAZ6pAnL/eeTLtPqewwnt0DD7428xUPSDrEWd2SDoLoU4z61gj9sYw==}
 
+  path-data-parser@0.1.0:
+    resolution: {integrity: sha512-NOnmBpt5Y2RWbuv0LMzsayp3lVylAHLPUTut412ZA3l+C4uw4ZVkQbjShYCQ8TCpUMdPapr4YjUqLYD6v68j+w==}
+
   path-to-regexp@6.3.0:
     resolution: {integrity: sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==}
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
+
+  perfect-freehand@1.2.3:
+    resolution: {integrity: sha512-bHZSfqDHGNlPpgH2yxXgPHlQSPpEbo+qg7li0M78J9vNAi2yjwLeA4x79BEQhX44lEWpCLSFCeRZwpw0niiXPA==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -3053,6 +3068,12 @@ packages:
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
     engines: {node: '>=14.19.0'}
+
+  points-on-curve@0.2.0:
+    resolution: {integrity: sha512-0mYKnYYe9ZcqMCWhUjItv/oHjvgEsfKvnUTg8sAtnHr3GVy7rGkXCb6d5cSyqrWqL4k81b9CPg3urd+T7aop3A==}
+
+  points-on-path@0.2.1:
+    resolution: {integrity: sha512-25ClnWWuw7JbWZcgqY/gJ4FQWadKxGWk+3kR/7kD0tCaDtPPMj7oHu2ToLaVhfpnHrZzYby2w6tUA0eOIuUg8g==}
 
   postcss@8.5.23:
     resolution: {integrity: sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==}
@@ -3117,6 +3138,9 @@ packages:
     resolution: {integrity: sha512-QIiV1J9d0pzN4jeeTH4sjPy0AZ6cAy2cG0ExeoE1+U8Rvj+hR3gYkokx0YbeUNGlZqiQJJ2utcETe0oKXwzsuA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
+
+  roughjs@4.6.6:
+    resolution: {integrity: sha512-ZUz/69+SYpFN/g/lUlo2FXcIjRkSu3nDarreVdGGndHEBJ6cXPdKguS8JGxwj5HA5xIbVKSmLgr5b3AWxtRfvQ==}
 
   scheduler@0.28.0:
     resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
@@ -5567,6 +5591,8 @@ snapshots:
 
   graceful-fs@4.2.12: {}
 
+  hachure-fill@0.5.2: {}
+
   hark@1.2.3:
     dependencies:
       wildemitter: 1.2.1
@@ -5800,15 +5826,26 @@ snapshots:
 
   password-hash-wasm@0.0.0: {}
 
+  path-data-parser@0.1.0: {}
+
   path-to-regexp@6.3.0: {}
 
   pathe@2.0.3: {}
+
+  perfect-freehand@1.2.3: {}
 
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
 
   pngjs@7.0.0: {}
+
+  points-on-curve@0.2.0: {}
+
+  points-on-path@0.2.1:
+    dependencies:
+      path-data-parser: 0.1.0
+      points-on-curve: 0.2.0
 
   postcss@8.5.23:
     dependencies:
@@ -5884,6 +5921,13 @@ snapshots:
       '@rolldown/binding-win32-arm64-msvc': 1.2.19
       '@rolldown/binding-win32-x64-msvc': 1.2.19
     optional: true
+
+  roughjs@4.6.6:
+    dependencies:
+      hachure-fill: 0.5.2
+      path-data-parser: 0.1.0
+      points-on-curve: 0.2.0
+      points-on-path: 0.2.1
 
   scheduler@0.28.0: {}
 

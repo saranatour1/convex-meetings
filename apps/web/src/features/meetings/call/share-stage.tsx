@@ -1,26 +1,42 @@
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
 import { RtkParticipantTile, RtkScreenshareView } from "@cloudflare/realtimekit-react-ui";
 import { Maximize2Icon, Minimize2Icon, MonitorUpIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
 import { AnnotationLayer } from "./annotations.tsx";
+import { closeFloatOnUnmount, useFloatWindow } from "./float-window.ts";
 
-const SelfShare = () => {
+const ShareVideo = ({ track }: { track: MediaStreamTrack | undefined }) => (
+  <video
+    className="size-full object-contain"
+    autoPlay
+    muted
+    playsInline
+    ref={(video) => {
+      const current = (video?.srcObject as MediaStream | null)?.getVideoTracks()[0];
+      if (video && track && current !== track) video.srcObject = new MediaStream([track]);
+    }}
+  />
+);
+
+const SelfShare = ({ floatingLayer }: { floatingLayer: ReactNode }) => {
   const { meeting } = useRealtimeKitMeeting();
   const track = useRealtimeKitSelector((m) => m.self.screenShareTracks?.video);
+  const floating = useFloatWindow();
 
   return (
-    <div className="relative size-full">
-      <video
-        className="size-full object-contain"
-        autoPlay
-        muted
-        playsInline
-        ref={(video) => {
-          const current = (video?.srcObject as MediaStream | null)?.getVideoTracks()[0];
-          if (video && track && current !== track) video.srcObject = new MediaStream([track]);
-        }}
-      />
+    <div className="relative size-full" ref={closeFloatOnUnmount}>
+      <ShareVideo track={track} />
+      {floating &&
+        createPortal(
+          <div className="relative h-dvh w-full">
+            <ShareVideo track={track} />
+            {floatingLayer}
+          </div>,
+          floating.document.body,
+        )}
       <div className="absolute start-3 bottom-3 flex items-center gap-2 rounded-full bg-background/90 py-1 ps-3 pe-1 text-xs shadow-sm">
         <MonitorUpIcon className="size-3.5" />
         You're sharing your screen
@@ -44,7 +60,6 @@ type ShareStageProps = {
   onExpandedChange: (expanded: boolean) => void;
   annotate: boolean;
   canSnapshot: boolean;
-  canClearAll: boolean;
 };
 
 export const ShareStage = ({
@@ -54,7 +69,6 @@ export const ShareStage = ({
   onExpandedChange,
   annotate,
   canSnapshot,
-  canClearAll,
 }: ShareStageProps) => {
   const { meeting } = useRealtimeKitMeeting();
   const others = useRealtimeKitSelector((m) => m.participants.joined.toArray());
@@ -69,7 +83,19 @@ export const ShareStage = ({
         {sharer ? (
           <RtkScreenshareView meeting={meeting} participant={sharer} className="size-full" />
         ) : (
-          <SelfShare />
+          <SelfShare
+            floatingLayer={
+              shareId && annotate ? (
+                <AnnotationLayer
+                  meetingId={meetingId}
+                  shareId={shareId}
+                  track={track}
+                  canSnapshot={canSnapshot}
+                  floating
+                />
+              ) : null
+            }
+          />
         )}
         {shareId && annotate && (
           <AnnotationLayer
@@ -77,7 +103,6 @@ export const ShareStage = ({
             meetingId={meetingId}
             shareId={shareId}
             track={track}
-            canClear={canClearAll || !sharer}
             canSnapshot={canSnapshot}
           />
         )}
