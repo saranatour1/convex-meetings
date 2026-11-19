@@ -273,7 +273,6 @@ export const CallRoom = ({
               onExpandedChange={onExpandedChange}
               annotate={!moderated}
               canSnapshot={!isProtected || canControl}
-              canClearAll={canControl}
             />
           ) : (
             <RtkGrid meeting={meeting} className="size-full" />

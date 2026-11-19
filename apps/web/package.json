@@ -30,8 +30,10 @@
     "convex": "catalog:",
     "lucide-react": "catalog:",
     "luxon": "^3.7.2",
+    "perfect-freehand": "1.2.3",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "roughjs": "4.6.6",
     "tailwindcss": "^4.3.5"
   },
   "devDependencies": {

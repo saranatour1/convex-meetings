@@ -203,14 +203,22 @@ erDiagram
     id meetingId FK "meetings"
     string shareId
     id memberId FK "meetingMembers"
+    enum tool "optional"
     enum color
     array points
+    string text "optional"
+    number removedAt "optional"
   }
   annotationSnapshots {
     id _id PK
     id meetingId FK "meetings"
     id memberId FK "meetingMembers"
     id storageId FK "_storage"
+  }
+  annotationLocks {
+    id _id PK
+    id meetingId FK "meetings"
+    string shareId
   }
   transcriptLines {
     id _id PK
@@ -340,6 +348,7 @@ erDiagram
   annotationSnapshots }o--|| meetings : meetingId
   annotationSnapshots }o--|| meetingMembers : memberId
   annotationSnapshots }o--|| _storage : storageId
+  annotationLocks }o--|| meetings : meetingId
   transcriptLines }o--|| meetings : meetingId
   transcriptLines }o--|| meetingMembers : memberId
   agentPresence }o--|| meetings : meetingId
@@ -411,8 +420,9 @@ erDiagram
 | messages | by_meeting | meetingId |
 | messageReactions | by_message_and_member | messageId, memberId |
 | messageReactions | by_meeting | meetingId |
-| strokes | by_meeting_and_share | meetingId, shareId |
+| strokes | by_meeting_and_share | meetingId, shareId, removedAt |
 | annotationSnapshots | by_meeting | meetingId |
+| annotationLocks | by_meeting_and_share | meetingId, shareId |
 | transcriptLines | by_meeting_and_at | meetingId, at |
 | agentPresence | by_meeting_and_member | meetingId, memberId |
 | agentPresence | by_session | sessionId |

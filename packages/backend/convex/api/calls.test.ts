@@ -153,23 +153,118 @@ test("removing someone from the org takes them out of its live calls", async () 
 });
 
 test("everyone draws on a share; only the presenter or host clears it", async () => {
-  const { host, guest, meetingId, hostMember, guestMember } = await setup();
+  const { host, guest, meetingId, hostMember } = await setup();
+  const share = { meetingId, shareId: hostMember };
   await guest.asUser.mutation(api.api.annotations.draw, {
-    meetingId,
-    shareId: hostMember,
+    ...share,
     color: "red",
     points: [0.1, 0.1, 0.5, 0.5],
   });
-  expect(
-    await host.asUser.query(api.api.annotations.strokes, { meetingId, shareId: hostMember }),
-  ).toMatchObject([{ color: "red", points: [0.1, 0.1, 0.5, 0.5], memberId: guestMember }]);
+  await guest.asUser.mutation(api.api.annotations.draw, {
+    ...share,
+    tool: "text",
+    color: "blue",
+    points: [0.2, 0.3],
+    text: " Look here ",
+  });
+  expect(await host.asUser.query(api.api.annotations.strokes, share)).toMatchObject({
+    strokes: [
+      { tool: "pen", color: "red", points: [0.1, 0.1, 0.5, 0.5], mine: false },
+      { tool: "text", text: "Look here", mine: false },
+    ],
+    locked: false,
+    presenter: true,
+    canClear: true,
+  });
+  expect(await guest.asUser.query(api.api.annotations.strokes, share)).toMatchObject({
+    presenter: false,
+    canClear: false,
+  });
+  await expect(guest.asUser.mutation(api.api.annotations.clear, share)).rejects.toThrow(
+    "presenter or the host",
+  );
+  await host.asUser.mutation(api.api.annotations.clear, share);
+  expect((await guest.asUser.query(api.api.annotations.strokes, share)).strokes).toEqual([]);
+});
+
+test("each annotation tool keeps to its own shape", async () => {
+  const { host, meetingId, hostMember } = await setup();
+  const share = { meetingId, shareId: hostMember };
+  await host.asUser.mutation(api.api.annotations.draw, {
+    ...share,
+    tool: "rectangle",
+    color: "green",
+    points: [0.1, 0.1, 0.4, 0.4],
+  });
   await expect(
-    guest.asUser.mutation(api.api.annotations.clear, { meetingId, shareId: hostMember }),
-  ).rejects.toThrow("presenter or the host");
-  await host.asUser.mutation(api.api.annotations.clear, { meetingId, shareId: hostMember });
-  expect(
-    await guest.asUser.query(api.api.annotations.strokes, { meetingId, shareId: hostMember }),
-  ).toEqual([]);
+    host.asUser.mutation(api.api.annotations.draw, {
+      ...share,
+      tool: "rectangle",
+      color: "green",
+      points: [0.1, 0.1, 0.4, 0.4, 0.5, 0.5],
+    }),
+  ).rejects.toThrow("wrong number of points");
+  await expect(
+    host.asUser.mutation(api.api.annotations.draw, {
+      ...share,
+      tool: "text",
+      color: "red",
+      points: [0.1, 0.1],
+    }),
+  ).rejects.toThrow("Only text notes");
+  await expect(
+    host.asUser.mutation(api.api.annotations.draw, {
+      ...share,
+      color: "red",
+      points: [0.1, 0.1],
+      text: "hi",
+    }),
+  ).rejects.toThrow("Only text notes");
+});
+
+test("people take back their own marks, and the presenter can keep drawing to themselves", async () => {
+  const { host, guest, meetingId, hostMember, guestMember } = await setup();
+  const share = { meetingId, shareId: hostMember };
+  const pen = { ...share, color: "red" as const, points: [0.1, 0.1, 0.2, 0.2] };
+  const mine = await guest.asUser.mutation(api.api.annotations.draw, pen);
+  const theirs = await host.asUser.mutation(api.api.annotations.draw, pen);
+  const visible = async () =>
+    (await guest.asUser.query(api.api.annotations.strokes, share)).strokes.map((s) => s._id);
+
+  await expect(
+    guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [theirs] }),
+  ).rejects.toThrow("erase other people's marks");
+  expect(await guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] })).toBe(
+    1,
+  );
+  expect(await visible()).toEqual([theirs]);
+  await guest.asUser.mutation(api.api.annotations.restore, { ...share, ids: [mine] });
+  expect(await visible()).toEqual([mine, theirs]);
+  await host.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] });
+  expect(await visible()).toEqual([theirs]);
+  expect(await guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [mine] })).toBe(
+    0,
+  );
+
+  await expect(
+    guest.asUser.mutation(api.api.annotations.lock, { ...share, locked: true }),
+  ).rejects.toThrow("choose who draws");
+  await guest.asUser.mutation(api.api.annotations.lock, {
+    meetingId,
+    shareId: guestMember,
+    locked: true,
+  });
+  await host.asUser.mutation(api.api.annotations.lock, { ...share, locked: true });
+  expect((await guest.asUser.query(api.api.annotations.strokes, share)).locked).toBe(true);
+  await expect(guest.asUser.mutation(api.api.annotations.draw, pen)).rejects.toThrow(
+    "turned drawing off",
+  );
+  await expect(
+    guest.asUser.mutation(api.api.annotations.restore, { ...share, ids: [mine] }),
+  ).rejects.toThrow("turned drawing off");
+  await host.asUser.mutation(api.api.annotations.draw, pen);
+  await host.asUser.mutation(api.api.annotations.lock, { ...share, locked: false });
+  await guest.asUser.mutation(api.api.annotations.draw, pen);
 });
 
 test("protected meetings never record and keep snapshots and downloads to hosts", async () => {

@@ -6,6 +6,7 @@ import { invites } from "./tables/invites";
 import { joinRequests } from "./tables/joinRequests";
 import { joinLinks } from "./tables/joinLinks";
 import { annotationSnapshots, strokes } from "./tables/annotations";
+import { annotationLocks } from "./tables/annotationLocks";
 import { meetingGuests } from "./tables/meetingGuests";
 import { meetingMembers } from "./tables/meetingMembers";
 import { meetingSessions } from "./tables/meetingSessions";
@@ -54,6 +55,7 @@ export default defineSchema({
   messageReactions,
   strokes,
   annotationSnapshots,
+  annotationLocks,
   transcriptLines,
   agentPresence,
   schedules,
