@@ -24,6 +24,7 @@ import {
   cancelMeeting,
   createMeeting,
   findMeetingByCode,
+  newMeetingLink,
   getMeeting,
   listMyMeetings,
   editMeeting,
@@ -73,8 +74,10 @@ export const mine = authedQuery({
 export const get = meetingQuery({
   args: { code: z.string() },
   handler: async (ctx, { code }) => {
+    const { userId } = ctx;
+    if (!userId) return null;
     const meeting = await findMeetingByCode(ctx, code);
-    return meeting ? getMeeting(ctx, ctx.userId, meeting._id) : null;
+    return meeting ? getMeeting(ctx, userId, meeting._id) : null;
   },
 });
 
@@ -128,6 +131,11 @@ export const cancel = authedMutation({
       await ctx.scheduler.runAfter(0, internal.internal.realtime.deactivate, { rtkMeetingId });
     }
   },
+});
+
+export const newLink = authedMutation({
+  args: { meetingId: zid("meetings") },
+  handler: (ctx, { meetingId }) => newMeetingLink(ctx, ctx.userId, meetingId),
 });
 
 export const edit = authedMutation({
@@ -200,7 +208,12 @@ export const join = meetingAction({
       recap: details.recap,
       maxRecordingSeconds: budget.recordingSeconds,
     };
-    if (details.rtkMeetingId) await realtimeKit.updateMeeting(details.rtkMeetingId, config);
+    if (details.rtkMeetingId) {
+      await ctx.scheduler.runAfter(0, internal.internal.realtime.configure, {
+        rtkMeetingId: details.rtkMeetingId,
+        ...config,
+      });
+    }
     const rtkMeetingId: string =
       details.rtkMeetingId ??
       (await ctx.runMutation(internal.internal.realtime.claimMeeting, {

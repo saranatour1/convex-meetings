@@ -12,6 +12,7 @@ const startsAt = Date.UTC(2026, 10, 18, 9, 0);
 const requests: { url: string; method: string; body: Record<string, unknown> }[] = [];
 
 beforeEach(() => {
+  vi.useFakeTimers();
   requests.length = 0;
   vi.stubEnv("CLOUDFLARE_ACCOUNT_ID", "acct");
   vi.stubEnv("REALTIMEKIT_APP_ID", "app");
@@ -32,6 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -199,11 +201,12 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
 
   const again = await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
   expect(again).toMatchObject({ agent: false, token: expect.stringMatching(/^refreshed-/) });
+  await setup.t.finishAllScheduledFunctions(vi.runAllTimers);
   expect(requests.slice(2).map((r) => `${r.method} ${r.url.split("/kit/app")[1]}`)).toEqual([
-    "PATCH /meetings/rtk-meeting",
     "POST /meetings/rtk-meeting/participants/participant-2/token",
+    "PATCH /meetings/rtk-meeting",
   ]);
-  expect(requests[2]?.body).toMatchObject({
+  expect(requests[3]?.body).toMatchObject({
     transcribe_on_end: true,
     recording_config: { max_seconds: 5400 },
   });
@@ -211,6 +214,23 @@ test("joining creates the call once, uses the attendee preset, then refreshes th
   await setup.host.asUser.action(api.api.meetings.join, { meetingId });
   expect(requests.at(-1)?.body).toMatchObject({ preset_name: "webinar_host" });
   expect(requests.filter((r) => r.url.endsWith("/meetings"))).toHaveLength(1);
+});
+
+test("joining doesn't wait on updating the call's settings", async () => {
+  const setup = await orgWithTwoPeople();
+  const { meetingId } = await schedule(setup, { kind: "groupCall" });
+  await setup.guest.asUser.action(api.api.meetings.join, { meetingId });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init: RequestInit) =>
+      init.method === "PATCH"
+        ? new Response("{}", { status: 504 })
+        : new Response(JSON.stringify({ success: true, data: { token: `refreshed-${url}` } })),
+    ),
+  );
+  expect(await setup.guest.asUser.action(api.api.meetings.join, { meetingId })).toMatchObject({
+    token: expect.stringMatching(/^refreshed-/),
+  });
 });
 
 test("watching joins without mic or camera, and switching modes adds a fresh participant", async () => {

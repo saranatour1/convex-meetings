@@ -12,6 +12,7 @@ import {
   setShareLock,
   setStrokesRemoved,
 } from "../models/annotations";
+import { findMeetingAccess } from "../models/meetingAccess";
 import { zStroke } from "../tables/annotations";
 
 const share = { meetingId: zid("meetings"), shareId: zStroke.shape.shareId };
@@ -19,7 +20,11 @@ const marks = { ...share, ids: z.array(zid("strokes")).min(1).max(100) };
 
 export const strokes = meetingQuery({
   args: share,
-  handler: (ctx, { meetingId, shareId }) => listStrokes(ctx, ctx.userId, meetingId, shareId),
+  handler: async (ctx, { meetingId, shareId }) => {
+    const access = await findMeetingAccess(ctx, meetingId, ctx.userId);
+    if (!access || access.member.removedAt) return null;
+    return listStrokes(ctx, access.member.userId, meetingId, shareId);
+  },
 });
 
 export const draw = meetingMutation({

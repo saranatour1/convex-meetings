@@ -21,7 +21,12 @@ const MeetingLinkPage = () => {
           <GuestEntry
             code={code}
             onEntered={(secret) =>
-              void navigate({ to: "/guest/$secret", params: { secret }, replace: true })
+              void navigate({
+                to: "/guest/$secret",
+                params: { secret },
+                search: { code },
+                replace: true,
+              })
             }
           />
         </div>

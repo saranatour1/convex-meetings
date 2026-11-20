@@ -16,9 +16,24 @@ const settings = () => {
   };
 };
 
+const TIMEOUT_MS = 15_000;
+
+const send = async (url: string, init: RequestInit) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (!controller.signal.aborted) throw error;
+    throw new ConvexError("The video service didn't answer in time. Try again in a moment.");
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const call = async <T>(path: string, method: string, body?: unknown): Promise<T> => {
   const { base, token } = settings();
-  const response = await fetch(`${base}${path}`, {
+  const response = await send(`${base}${path}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),

@@ -66,6 +66,18 @@ export const recordEvent = internalMutation({
   handler: (ctx, { event }) => recordRealtimeEvent(ctx, event as RealtimeEvent),
 });
 
+export const configure = internalAction({
+  args: {
+    rtkMeetingId: v.string(),
+    record: v.boolean(),
+    recap: v.boolean(),
+    maxRecordingSeconds: v.number(),
+  },
+  handler: async (_ctx, { rtkMeetingId, ...config }) => {
+    await realtimeKit.updateMeeting(rtkMeetingId, config);
+  },
+});
+
 export const deactivate = internalAction({
   args: { rtkMeetingId: v.string() },
   handler: async (_ctx, { rtkMeetingId }) => {

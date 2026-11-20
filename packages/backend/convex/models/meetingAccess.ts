@@ -2,11 +2,12 @@ import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 
-export const requireMeetingMember = async (
+export const findMeetingAccess = async (
   ctx: QueryCtx,
   meetingId: Id<"meetings">,
-  userId: Id<"users">,
+  userId: Id<"users"> | null,
 ) => {
+  if (!userId) return null;
   const [meeting, member] = await Promise.all([
     ctx.db.get("meetings", meetingId),
     ctx.db
@@ -14,8 +15,17 @@ export const requireMeetingMember = async (
       .withIndex("by_meeting_and_user", (q) => q.eq("meetingId", meetingId).eq("userId", userId))
       .unique(),
   ]);
-  if (!meeting || !member) throw new ConvexError("You're not invited to this meeting");
-  return { meeting, member };
+  return meeting && member ? { meeting, member } : null;
+};
+
+export const requireMeetingMember = async (
+  ctx: QueryCtx,
+  meetingId: Id<"meetings">,
+  userId: Id<"users">,
+) => {
+  const found = await findMeetingAccess(ctx, meetingId, userId);
+  if (!found) throw new ConvexError("You're not invited to this meeting");
+  return found;
 };
 
 export const requireSessionAccess = async (

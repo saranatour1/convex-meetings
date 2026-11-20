@@ -176,7 +176,7 @@ test("everyone draws on a share; only the presenter or host clears it", async ()
     presenter: true,
     canClear: true,
   });
-  expect(await guest.asUser.query(api.api.annotations.strokes, share)).toMatchObject({
+  expect(await guest.asUser.query(api.api.annotations.strokes, share))?.toMatchObject({
     presenter: false,
     canClear: false,
   });
@@ -184,7 +184,7 @@ test("everyone draws on a share; only the presenter or host clears it", async ()
     "presenter or the host",
   );
   await host.asUser.mutation(api.api.annotations.clear, share);
-  expect((await guest.asUser.query(api.api.annotations.strokes, share)).strokes).toEqual([]);
+  expect((await guest.asUser.query(api.api.annotations.strokes, share))?.strokes).toEqual([]);
 });
 
 test("each annotation tool keeps to its own shape", async () => {
@@ -229,7 +229,7 @@ test("people take back their own marks, and the presenter can keep drawing to th
   const mine = await guest.asUser.mutation(api.api.annotations.draw, pen);
   const theirs = await host.asUser.mutation(api.api.annotations.draw, pen);
   const visible = async () =>
-    (await guest.asUser.query(api.api.annotations.strokes, share)).strokes.map((s) => s._id);
+    (await guest.asUser.query(api.api.annotations.strokes, share))?.strokes.map((s) => s._id);
 
   await expect(
     guest.asUser.mutation(api.api.annotations.remove, { ...share, ids: [theirs] }),
@@ -255,7 +255,7 @@ test("people take back their own marks, and the presenter can keep drawing to th
     locked: true,
   });
   await host.asUser.mutation(api.api.annotations.lock, { ...share, locked: true });
-  expect((await guest.asUser.query(api.api.annotations.strokes, share)).locked).toBe(true);
+  expect((await guest.asUser.query(api.api.annotations.strokes, share))?.locked).toBe(true);
   await expect(guest.asUser.mutation(api.api.annotations.draw, pen)).rejects.toThrow(
     "turned drawing off",
   );
@@ -625,7 +625,8 @@ test("recording minutes are counted and recordings stop at the monthly limit", a
     body: { action: "stop" },
   });
   await host.asUser.action(api.api.meetings.join, { meetingId });
-  expect(calls.at(-2)).toMatchObject({
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(calls.at(-1)).toMatchObject({
     url: expect.stringContaining("/meetings/rtk-meeting"),
     body: { record_on_start: false, recording_config: { max_seconds: 60 } },
   });

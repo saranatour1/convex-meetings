@@ -103,9 +103,10 @@ test("link meetings let guests in with just a name, scoped to that meeting", asy
   await expect(
     t.action(api.api.meetings.join, { meetingId: other.meetingId, guest }),
   ).rejects.toThrow("not invited");
-  await expect(t.query(api.api.meetings.get, { code, guest: "f".repeat(64) })).rejects.toThrow(
-    "expired",
-  );
+  expect(await t.query(api.api.meetings.get, { code, guest: "f".repeat(64) })).toBeNull();
+  await expect(
+    t.mutation(api.api.messages.send, { meetingId, body: "Hi", guest: "f".repeat(64) }),
+  ).rejects.toThrow("expired");
 });
 
 test("invites follow who-can-invite, add org members, and email guests a personal link", async () => {
@@ -133,7 +134,7 @@ test("invites follow who-can-invite, add org members, and email guests a persona
   });
 });
 
-test("inviting the same outside email twice keeps one guest", async () => {
+test("inviting the same outside email twice keeps one guest and sends them another link that works too", async () => {
   vi.useFakeTimers();
   const { t, host, create } = await setup();
   const { meetingId, code } = await create("Review");
@@ -141,11 +142,22 @@ test("inviting the same outside email twice keeps one guest", async () => {
     meetingId,
     emails: ["client@example.com"],
   });
+  const tokenValue = () =>
+    t.run(async (ctx) => {
+      const guest = await ctx.db.query("meetingGuests").first();
+      return (await ctx.db.get("tokens", guest!.tokenId))?.value;
+    });
+  const before = await tokenValue();
   const again = await host.asUser.mutation(api.api.meetings.invite, {
     meetingId,
     emails: ["client@example.com"],
   });
-  expect(again).toMatchObject({ guests: [], skipped: ["client@example.com"] });
+  expect(again).toMatchObject({ guests: [], resent: ["client@example.com"], skipped: [] });
+  expect(await tokenValue()).toBe(before);
+  const extraLinks = await t.run(async (ctx) =>
+    (await ctx.db.query("tokens").collect()).filter((token) => token.guestId),
+  );
+  expect(extraLinks).toHaveLength(1);
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   const meeting = await host.asUser.query(api.api.meetings.get, { code });
   expect(meeting?.people.filter((p) => p.isGuest)).toHaveLength(1);
@@ -198,11 +210,15 @@ test("invites, moves and cancels carry one calendar event, with the guest's own 
   expect(moved).toMatch(/^http:\/\/localhost:3000\/guest\/[0-9a-f]{64}$/);
   expect(moved).not.toBe(invited);
   expect(sentTo("client@example.com")[1]?.text).toContain(moved);
-  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toBeNull();
+  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toMatchObject({
+    code,
+  });
   expect(await t.query(api.api.guests.pass, { secret: moved!.slice(-64) })).toMatchObject({ code });
 
   await host.asUser.mutation(api.api.meetings.cancel, { meetingId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toBeNull();
+  expect(await t.query(api.api.guests.pass, { secret: moved!.slice(-64) })).toBeNull();
   const uid = `${code}@convex-meetings`;
   const link = `http://localhost:3000/m/${code}`;
   expect(sentTo("col@acme.com").map(({ event }) => event)).toEqual([
@@ -251,6 +267,63 @@ test("cancelling a meeting deletes its guests and their passes", async () => {
     guestUsers: (await ctx.db.query("users").take(50)).filter((u) => u.method === "guest"),
   }));
   expect(leftovers).toEqual({ guests: [], guestUsers: [] });
+});
+
+test("a guest watching a meeting the host cancels gets empty answers, not errors", async () => {
+  const { t, host, create } = await setup();
+  const { meetingId, code } = await create("Demo");
+  await host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, access: "link" });
+  const guest = await t.mutation(api.api.guests.enter, { code, name: "Gus" });
+  await host.asUser.mutation(api.api.meetings.cancel, { meetingId });
+
+  expect(await t.query(api.api.meetings.get, { code, guest })).toBeNull();
+  expect(
+    await t.query(api.api.messages.list, { meetingId, paginationOpts: page, guest }),
+  ).toMatchObject({ page: [], isDone: true });
+  expect(
+    await t.query(api.api.transcripts.live, { meetingId, paginationOpts: page, guest }),
+  ).toMatchObject({ page: [], isDone: true });
+  expect(await t.query(api.api.moderation.myStatus, { meetingId, guest })).toBeNull();
+  expect(await t.query(api.api.moderation.watch, { meetingId, guest })).toEqual([]);
+  expect(
+    await host.asUser.query(api.api.messages.list, { meetingId, paginationOpts: page }),
+  ).toMatchObject({ page: [] });
+});
+
+test("a new link shuts the old one for newcomers, but keeps the meeting and its guests", async () => {
+  const { t, host, colleague, create } = await setup();
+  const { meetingId, code } = await create("Office hours");
+  await host.asUser.mutation(api.api.meetings.updateSettings, { meetingId, access: "link" });
+  const gus = await t.mutation(api.api.guests.enter, { code, name: "Gus" });
+  await expect(
+    colleague.asUser.mutation(api.api.meetings.newLink, { meetingId }),
+  ).rejects.toThrow();
+
+  const link = await host.asUser.mutation(api.api.meetings.newLink, { meetingId });
+  expect(link).not.toBe(code);
+  expect(await t.query(api.api.guests.preview, { code })).toMatchObject({ access: "invited" });
+  await expect(t.mutation(api.api.guests.enter, { code, name: "Ida" })).rejects.toThrow(
+    "Only invited people",
+  );
+  expect(await t.query(api.api.guests.preview, { code: link })).toMatchObject({
+    access: "link",
+    title: "Office hours",
+  });
+  const ida = await t.mutation(api.api.guests.enter, { code: link, name: "Ida" });
+  for (const guest of [gus, ida]) {
+    expect(await t.query(api.api.guests.pass, { secret: guest })).toMatchObject({ code });
+  }
+  expect(await host.asUser.query(api.api.meetings.get, { code })).toMatchObject({ code, link });
+  expect(await host.asUser.query(api.api.meetings.get, { code: link })).toMatchObject({ code });
+  expect(await colleague.asUser.query(api.api.meetings.door, { code })).toMatchObject({
+    canEnter: false,
+  });
+  await colleague.asUser.mutation(api.api.meetings.enter, { code: link });
+  expect(await colleague.asUser.query(api.api.meetings.get, { code })).toMatchObject({ link });
+
+  const next = await host.asUser.mutation(api.api.meetings.newLink, { meetingId });
+  expect(await t.query(api.api.guests.preview, { code: link })).toBeNull();
+  expect(await t.query(api.api.guests.preview, { code: next })).toMatchObject({ access: "link" });
 });
 
 test("ask meetings let the org walk in and make everyone else wait for a host", async () => {
@@ -333,7 +406,7 @@ test("guests on ask meetings wait for a host before their pass works", async () 
     name: "Gus",
     status: "waiting",
   });
-  await expect(t.query(api.api.meetings.get, { code, guest: gus })).rejects.toThrow("expired");
+  expect(await t.query(api.api.meetings.get, { code, guest: gus })).toBeNull();
 
   const requests = await host.asUser.query(api.api.joinRequests.waiting, {
     meetingId,

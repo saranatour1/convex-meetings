@@ -248,7 +248,7 @@ export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) =>
         if (!emails.length) return "Add at least one email";
         if (emails.length > 30) return "Invite up to 30 people at a time";
         try {
-          const { added, guests, skipped } = await invite({ meetingId, emails });
+          const { added, guests, resent, skipped } = await invite({ meetingId, emails });
           track("meeting_guests_invited", { members: added.length, guests: guests.length });
           formApi.reset();
           const parts = [
@@ -256,9 +256,17 @@ export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) =>
             guests.length &&
               `${guests.length} ${guests.length === 1 ? "guest" : "guests"} by email`,
           ].filter(Boolean);
+          const sent = resent.length
+            ? `Sent a new link to ${resent.join(", ")}. Their earlier link still works.`
+            : undefined;
+          const already = skipped.length ? `Already invited: ${skipped.join(", ")}` : undefined;
           toastManager.add({
-            title: parts.length ? `Invited ${parts.join(" and ")}` : "Nobody new to invite",
-            description: skipped.length ? `Already invited: ${skipped.join(", ")}` : undefined,
+            title: parts.length
+              ? `Invited ${parts.join(" and ")}`
+              : resent.length
+                ? "Sent new links"
+                : "Nobody new to invite",
+            description: [sent, already].filter(Boolean).join(" ") || undefined,
             type: "success",
           });
           return undefined;

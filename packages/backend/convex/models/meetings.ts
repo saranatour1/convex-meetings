@@ -72,11 +72,18 @@ const randomCode = () => {
   return `${letters.slice(0, 3).join("")}-${letters.slice(3, 7).join("")}-${letters.slice(7).join("")}`;
 };
 
-export const findMeetingByCode = (ctx: QueryCtx, code: string) =>
-  ctx.db
+export const findMeetingByCode = async (ctx: QueryCtx, code: string) => {
+  const linked = await ctx.db
+    .query("meetings")
+    .withIndex("by_link_code", (q) => q.eq("linkCode", code))
+    .unique();
+  if (linked) return linked;
+  const meeting = await ctx.db
     .query("meetings")
     .withIndex("by_code", (q) => q.eq("code", code))
     .unique();
+  return meeting?.linkCode ? { ...meeting, access: "invited" as const } : meeting;
+};
 
 export const uniqueMeetingCode = async (ctx: QueryCtx) => {
   for (;;) {
@@ -254,6 +261,7 @@ export const listMyMeetings = async (
       return {
         _id: meeting._id,
         code: meeting.code,
+        link: meeting.linkCode ?? meeting.code,
         title: meeting.title,
         description: meeting.description ?? null,
         location: meeting.location ?? null,
@@ -336,6 +344,7 @@ export const getMeeting = async (ctx: QueryCtx, userId: Id<"users">, meetingId: 
   return {
     _id: meeting._id,
     code: meeting.code,
+    link: meeting.linkCode ?? meeting.code,
     orgId: meeting.orgId,
     title: meeting.title,
     description: meeting.description ?? null,
@@ -399,6 +408,18 @@ const requireHost = async (ctx: QueryCtx, meetingId: Id<"meetings">, userId: Id<
   const found = await requireMeetingMember(ctx, meetingId, userId);
   if (found.member.role !== "host") throw new ConvexError("Only the host can change this meeting");
   return found;
+};
+
+export const newMeetingLink = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  meetingId: Id<"meetings">,
+) => {
+  const { meeting } = await requireHost(ctx, meetingId, userId);
+  if (isPublicRoom(meeting)) throw new ConvexError("A public room keeps its link");
+  const linkCode = await uniqueMeetingCode(ctx);
+  await ctx.db.patch("meetings", meetingId, { linkCode });
+  return linkCode;
 };
 
 export const editMeeting = async (

@@ -15,6 +15,7 @@ export const zMeeting = z.object({
   orgId: zid("organizations"),
   userId: zid("users"),
   code: zMeetingCode,
+  linkCode: zMeetingCode.optional(),
   title: z.string().trim().min(1).max(200),
   description: z.string().max(2000).optional(),
   location: z.string().max(200).optional(),
@@ -33,4 +34,5 @@ export const zMeeting = z.object({
 export const meetings = defineTable(zodToConvexFields(zMeeting.shape))
   .index("by_org_and_user_and_title", ["orgId", "userId", "title"])
   .index("by_rtk_meeting", ["rtkMeetingId"])
-  .index("by_code", ["code"]);
+  .index("by_code", ["code"])
+  .index("by_link_code", ["linkCode"]);
