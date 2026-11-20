@@ -131,7 +131,7 @@ export const MeetingsCalendar = ({
           start: formatInstant(new Date(m.startsAt), m.timeZone),
           end: formatInstant(new Date(m.endsAt), m.timeZone),
           timeZone: m.timeZone,
-          meetingUrl: meetingLink(m.code),
+          meetingUrl: meetingLink(m.link),
           readOnly: m.role !== "host" || m.rrule !== null || m.endedAt !== null,
           busy: m.response !== "pending",
           organizer: host ? toAttendee(host).email : m.role === "host" ? me : undefined,

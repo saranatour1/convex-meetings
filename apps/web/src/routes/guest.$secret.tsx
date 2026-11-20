@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { type CallSearch, validateCallSearch } from "#/features/meetings/call/call-search.ts";
+import { parseMeetingCode } from "#/lib/meeting-code.ts";
 import { GuestMeeting } from "#/features/meetings/guest-meeting.tsx";
 import { pageHead } from "#/lib/seo.ts";
 
@@ -26,7 +27,10 @@ const GuestPage = () => {
 };
 
 export const Route = createFileRoute("/guest/$secret")({
-  validateSearch: validateCallSearch,
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...validateCallSearch(search),
+    code: typeof search.code === "string" ? parseMeetingCode(search.code) : undefined,
+  }),
   ssr: "data-only",
   head: () =>
     pageHead({

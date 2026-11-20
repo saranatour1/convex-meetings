@@ -1,5 +1,5 @@
 import { track } from "@databuddy/sdk";
-import { Link } from "@tanstack/react-router";
+import { Link, Navigate } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { useMutation } from "convex/react";
 import {
@@ -11,6 +11,7 @@ import {
   EllipsisIcon,
   MapPinIcon,
   PencilIcon,
+  RefreshCwIcon,
   VideoIcon,
   XIcon,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import {
 } from "@meetings/ui/components/card";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@meetings/ui/components/menu";
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@meetings/ui/components/tabs";
+import { toastManager } from "@meetings/ui/components/toast";
 import { cn } from "@meetings/ui/lib/utils";
 import { LoadingScreen } from "#/components/loading-screen.tsx";
 import { roomLink } from "#/features/rooms/room-link.ts";
@@ -79,6 +81,7 @@ const HostMenu = ({
 }) => {
   const cancel = useMutation(api.meetings.cancel);
   const closeRoom = useMutation(api.rooms.close);
+  const newLink = useMutation(api.meetings.newLink);
 
   return (
     <Menu>
@@ -96,6 +99,25 @@ const HostMenu = ({
           >
             <DoorClosedIcon />
             Close room
+          </MenuItem>
+        )}
+        {!room && (
+          <MenuItem
+            onClick={() =>
+              void newLink({ meetingId: meeting._id })
+                .then(() => {
+                  track("meeting_link_renewed");
+                  toastManager.add({
+                    title: "New link ready",
+                    description: "The old link no longer lets anyone in.",
+                    type: "success",
+                  });
+                })
+                .catch(showError)
+            }
+          >
+            <RefreshCwIcon />
+            New link
           </MenuItem>
         )}
         <MenuItem
@@ -272,12 +294,15 @@ export const MeetingPage = ({
   const now = useMinute();
   if (meeting === undefined) return <LoadingScreen />;
   if (meeting === null) return <MeetingDoor code={code} />;
+  if (meeting.code !== code) {
+    return <Navigate to="/meetings/$code" params={{ code: meeting.code }} search replace />;
+  }
 
   const zone = browserTimeZone();
   const room = meeting.access === "public";
   const time = room ? null : meeting.time;
   const isHost = meeting.me.role === "host";
-  const link = room ? roomLink(meeting.code) : meetingLink(meeting.code);
+  const link = room ? roomLink(meeting.code) : meetingLink(meeting.link);
   const lastCall = meeting.sessions.find((session) => session.endedAt !== null);
   const sideColumn = meeting.me.canControl || lastCall;
   const hidden = (tab === "recaps" && !meeting.sessions.length) || (tab === "transcript" && room);
@@ -331,7 +356,7 @@ export const MeetingPage = ({
           )}
           <div className="flex min-w-0 items-center gap-1">
             <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
-              {meeting.code}
+              {meeting.link}
             </code>
             <Button
               size="sm"

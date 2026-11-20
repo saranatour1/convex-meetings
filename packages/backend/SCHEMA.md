@@ -92,6 +92,7 @@ erDiagram
     id orgId FK "organizations"
     id userId FK "users"
     string code
+    string linkCode "optional"
     string title
     string description "optional"
     string location "optional"
@@ -398,6 +399,7 @@ erDiagram
 | meetings | by_org_and_user_and_title | orgId, userId, title |
 | meetings | by_rtk_meeting | rtkMeetingId |
 | meetings | by_code | code |
+| meetings | by_link_code | linkCode |
 | meetingTimes | by_meeting | meetingId |
 | meetingTimes | by_org_and_repeat_until | orgId, repeatUntil |
 | meetingMembers | by_meeting_and_user | meetingId, userId |

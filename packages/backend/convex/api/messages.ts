@@ -3,7 +3,7 @@ import { ConvexError } from "convex/values";
 import { enforceRateLimit, enforceSlowMode } from "../lib/rateLimits";
 import { meetingMutation, meetingQuery, zPaginationOpts } from "../lib/functions";
 import { canControlCall } from "../models/calls";
-import { requireMeetingMember } from "../models/meetingAccess";
+import { findMeetingAccess, requireMeetingMember } from "../models/meetingAccess";
 import { queueMessageCheck } from "../models/moderationQueue";
 import { isPublicRoom, requireNotBanned } from "../models/roomAccess";
 import { listMessages, sendMessage, toggleReaction } from "../models/messages";
@@ -13,8 +13,10 @@ import { zMessage } from "../tables/messages";
 export const list = meetingQuery({
   args: { meetingId: zid("meetings"), paginationOpts: zPaginationOpts },
   handler: async (ctx, { meetingId, paginationOpts }) => {
-    const { meeting } = await requireMeetingMember(ctx, meetingId, ctx.userId);
-    return listMessages(ctx, meetingId, paginationOpts, ctx.userId, isPublicRoom(meeting));
+    const access = await findMeetingAccess(ctx, meetingId, ctx.userId);
+    if (!access) return { page: [], isDone: true, continueCursor: "" };
+    const { meeting, member } = access;
+    return listMessages(ctx, meetingId, paginationOpts, member.userId, isPublicRoom(meeting));
   },
 });
 

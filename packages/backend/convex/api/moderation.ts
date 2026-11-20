@@ -17,15 +17,22 @@ import {
   submitFrame as submitCallFrame,
   watchList,
 } from "../models/moderation";
+import { findMeetingAccess } from "../models/meetingAccess";
 
 export const myStatus = meetingQuery({
   args: { meetingId: zid("meetings") },
-  handler: (ctx, { meetingId }) => readMyStatus(ctx, ctx.userId, meetingId),
+  handler: async (ctx, { meetingId }) => {
+    const access = await findMeetingAccess(ctx, meetingId, ctx.userId);
+    return access ? readMyStatus(ctx, access.member.userId, meetingId) : null;
+  },
 });
 
 export const watch = meetingQuery({
   args: { meetingId: zid("meetings") },
-  handler: (ctx, { meetingId }) => watchList(ctx, ctx.userId, meetingId),
+  handler: async (ctx, { meetingId }) => {
+    const access = await findMeetingAccess(ctx, meetingId, ctx.userId);
+    return access ? watchList(ctx, access.member.userId, meetingId) : [];
+  },
 });
 
 export const frameUploadUrl = meetingMutation({

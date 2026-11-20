@@ -11,7 +11,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { action, mutation, query, type ActionCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { guestUserId } from "../models/guests";
+import { findGuestUserId, guestUserId } from "../models/guests";
 import { requireSignedIn, requireVerifiedUserId } from "../models/passkeys";
 import { grantedPermissions, type Permission } from "../models/roles";
 
@@ -55,6 +55,16 @@ const meetingCaller = customCtxAndArgs({
   }),
 });
 
+const meetingViewer = customCtxAndArgs({
+  args: { guest: v.optional(v.string()) },
+  input: async (ctx: QueryCtx, { guest }) => ({
+    ctx: {
+      userId: guest ? await findGuestUserId(ctx, guest) : await requireVerifiedUserId(ctx),
+    },
+    args: {},
+  }),
+});
+
 const meetingCallerAction = customCtxAndArgs({
   args: { guest: v.optional(v.string()) },
   input: async (
@@ -80,7 +90,7 @@ export const authedAction = zCustomAction(
   action,
   customCtx(async (ctx: ActionCtx) => ({ userId: await verifiedUserIdInAction(ctx) })),
 );
-export const meetingQuery = zCustomQuery(query, meetingCaller);
+export const meetingQuery = zCustomQuery(query, meetingViewer);
 export const meetingMutation = zCustomMutation(mutation, meetingCaller);
 export const meetingAction = zCustomAction(action, meetingCallerAction);
 export const orgQuery = zCustomQuery(query, orgMember);

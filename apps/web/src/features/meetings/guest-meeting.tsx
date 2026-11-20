@@ -31,7 +31,7 @@ import { useConvexValue } from "#/features/data/live-query.ts";
 
 type GuestMeetingProps = {
   secret: string;
-  search: CallSearch;
+  search: CallSearch & { code?: string };
   onSearchChange: (next: CallSearch) => void;
 };
 
@@ -43,6 +43,10 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
     pass && admitted ? { code: pass.code, guest: secret } : "skip",
   );
   const rename = useMutation(api.guests.rename);
+  const entry = useConvexValue(
+    api.guests.preview,
+    pass === null && search.code ? { code: search.code } : "skip",
+  );
   if (pass === undefined || (admitted && meeting === undefined)) return <LoadingScreen />;
   if (pass && pass.status !== "in") {
     return (
@@ -60,11 +64,33 @@ export const GuestMeeting = ({ secret, search, onSearchChange }: GuestMeetingPro
     );
   }
   if (!pass || !meeting) {
+    const open = entry && ["link", "ask", "public"].includes(entry.access);
     return (
       <EmptyState
         icon={<UserIcon />}
         title="This guest link doesn't work anymore"
-        description="It expired or the meeting was cancelled. Ask the host for a new invite."
+        description={
+          open
+            ? "The meeting still lets guests in. Join again with your name."
+            : "It expired, the host sent you a newer one, or the meeting was cancelled. Ask the host for a new invite."
+        }
+        action={
+          open &&
+          search.code && (
+            <Button
+              render={
+                entry.access === "public" ? (
+                  <Link to="/rooms/$code" params={{ code: search.code }} />
+                ) : (
+                  <Link to="/m/$code" params={{ code: search.code }} />
+                )
+              }
+            >
+              <DoorOpenIcon />
+              Join again
+            </Button>
+          )
+        }
       />
     );
   }

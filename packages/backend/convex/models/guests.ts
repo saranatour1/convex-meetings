@@ -9,7 +9,7 @@ import { zMeetingGuest } from "../tables/meetingGuests";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zUser } from "../tables/users";
 import { canControlCall } from "./calls";
-import { findLiveToken, GUEST_PASS_MS, issueToken, normalizeEmail } from "./invites";
+import { findLiveToken, GUEST_PASS_MS, issueToken, normalizeEmail, renewToken } from "./invites";
 import { findMeetingByCode } from "./meetings";
 import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
@@ -34,10 +34,13 @@ const findGuest = async (ctx: QueryCtx, secret: string) => {
     .unique();
 };
 
+export const findGuestUserId = async (ctx: QueryCtx, secret: string) =>
+  (await findGuest(ctx, secret))?.userId ?? null;
+
 export const guestUserId = async (ctx: QueryCtx, secret: string) => {
-  const guest = await findGuest(ctx, secret);
-  if (!guest) throw new ConvexError("This guest link has expired. Ask the host for a new one.");
-  return guest.userId;
+  const userId = await findGuestUserId(ctx, secret);
+  if (!userId) throw new ConvexError("This guest link has expired. Ask the host for a new one.");
+  return userId;
 };
 
 export const findMeetingMember = (ctx: QueryCtx, meetingId: Id<"meetings">, userId: Id<"users">) =>
@@ -231,17 +234,24 @@ const orgUserByEmail = async (ctx: QueryCtx, orgId: Id<"organizations">, email: 
   return null;
 };
 
-const isGuestInMeeting = async (ctx: QueryCtx, meetingId: Id<"meetings">, email: string) => {
+const findInvitedGuest = async (ctx: QueryCtx, meetingId: Id<"meetings">, email: string) => {
   const users = await ctx.db
     .query("users")
     .withIndex("by_email", (q) => q.eq("email", email))
     .take(10);
-  const memberships = await Promise.all(
-    users
-      .filter((user) => user.method === "guest")
-      .map((user) => findMeetingMember(ctx, meetingId, user._id)),
-  );
-  return memberships.some((membership) => membership !== null);
+  for (const user of users.filter((u) => u.method === "guest")) {
+    const guest = await ctx.db
+      .query("meetingGuests")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+    if (guest?.meetingId === meetingId) return guest;
+  }
+  return null;
+};
+
+const sendGuestLink = async (ctx: MutationCtx, guestId: Id<"meetingGuests">, secret: string) => {
+  await spendEmail(ctx);
+  await emailWorkpool.enqueueAction(ctx, internal.internal.guests.sendInvite, { guestId, secret });
 };
 
 export const inviteToMeeting = async (
@@ -257,6 +267,7 @@ export const inviteToMeeting = async (
     .first();
   const added: string[] = [];
   const guests: string[] = [];
+  const resent: string[] = [];
   const skipped: string[] = [];
   for (const email of new Set(emails.map(normalizeEmail))) {
     const member = await orgUserByEmail(ctx, meeting.orgId, email);
@@ -284,8 +295,10 @@ export const inviteToMeeting = async (
       added.push(email);
       continue;
     }
-    if (await isGuestInMeeting(ctx, meetingId, email)) {
-      skipped.push(email);
+    const invited = await findInvitedGuest(ctx, meetingId, email);
+    if (invited) {
+      await sendGuestLink(ctx, invited._id, await renewToken(ctx, invited.tokenId, GUEST_PASS_MS));
+      resent.push(email);
       continue;
     }
     const { secret, guestId } = await createGuest(ctx, meetingId, {
@@ -293,14 +306,10 @@ export const inviteToMeeting = async (
       email,
       invitedBy: userId,
     });
-    await spendEmail(ctx);
-    await emailWorkpool.enqueueAction(ctx, internal.internal.guests.sendInvite, {
-      guestId,
-      secret,
-    });
+    await sendGuestLink(ctx, guestId, secret);
     guests.push(email);
   }
-  return { added, guests, skipped };
+  return { added, guests, resent, skipped };
 };
 
 export const guestInviteDetails = async (ctx: QueryCtx, guestId: Id<"meetingGuests">) => {
