@@ -11,7 +11,7 @@ import { convexHttp } from "#/providers/convex.tsx";
 const RoomRoute = () => {
   const { code } = Route.useParams();
   const initial = Route.useLoaderData();
-  const { call, side, expand, tab } = Route.useSearch();
+  const { call, side, expand, tab, edit } = Route.useSearch();
   const navigate = Route.useNavigate();
   const setSearch = (next: MeetingSearch) =>
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true, resetScroll: false });
@@ -49,6 +49,8 @@ const RoomRoute = () => {
             onExpandedChange={(next) => setSearch({ expand: next || undefined })}
             tab={tab}
             onTabChange={(next) => setSearch({ tab: next })}
+            editing={edit === true}
+            onEditingChange={(next) => setSearch({ edit: next || undefined })}
           />
         </div>
       </Authenticated>

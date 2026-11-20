@@ -110,7 +110,7 @@ test("only org members can be invited, and meetings end on the day they start", 
 
 test("the host moves and edits a meeting, and invitees are asked again", async () => {
   const setup = await orgWithTwoPeople();
-  const { meetingId } = await schedule(setup);
+  const { meetingId, code } = await schedule(setup);
   await setup.guest.asUser.mutation(api.api.meetings.respond, { meetingId, response: "accepted" });
   const later = startsAt + 2 * HOUR;
   await expect(
@@ -145,6 +145,11 @@ test("the host moves and edits a meeting, and invitees are asked again", async (
   expect(edited.page).toMatchObject([
     { _id: meetingId, title: "Retro ", description: "Bring notes", location: null },
   ]);
+  expect(await setup.guest.asUser.query(api.api.meetings.get, { code })).toMatchObject({
+    title: "Retro ",
+    description: "Bring notes",
+    location: null,
+  });
   await expect(
     setup.host.asUser.mutation(api.api.meetings.edit, { meetingId, title: "  " }),
   ).rejects.toThrow("Give the meeting a title");

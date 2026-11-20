@@ -9,6 +9,8 @@ import {
   CopyIcon,
   DoorClosedIcon,
   EllipsisIcon,
+  MapPinIcon,
+  PencilIcon,
   VideoIcon,
   XIcon,
 } from "lucide-react";
@@ -32,6 +34,7 @@ import { copyWithToast, showError } from "#/lib/errors.ts";
 import { cityOf, dayOf, formatDate, formatDuration, formatTime } from "#/lib/schedule.ts";
 import type { CallSide } from "./call/call-ui.ts";
 import { JoinCallButton, MeetingCall, MeetingEnded } from "./call-entry.tsx";
+import { EditMeetingDialog } from "./edit-meeting-dialog.tsx";
 import { JOIN_EARLY, countdown, useMinute } from "./clock.ts";
 import { MeetingDoor, MeetingSettingsCard, meetingLink } from "./meeting-access.tsx";
 import { MeetingChat } from "./meeting-chat.tsx";
@@ -247,6 +250,8 @@ type MeetingPageProps = {
   onExpandedChange: (expanded: boolean) => void;
   tab?: MeetingTab;
   onTabChange: (tab: MeetingTab | undefined) => void;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
 };
 
 export const MeetingPage = ({
@@ -260,6 +265,8 @@ export const MeetingPage = ({
   onExpandedChange,
   tab,
   onTabChange,
+  editing,
+  onEditingChange,
 }: MeetingPageProps) => {
   const meeting = useConvexValue(api.meetings.get, { code });
   const now = useMinute();
@@ -311,6 +318,17 @@ export const MeetingPage = ({
               {time.rrule && " · repeats"}
             </p>
           )}
+          {meeting.location && (
+            <p className="flex items-center gap-1.5 text-muted-foreground text-sm">
+              <MapPinIcon className="size-4" />
+              {meeting.location}
+            </p>
+          )}
+          {meeting.description && (
+            <p className="whitespace-pre-wrap text-muted-foreground text-sm">
+              {meeting.description}
+            </p>
+          )}
           <div className="flex min-w-0 items-center gap-1">
             <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
               {meeting.code}
@@ -329,6 +347,15 @@ export const MeetingPage = ({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!isHost && !room && <Reply meeting={meeting} />}
+          {isHost && !room && (
+            <>
+              <Button size="lg" variant="outline" onClick={() => onEditingChange(true)}>
+                <PencilIcon />
+                Edit
+              </Button>
+              <EditMeetingDialog meeting={meeting} open={editing} onOpenChange={onEditingChange} />
+            </>
+          )}
           {isHost && <HostMenu meeting={meeting} room={room} onCancelled={onCancelled} />}
           {!meeting.endedAt && !inCall && <JoinCallButton onJoin={() => onInCallChange(true)} />}
         </div>
