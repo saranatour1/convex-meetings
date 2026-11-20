@@ -23,22 +23,18 @@ const newSecret = () => toHex(crypto.getRandomValues(new Uint8Array(32)));
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-export const issueToken = async (ctx: MutationCtx, ttlMs = INVITE_TTL_MS) => {
+export const issueToken = async (
+  ctx: MutationCtx,
+  ttlMs = INVITE_TTL_MS,
+  guestId?: Id<"meetingGuests">,
+) => {
   const secret = newSecret();
   const tokenId = await ctx.db.insert("tokens", {
     value: await hashSecret(secret),
     expiresAt: Date.now() + ttlMs,
+    guestId,
   });
   return { secret, tokenId };
-};
-
-export const renewToken = async (ctx: MutationCtx, tokenId: Id<"tokens">, ttlMs: number) => {
-  const secret = newSecret();
-  await ctx.db.patch("tokens", tokenId, {
-    value: await hashSecret(secret),
-    expiresAt: Date.now() + ttlMs,
-  });
-  return secret;
 };
 
 export const findLiveToken = async (ctx: QueryCtx, secret: string) => {

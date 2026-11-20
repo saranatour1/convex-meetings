@@ -9,7 +9,7 @@ import { zMeetingGuest } from "../tables/meetingGuests";
 import { zMeetingMember } from "../tables/meetingMembers";
 import { zUser } from "../tables/users";
 import { canControlCall } from "./calls";
-import { findLiveToken, GUEST_PASS_MS, issueToken, normalizeEmail, renewToken } from "./invites";
+import { findLiveToken, GUEST_PASS_MS, issueToken, normalizeEmail } from "./invites";
 import { findMeetingByCode } from "./meetings";
 import { findMember } from "./members";
 import { queueMeetingEmails } from "./meetingEmails";
@@ -24,14 +24,18 @@ import { notify } from "./notifications";
 
 const SECRET = /^[0-9a-f]{64}$/;
 
+const guestOfToken = (ctx: QueryCtx, token: Doc<"tokens">) =>
+  token.guestId
+    ? ctx.db.get("meetingGuests", token.guestId)
+    : ctx.db
+        .query("meetingGuests")
+        .withIndex("by_token", (q) => q.eq("tokenId", token._id))
+        .unique();
+
 const findGuest = async (ctx: QueryCtx, secret: string) => {
   if (!SECRET.test(secret)) return null;
   const token = await findLiveToken(ctx, secret);
-  if (!token) return null;
-  return ctx.db
-    .query("meetingGuests")
-    .withIndex("by_token", (q) => q.eq("tokenId", token._id))
-    .unique();
+  return token && guestOfToken(ctx, token);
 };
 
 export const findGuestUserId = async (ctx: QueryCtx, secret: string) =>
@@ -112,10 +116,7 @@ export const previewGuestPass = async (ctx: QueryCtx, secret: string) => {
   const token = await findLiveToken(ctx, secret);
   if (!token) return null;
   const holder =
-    (await ctx.db
-      .query("meetingGuests")
-      .withIndex("by_token", (q) => q.eq("tokenId", token._id))
-      .unique()) ??
+    (await guestOfToken(ctx, token)) ??
     (await ctx.db
       .query("joinRequests")
       .withIndex("by_token", (q) => q.eq("tokenId", token._id))
@@ -297,7 +298,8 @@ export const inviteToMeeting = async (
     }
     const invited = await findInvitedGuest(ctx, meetingId, email);
     if (invited) {
-      await sendGuestLink(ctx, invited._id, await renewToken(ctx, invited.tokenId, GUEST_PASS_MS));
+      const { secret } = await issueToken(ctx, GUEST_PASS_MS, invited._id);
+      await sendGuestLink(ctx, invited._id, secret);
       resent.push(email);
       continue;
     }

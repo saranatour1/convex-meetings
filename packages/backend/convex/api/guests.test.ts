@@ -134,7 +134,7 @@ test("invites follow who-can-invite, add org members, and email guests a persona
   });
 });
 
-test("inviting the same outside email twice keeps one guest and sends them a fresh link", async () => {
+test("inviting the same outside email twice keeps one guest and sends them another link that works too", async () => {
   vi.useFakeTimers();
   const { t, host, create } = await setup();
   const { meetingId, code } = await create("Review");
@@ -153,7 +153,11 @@ test("inviting the same outside email twice keeps one guest and sends them a fre
     emails: ["client@example.com"],
   });
   expect(again).toMatchObject({ guests: [], resent: ["client@example.com"], skipped: [] });
-  expect(await tokenValue()).not.toBe(before);
+  expect(await tokenValue()).toBe(before);
+  const extraLinks = await t.run(async (ctx) =>
+    (await ctx.db.query("tokens").collect()).filter((token) => token.guestId),
+  );
+  expect(extraLinks).toHaveLength(1);
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   const meeting = await host.asUser.query(api.api.meetings.get, { code });
   expect(meeting?.people.filter((p) => p.isGuest)).toHaveLength(1);
@@ -206,11 +210,15 @@ test("invites, moves and cancels carry one calendar event, with the guest's own 
   expect(moved).toMatch(/^http:\/\/localhost:3000\/guest\/[0-9a-f]{64}$/);
   expect(moved).not.toBe(invited);
   expect(sentTo("client@example.com")[1]?.text).toContain(moved);
-  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toBeNull();
+  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toMatchObject({
+    code,
+  });
   expect(await t.query(api.api.guests.pass, { secret: moved!.slice(-64) })).toMatchObject({ code });
 
   await host.asUser.mutation(api.api.meetings.cancel, { meetingId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(await t.query(api.api.guests.pass, { secret: invited!.slice(-64) })).toBeNull();
+  expect(await t.query(api.api.guests.pass, { secret: moved!.slice(-64) })).toBeNull();
   const uid = `${code}@convex-meetings`;
   const link = `http://localhost:3000/m/${code}`;
   expect(sentTo("col@acme.com").map(({ event }) => event)).toEqual([

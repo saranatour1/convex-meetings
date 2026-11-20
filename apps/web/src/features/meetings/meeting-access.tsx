@@ -257,7 +257,7 @@ export const InviteToMeeting = ({ meetingId }: { meetingId: Id<"meetings"> }) =>
               `${guests.length} ${guests.length === 1 ? "guest" : "guests"} by email`,
           ].filter(Boolean);
           const sent = resent.length
-            ? `Sent a new link to ${resent.join(", ")}. Their old link stops working.`
+            ? `Sent a new link to ${resent.join(", ")}. Their earlier link still works.`
             : undefined;
           const already = skipped.length ? `Already invited: ${skipped.join(", ")}` : undefined;
           toastManager.add({

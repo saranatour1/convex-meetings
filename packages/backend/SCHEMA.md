@@ -59,6 +59,7 @@ erDiagram
     id _id PK
     string value
     number expiresAt
+    id guestId FK "meetingGuests, optional"
   }
   invites {
     id _id PK
@@ -305,6 +306,7 @@ erDiagram
   memberRoles }o--|| organizations : orgId
   memberRoles }o--|| members : memberId
   memberRoles }o--|| roles : roleId
+  tokens }o--o| meetingGuests : guestId
   invites }o--|| organizations : orgId
   invites }o--|| roles : roleId
   invites }o--|| users : invitedBy
