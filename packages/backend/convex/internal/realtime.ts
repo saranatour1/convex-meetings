@@ -6,7 +6,7 @@ import { zAgent } from "../lib/agents";
 import { allPresets } from "../lib/presets";
 import { realtimeKit } from "../lib/realtimekit";
 import { forgetDevices } from "../models/calls";
-import { joinBudget, markLiveText as markLiveTextState } from "../models/usage";
+import { joinBudget } from "../models/usage";
 import { endEmptyMeeting } from "../models/meetings";
 import { clearTranscript as clearTranscriptLines } from "../models/transcripts";
 import { setAgent as setUserAgent } from "../models/users";
@@ -117,33 +117,6 @@ export const kickAll = internalAction({
       console.warn("kick-all skipped", String(error));
     });
   },
-});
-
-export const stopRecordings = internalAction({
-  args: { rtkMeetingId: v.string() },
-  handler: async (_ctx, { rtkMeetingId }) => {
-    await realtimeKit.stopRecordings(rtkMeetingId).catch((error: unknown) => {
-      console.warn("stop recordings skipped", String(error));
-    });
-  },
-});
-
-export const setLiveText = internalAction({
-  args: { on: v.boolean() },
-  handler: async (ctx, { on }) => {
-    await realtimeKit.setLiveText(
-      allPresets()
-        .filter((preset) => preset.permissions.transcription_enabled)
-        .map((preset) => preset.name),
-      on,
-    );
-    await ctx.runMutation(internal.internal.realtime.markLiveText, { on });
-  },
-});
-
-export const markLiveText = internalMutation({
-  args: { on: v.boolean() },
-  handler: (ctx, { on }) => markLiveTextState(ctx, on),
 });
 
 export const syncPresets = internalAction({

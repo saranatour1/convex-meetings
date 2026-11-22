@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import { DateTime } from "luxon";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseOrThrow } from "../lib/validate";
 import { zUsage } from "../tables/usage";
@@ -43,9 +43,6 @@ const minutesSince = (from: number | undefined, now: number) =>
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
 export const liveTextOn = async (ctx: QueryCtx) => (await amountOf(ctx, LIVE_TEXT_OFF)) === 0;
-
-export const markLiveText = (ctx: MutationCtx, on: boolean) =>
-  setAmount(ctx, LIVE_TEXT_OFF, on ? 0 : 1);
 
 export const recordPeerUsage = async (ctx: MutationCtx, peer: Doc<"callPeers">, at: number) => {
   const minutes = minutesSince(peer.connectedAt, at);
@@ -90,8 +87,6 @@ const currentUsage = async (ctx: QueryCtx, now: number) => {
   const peerMinutes = (list: Doc<"callPeers">[]) =>
     sum(list.map((peer) => minutesSince(peer.connectedAt, now)));
   return {
-    peers,
-    recordings,
     callSeconds: (await amountOf(ctx, monthKey("callSeconds", now))) + peerMinutes(peers) * 60,
     recordingSeconds:
       (await amountOf(ctx, monthKey("recordingSeconds", now))) +
@@ -108,34 +103,5 @@ export const joinBudget = async (ctx: QueryCtx) => {
       0,
       Math.floor(LIMITS.recordingSecondsPerMonth - used.recordingSeconds),
     ),
-  };
-};
-
-const rtkMeetingIds = async (ctx: QueryCtx, meetingIds: Id<"meetings">[]) => {
-  const meetings = await Promise.all(
-    [...new Set(meetingIds)].map((meetingId) => ctx.db.get("meetings", meetingId)),
-  );
-  return meetings.flatMap((meeting) => (meeting?.rtkMeetingId ? [meeting.rtkMeetingId] : []));
-};
-
-export const overBudget = async (ctx: QueryCtx) => {
-  const now = Date.now();
-  const used = await currentUsage(ctx, now);
-  return {
-    endCalls:
-      used.callSeconds >= LIMITS.callSecondsPerMonth
-        ? await rtkMeetingIds(
-            ctx,
-            used.peers.map((peer) => peer.meetingId),
-          )
-        : [],
-    stopRecordings:
-      used.recordingSeconds >= LIMITS.recordingSecondsPerMonth
-        ? await rtkMeetingIds(
-            ctx,
-            used.recordings.map((session) => session.meetingId),
-          )
-        : [],
-    liveText: (await liveTextOn(ctx)) ? null : true,
   };
 };
