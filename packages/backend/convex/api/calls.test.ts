@@ -18,11 +18,7 @@ beforeEach(() => {
       calls.push({ url, body: init?.body ? JSON.parse(init.body as string) : undefined });
       const data = url.endsWith("/meetings")
         ? { id: "rtk-meeting" }
-        : url.endsWith("/presets")
-          ? [{ id: "preset-1", name: "call_host" }]
-          : url.includes("/recordings?")
-            ? [{ id: "recording-1" }]
-            : { id: "participant", token: "token" };
+        : { id: "participant", token: "token" };
       return new Response(JSON.stringify({ success: true, data }));
     }),
   );
@@ -575,7 +571,7 @@ test("each person can create 10 meetings a day", async () => {
   await expect(create()).rejects.toThrow("You can create 10 meetings a day.");
 });
 
-test("call minutes count per device and end every call at the monthly limit", async () => {
+test("call minutes count per device and joins stop at the monthly limit", async () => {
   vi.useFakeTimers();
   const { t, host, meetingId, hostMember, event } = await setup();
   await host.asUser.action(api.api.meetings.join, { meetingId });
@@ -589,15 +585,12 @@ test("call minutes count per device and end every call at the monthly limit", as
     const row = await ctx.db.query("usage").first();
     await ctx.db.patch("usage", row!._id, { amount: 9_000 * 60 });
   });
-  await t.mutation(internal.internal.usage.enforce, {});
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
-  expect(calls.some((c) => c.url.endsWith("/active-session/kick-all"))).toBe(true);
   await expect(host.asUser.action(api.api.meetings.join, { meetingId })).rejects.toThrow(
     "free call minutes are used up",
   );
 });
 
-test("recording minutes are counted and recordings stop at the monthly limit", async () => {
+test("recording minutes are counted and joins cap recordings at what is left", async () => {
   vi.useFakeTimers();
   const { t, host, meetingId, hostMember, event } = await setup();
   await host.asUser.action(api.api.meetings.join, { meetingId });
@@ -618,36 +611,10 @@ test("recording minutes are counted and recordings stop at the monthly limit", a
 
   await recording("RECORDING");
   vi.advanceTimersByTime(90 * 60_000);
-  await t.mutation(internal.internal.usage.enforce, {});
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
-  expect(calls).toContainEqual({
-    url: expect.stringContaining("/recordings/recording-1"),
-    body: { action: "stop" },
-  });
   await host.asUser.action(api.api.meetings.join, { meetingId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   expect(calls.at(-1)).toMatchObject({
     url: expect.stringContaining("/meetings/rtk-meeting"),
     body: { record_on_start: false, recording_config: { max_seconds: 60 } },
   });
-});
-
-test("live text is never switched off for cost, and comes back on if it was", async () => {
-  vi.useFakeTimers();
-  const { t, host, meetingId, hostMember, event } = await setup();
-  await host.asUser.action(api.api.meetings.join, { meetingId });
-  await event("meeting.participantJoined", hostMember);
-  vi.advanceTimersByTime(60 * 60_000);
-  await t.mutation(internal.internal.usage.enforce, {});
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
-  expect(calls.some((call) => call.url.includes("/presets/"))).toBe(false);
-
-  await t.run((ctx) => ctx.db.insert("usage", { key: "liveTextOff", amount: 1 }));
-  await t.mutation(internal.internal.usage.enforce, {});
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
-  expect(calls.at(-1)).toMatchObject({
-    url: expect.stringContaining("/presets/preset-1"),
-    body: { permissions: { transcription_enabled: true } },
-  });
-  expect(await usageOf(t, "liveTextOff")).toBe(0);
 });

@@ -74,23 +74,6 @@ export const realtimeKit = {
     call<{ id: string }>("/meetings", "POST", { title: meeting.title, ...meetingConfig(meeting) }),
   updateMeeting: (meetingId: string, config: MeetingConfig) =>
     call<unknown>(`/meetings/${meetingId}`, "PATCH", meetingConfig(config)),
-  stopRecordings: async (meetingId: string) => {
-    const recordings = await call<{ id: string }[]>(
-      `/recordings?meeting_id=${encodeURIComponent(meetingId)}&status=RECORDING`,
-      "GET",
-    );
-    for (const recording of recordings) {
-      await call<unknown>(`/recordings/${recording.id}`, "PUT", { action: "stop" });
-    }
-  },
-  setLiveText: async (presetNames: string[], on: boolean) => {
-    const presets = await call<{ id: string; name: string }[]>("/presets", "GET");
-    for (const preset of presets.filter((p) => presetNames.includes(p.name))) {
-      await call<unknown>(`/presets/${preset.id}`, "PATCH", {
-        permissions: { transcription_enabled: on },
-      });
-    }
-  },
   deactivateMeeting: (meetingId: string) =>
     call<unknown>(`/meetings/${meetingId}`, "PATCH", { status: "INACTIVE" }),
   addParticipant: (
