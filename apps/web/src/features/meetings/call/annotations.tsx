@@ -9,7 +9,6 @@ import {
   LockIcon,
   LockOpenIcon,
   PencilIcon,
-  PictureInPicture2Icon,
   Redo2Icon,
   SquareIcon,
   Trash2Icon,
@@ -27,7 +26,6 @@ import { cn } from "@meetings/ui/lib/utils";
 import { showError } from "#/lib/errors.ts";
 import { useConvexValue } from "#/features/data/live-query.ts";
 import { useGuestPass } from "../guest-pass.ts";
-import { canFloat, openFloat } from "./float-window.ts";
 import {
   INK,
   NOTE_FONT,
@@ -529,18 +527,6 @@ export const AnnotationLayer = ({
                 </>
               )}
               {snapshotButton}
-              {!floating && data.presenter && canFloat() && (
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="rounded-full"
-                  aria-label="Draw in a floating window"
-                  title="Draw in a floating window that stays on top of your other apps"
-                  onClick={() => void openFloat().catch(showError)}
-                >
-                  <PictureInPicture2Icon />
-                </Button>
-              )}
               <Button
                 size="icon-sm"
                 variant="ghost"

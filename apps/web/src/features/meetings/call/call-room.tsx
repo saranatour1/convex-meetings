@@ -229,11 +229,21 @@ export const CallRoom = ({
           void addTranscriptLine({ meetingId, text, ...pass }).catch(() => null);
         };
         meeting.ai.on("transcript", saveOwnLine);
+        const syncShareLayout = () =>
+          emitCallUi(element, {
+            activeScreenShare:
+              meeting.self.screenShareEnabled ||
+              meeting.participants.joined.toArray().some((p) => p.screenShareEnabled),
+          });
+        meeting.self.on("screenShareUpdate", syncShareLayout);
+        meeting.participants.joined.on("screenShareUpdate", syncShareLayout);
         return () => {
           element.removeEventListener("rtkStateUpdate", sync);
           stopListening();
           meeting.self.off("roomLeft", reportLeft);
           meeting.ai.off("transcript", saveOwnLine);
+          meeting.self.off("screenShareUpdate", syncShareLayout);
+          meeting.participants.joined.off("screenShareUpdate", syncShareLayout);
         };
       }}
     >
@@ -250,8 +260,8 @@ export const CallRoom = ({
             Recording
           </Badge>
         )}
-        <span className="ms-auto flex items-center gap-1.5 text-muted-foreground text-xs tabular-nums">
-          <UsersIcon className="size-3.5" />
+        <span className="ms-auto flex items-center gap-1.5 text-foreground text-xs tabular-nums">
+          <UsersIcon className="size-3.5 text-muted-foreground" />
           {people} in the call
         </span>
       </header>
