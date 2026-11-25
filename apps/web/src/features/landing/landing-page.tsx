@@ -42,22 +42,22 @@ export const FAQ = [
   {
     question: "How does Meetings handle time zones?",
     answer:
-      "Every meeting keeps its own time zone and everyone sees it in theirs. Find a time lays out your teammates' working hours and busy times side by side.",
+      "Each meeting has its own time zone, and each person sees the time in their own zone. The Find a time page shows your teammates' working hours and busy times in one grid.",
   },
   {
     question: "What is saved after a call?",
     answer:
-      "Each call gets a recap with a summary, the transcript, the recording and who joined when. Protected meetings turn recording off.",
+      "Each call gets a recap with a summary, the transcript, the recording and who joined when. Recording is off in protected meetings.",
   },
   {
     question: "Can AI assistants like Claude join a call?",
     answer:
-      "Yes. An assistant joins through a guest link as a watcher, with no camera or microphone. It follows the live transcript and the chat, and everyone sees it with its app's icon.",
+      "Yes. An assistant joins through a guest link as a watcher, with no camera or microphone. It reads the live transcript and the chat, and people in the call see it with its app's icon as its picture.",
   },
   {
     question: "What is Meetings built with?",
     answer:
-      "Convex for the database and backend functions, TanStack Start on Cloudflare Workers for the web app, and Cloudflare RealtimeKit for audio and video.",
+      "It uses Convex for the database and backend functions, TanStack Start on Cloudflare Workers for the web app, and Cloudflare RealtimeKit for audio and video.",
   },
 ];
 
