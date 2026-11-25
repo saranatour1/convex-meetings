@@ -1,12 +1,13 @@
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
 import { RtkParticipantTile, RtkScreenshareView } from "@cloudflare/realtimekit-react-ui";
-import { Maximize2Icon, Minimize2Icon, MonitorUpIcon } from "lucide-react";
+import { Maximize2Icon, Minimize2Icon, MonitorUpIcon, PictureInPicture2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { Id } from "@meetings/backend";
 import { Button } from "@meetings/ui/components/button";
+import { showError } from "#/lib/errors.ts";
 import { AnnotationLayer } from "./annotations.tsx";
-import { closeFloatOnUnmount, useFloatWindow } from "./float-window.ts";
+import { canFloat, closeFloatOnUnmount, openFloat, useFloatWindow } from "./float-window.ts";
 
 const ShareVideo = ({ track }: { track: MediaStreamTrack | undefined }) => (
   <video
@@ -40,6 +41,18 @@ const SelfShare = ({ floatingLayer }: { floatingLayer: ReactNode }) => {
       <div className="absolute start-3 bottom-3 flex items-center gap-2 rounded-full bg-background/90 py-1 ps-3 pe-1 text-xs shadow-sm">
         <MonitorUpIcon className="size-3.5" />
         You're sharing your screen
+        {floatingLayer && !floating && canFloat() && (
+          <Button
+            size="xs"
+            variant="secondary"
+            className="rounded-full"
+            title="Open your share and everyone's drawings in a small window that stays on top of your other apps"
+            onClick={() => void openFloat().catch(showError)}
+          >
+            <PictureInPicture2Icon />
+            See drawings
+          </Button>
+        )}
         <Button
           size="xs"
           variant="destructive"
