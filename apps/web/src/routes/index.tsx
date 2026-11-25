@@ -1,6 +1,6 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Authenticated } from "convex/react";
-import { LandingPage } from "#/features/landing/landing-page.tsx";
+import { FAQ, LandingPage } from "#/features/landing/landing-page.tsx";
 import { REPO_URL, SITE_DESCRIPTION, SITE_NAME, SITE_URL, pageHead } from "#/lib/seo.ts";
 
 const Landing = () => {
@@ -39,6 +39,18 @@ export const Route = createFileRoute("/")({
           isAccessibleForFree: true,
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
           sameAs: [REPO_URL],
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: FAQ.map(({ question, answer }) => ({
+            "@type": "Question",
+            name: question,
+            acceptedAnswer: { "@type": "Answer", text: answer },
+          })),
         }),
       },
     ],

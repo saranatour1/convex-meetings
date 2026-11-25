@@ -23,6 +23,44 @@ const FEATURES = [
   },
 ];
 
+export const FAQ = [
+  {
+    question: "Is Meetings free?",
+    answer:
+      "Yes. Sign in with Google or GitHub and use it with your team at no cost. The full source is on GitHub.",
+  },
+  {
+    question: "Do I need to install anything to join a call?",
+    answer:
+      "No. Calls run in the browser with video, screen sharing, chat and reactions. Allow the camera and microphone when the browser asks.",
+  },
+  {
+    question: "Can guests join a meeting without an account?",
+    answer:
+      "Yes. Hosts invite anyone by email, or open a meeting to anyone with its link. A guest types a name and joins from the browser.",
+  },
+  {
+    question: "How does Meetings handle time zones?",
+    answer:
+      "Every meeting keeps its own time zone and everyone sees it in theirs. Find a time lays out your teammates' working hours and busy times side by side.",
+  },
+  {
+    question: "What is saved after a call?",
+    answer:
+      "Each call gets a recap with a summary, the transcript, the recording and who joined when. Protected meetings turn recording off.",
+  },
+  {
+    question: "Can AI assistants like Claude join a call?",
+    answer:
+      "Yes. An assistant joins through a guest link as a watcher, with no camera or microphone. It follows the live transcript and the chat, and everyone sees it with its app's icon.",
+  },
+  {
+    question: "What is Meetings built with?",
+    answer:
+      "Convex for the database and backend functions, TanStack Start on Cloudflare Workers for the web app, and Cloudflare RealtimeKit for audio and video.",
+  },
+];
+
 export const LandingPage = () => {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -72,6 +110,20 @@ export const LandingPage = () => {
               <li key={feature.title}>
                 <h3 className="font-medium">{feature.title}</h3>
                 <p className="mt-1 text-muted-foreground text-sm">{feature.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="questions">
+          <h2 id="questions" className="font-medium">
+            Questions
+          </h2>
+          <ul className="mt-6 flex flex-col gap-6">
+            {FAQ.map((item) => (
+              <li key={item.question}>
+                <h3 className="font-medium">{item.question}</h3>
+                <p className="mt-1 text-muted-foreground text-sm">{item.answer}</p>
               </li>
             ))}
           </ul>
