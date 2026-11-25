@@ -1,5 +1,5 @@
 import { useRealtimeKitMeeting, useRealtimeKitSelector } from "@cloudflare/realtimekit-react";
-import { RtkParticipantTile, RtkScreenshareView } from "@cloudflare/realtimekit-react-ui";
+import { RtkParticipantTile } from "@cloudflare/realtimekit-react-ui";
 import { Maximize2Icon, Minimize2Icon, MonitorUpIcon, PictureInPicture2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -94,7 +94,7 @@ export const ShareStage = ({
     <div className="flex size-full gap-2">
       <div className="relative min-w-0 flex-1 overflow-hidden rounded-xl bg-neutral-950">
         {sharer ? (
-          <RtkScreenshareView meeting={meeting} participant={sharer} className="size-full" />
+          <ShareVideo track={track} />
         ) : (
           <SelfShare
             floatingLayer={
