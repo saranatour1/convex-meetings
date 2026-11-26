@@ -36,7 +36,7 @@ export const createJoinLink = async (
 };
 
 const findLiveLink = async (ctx: QueryCtx, secret: string) => {
-  const token = await findLiveToken(ctx, secret);
+  const token = await findLiveToken(ctx, secret, Date.now());
   if (!token) return null;
   const link = await ctx.db
     .query("joinLinks")

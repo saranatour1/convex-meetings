@@ -60,8 +60,12 @@ export const findBans = async (ctx: QueryCtx, orgId: Id<"organizations">, who: B
   return [...byUser, ...byDevice];
 };
 
-export const findActiveBan = async (ctx: QueryCtx, orgId: Id<"organizations">, who: Banned) => {
-  const now = Date.now();
+export const findActiveBan = async (
+  ctx: QueryCtx,
+  orgId: Id<"organizations">,
+  who: Banned,
+  now: number,
+) => {
   return (await findBans(ctx, orgId, who)).find((ban) => isActive(ban, now)) ?? null;
 };
 
@@ -85,8 +89,14 @@ export const requireNotBanned = async (
   ctx: QueryCtx,
   orgId: Id<"organizations">,
   userId: Id<"users">,
+  now: number,
 ) => {
-  const ban = await findActiveBan(ctx, orgId, { userId, deviceId: await deviceOf(ctx, userId) });
+  const ban = await findActiveBan(
+    ctx,
+    orgId,
+    { userId, deviceId: await deviceOf(ctx, userId) },
+    now,
+  );
   if (ban) throw new ConvexError(banMessage(ban));
 };
 
@@ -94,7 +104,8 @@ export const requireDeviceNotBanned = async (
   ctx: QueryCtx,
   orgId: Id<"organizations">,
   deviceId: string,
+  now: number,
 ) => {
-  const ban = await findActiveBan(ctx, orgId, { deviceId });
+  const ban = await findActiveBan(ctx, orgId, { deviceId }, now);
   if (ban) throw new ConvexError(banMessage(ban));
 };

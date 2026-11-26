@@ -26,7 +26,7 @@ export const send = meetingMutation({
     const { meeting, member } = await requireMeetingMember(ctx, meetingId, ctx.userId);
     if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
     const open = isPublicRoom(meeting);
-    if (open) await requireNotBanned(ctx, meeting.orgId, ctx.userId);
+    if (open) await requireNotBanned(ctx, meeting.orgId, ctx.userId, Date.now());
     await enforceRateLimit(ctx, "chat", ctx.userId);
     const slowModeSeconds = meeting.slowModeSeconds ?? 0;
     if (slowModeSeconds > 0 && !(await canControlCall(ctx, meeting, member))) {

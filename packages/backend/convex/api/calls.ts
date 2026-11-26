@@ -42,6 +42,7 @@ export const switchHere = meetingAction({
     const details: JoinDetails = await ctx.runQuery(internal.internal.realtime.joinDetails, {
       userId: ctx.userId,
       meetingId,
+      now: Date.now(),
     });
     if (!details.rtkMeetingId || !details.rtkParticipantId) return;
     await realtimeKit.kick(details.rtkMeetingId, [details.rtkParticipantId]).catch(() => null);

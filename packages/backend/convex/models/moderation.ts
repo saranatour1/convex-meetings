@@ -350,7 +350,7 @@ export const submitFrame = async (
   const [reporterHere, targetHere, ban, storable] = await Promise.all([
     inCall(ctx, meeting._id, member._id),
     inCall(ctx, meeting._id, frame.targetMemberId),
-    findActiveBan(ctx, meeting.orgId, { userId }),
+    findActiveBan(ctx, meeting.orgId, { userId }, Date.now()),
     isStorableFrame(ctx, frame.storageId),
   ]);
   const allowed =
@@ -500,7 +500,12 @@ export const myStatus = async (ctx: QueryCtx, userId: Id<"users">, meetingId: Id
     };
   }
   const [ban, strikes, flags] = await Promise.all([
-    findActiveBan(ctx, meeting.orgId, { userId, deviceId: await deviceOf(ctx, userId) }),
+    findActiveBan(
+      ctx,
+      meeting.orgId,
+      { userId, deviceId: await deviceOf(ctx, userId) },
+      Date.now(),
+    ),
     strikesToday(ctx, meeting.orgId, userId),
     ctx.db
       .query("moderationFlags")
@@ -641,7 +646,7 @@ export const banFromFlag = async (
   ]);
   if (!meeting || !member) throw new ConvexError("This person is no longer in the room");
   await resolveFlag(ctx, orgId, actorId, flagId);
-  if (await findActiveBan(ctx, orgId, { userId: member.userId })) return;
+  if (await findActiveBan(ctx, orgId, { userId: member.userId }, Date.now())) return;
   await banUser(ctx, meeting, member, { reason: flag.reason, flagId, bannedBy: actorId });
   await audit(ctx, orgId, actorId, "userBanned", {
     targetUserId: member.userId,

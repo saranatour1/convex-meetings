@@ -32,17 +32,17 @@ const guestOfToken = (ctx: QueryCtx, token: Doc<"tokens">) =>
         .withIndex("by_token", (q) => q.eq("tokenId", token._id))
         .unique();
 
-const findGuest = async (ctx: QueryCtx, secret: string) => {
+const findGuest = async (ctx: QueryCtx, secret: string, now: number) => {
   if (!SECRET.test(secret)) return null;
-  const token = await findLiveToken(ctx, secret);
+  const token = await findLiveToken(ctx, secret, now);
   return token && guestOfToken(ctx, token);
 };
 
-export const findGuestUserId = async (ctx: QueryCtx, secret: string) =>
-  (await findGuest(ctx, secret))?.userId ?? null;
+export const findGuestUserId = async (ctx: QueryCtx, secret: string, now: number) =>
+  (await findGuest(ctx, secret, now))?.userId ?? null;
 
-export const guestUserId = async (ctx: QueryCtx, secret: string) => {
-  const userId = await findGuestUserId(ctx, secret);
+export const guestUserId = async (ctx: QueryCtx, secret: string, now: number) => {
+  const userId = await findGuestUserId(ctx, secret, now);
   if (!userId) throw new ConvexError("This guest link has expired. Ask the host for a new one.");
   return userId;
 };
@@ -113,7 +113,7 @@ export const previewMeeting = async (ctx: QueryCtx, code: string) => {
 
 export const previewGuestPass = async (ctx: QueryCtx, secret: string) => {
   if (!SECRET.test(secret)) return null;
-  const token = await findLiveToken(ctx, secret);
+  const token = await findLiveToken(ctx, secret, Date.now());
   if (!token) return null;
   const holder =
     (await guestOfToken(ctx, token)) ??
@@ -139,7 +139,7 @@ const enterRoomAsGuest = async (
 ) => {
   if (meeting.endedAt) throw new ConvexError("This room is closed");
   if (!deviceId) throw new ConvexError("Reload the page to join this room");
-  await requireDeviceNotBanned(ctx, meeting.orgId, deviceId);
+  await requireDeviceNotBanned(ctx, meeting.orgId, deviceId, Date.now());
   const { secret, userId } = await createGuest(ctx, meeting._id, { name, deviceId });
   const member = await findMeetingMember(ctx, meeting._id, userId);
   if (member) await queueNameCheck(ctx, member._id);
@@ -162,7 +162,7 @@ export const enterAsGuest = async (
 };
 
 export const renameGuest = async (ctx: MutationCtx, secret: string, name: string) => {
-  const guest = await findGuest(ctx, secret);
+  const guest = await findGuest(ctx, secret, Date.now());
   if (!guest) throw new ConvexError("This guest link has expired");
   await ctx.db.patch("users", guest.userId, parseOrThrow(zUser.pick({ name: true }), { name }));
   const [member, meeting] = await Promise.all([
@@ -189,7 +189,7 @@ export const canEnter = async (ctx: QueryCtx, meeting: Doc<"meetings">, userId: 
 export const enterAsMember = async (ctx: MutationCtx, userId: Id<"users">, code: string) => {
   const meeting = await findMeetingByCode(ctx, code);
   if (!meeting) throw new ConvexError("No meeting with that code");
-  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId);
+  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId, Date.now());
   if (await findMeetingMember(ctx, meeting._id, userId)) return meeting._id;
   if (isPublicRoom(meeting) && meeting.endedAt) throw new ConvexError("This room is closed");
   if (!(await canEnter(ctx, meeting, userId))) {

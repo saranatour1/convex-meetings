@@ -24,8 +24,8 @@ export const guestInviteEmail = ({
 });
 
 export const userId = internalQuery({
-  args: { secret: v.string() },
-  handler: (ctx, { secret }) => guestUserId(ctx, secret),
+  args: { secret: v.string(), now: v.number() },
+  handler: (ctx, { secret, now }) => guestUserId(ctx, secret, now),
 });
 
 export const details = internalQuery({

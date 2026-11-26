@@ -141,7 +141,7 @@ export const toggleReaction = async (
   if (!message) throw new ConvexError("This message was deleted");
   const { meeting, member } = await requireMeetingMember(ctx, message.meetingId, userId);
   if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
-  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId);
+  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId, Date.now());
   const mine = await ctx.db
     .query("messageReactions")
     .withIndex("by_message_and_member", (q) =>

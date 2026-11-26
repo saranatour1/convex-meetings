@@ -188,6 +188,7 @@ export const join = meetingAction({
     const details: JoinDetails = await ctx.runQuery(internal.internal.realtime.joinDetails, {
       userId: ctx.userId,
       meetingId,
+      now: Date.now(),
     });
     const detected = details.isGuest ? detectAgent(userAgent ?? "", details.name) : null;
     if (detected && detected !== details.agent) {
@@ -197,7 +198,7 @@ export const join = meetingAction({
       });
     }
     if (detected ?? details.agent) return { agent: true };
-    const budget = await ctx.runQuery(internal.internal.realtime.budget, {});
+    const budget = await ctx.runQuery(internal.internal.realtime.budget, { now: Date.now() });
     if (budget.callsPausedUntil) {
       throw new ConvexError(
         `This month's free call minutes are used up. Calls open again on ${budget.callsPausedUntil}.`,
