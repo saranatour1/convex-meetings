@@ -175,7 +175,11 @@ test("a full room turns newcomers away", async () => {
     await ctx.db.patch("rooms", room!._id, { people: 50 });
   });
   await expect(
-    t.query(internal.internal.realtime.joinDetails, { userId: outsider.userId, meetingId }),
+    t.query(internal.internal.realtime.joinDetails, {
+      userId: outsider.userId,
+      meetingId,
+      now: Date.now(),
+    }),
   ).rejects.toThrow("This room is full");
 });
 
@@ -185,11 +189,16 @@ test("guests join a public room as viewers without a picture or a recording", as
   await outsider.asUser.mutation(api.api.meetings.enter, { code });
   const guestId = await t.run(async (ctx) => (await ctx.db.query("meetingGuests").first())!.userId);
   expect(
-    await t.query(internal.internal.realtime.joinDetails, { userId: guestId, meetingId }),
+    await t.query(internal.internal.realtime.joinDetails, {
+      userId: guestId,
+      meetingId,
+      now: Date.now(),
+    }),
   ).toMatchObject({ viewer: true, record: false });
   const details = await t.query(internal.internal.realtime.joinDetails, {
     userId: outsider.userId,
     meetingId,
+    now: Date.now(),
   });
   expect(details).toMatchObject({ viewer: false, record: false });
   expect(details.imageUrl).toBeUndefined();

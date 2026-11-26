@@ -94,8 +94,7 @@ const currentUsage = async (ctx: QueryCtx, now: number) => {
   };
 };
 
-export const joinBudget = async (ctx: QueryCtx) => {
-  const now = Date.now();
+export const joinBudget = async (ctx: QueryCtx, now: number) => {
   const used = await currentUsage(ctx, now);
   return {
     callsPausedUntil: used.callSeconds < LIMITS.callSecondsPerMonth ? null : nextMonth(now),

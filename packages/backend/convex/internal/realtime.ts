@@ -31,13 +31,13 @@ const WEBHOOK_EVENTS = [
 ];
 
 export const joinDetails = internalQuery({
-  args: { userId: v.id("users"), meetingId: v.id("meetings") },
-  handler: (ctx, { userId, meetingId }) => readJoinDetails(ctx, userId, meetingId),
+  args: { userId: v.id("users"), meetingId: v.id("meetings"), now: v.number() },
+  handler: (ctx, { userId, meetingId, now }) => readJoinDetails(ctx, userId, meetingId, now),
 });
 
 export const budget = internalQuery({
-  args: {},
-  handler: (ctx) => joinBudget(ctx),
+  args: { now: v.number() },
+  handler: (ctx, { now }) => joinBudget(ctx, now),
 });
 
 export const claimMeeting = internalMutation({

@@ -42,13 +42,14 @@ export const joinDetails = async (
   ctx: QueryCtx,
   userId: Id<"users">,
   meetingId: Id<"meetings">,
+  now: number,
 ) => {
   const { meeting, member } = await requireMeetingMember(ctx, meetingId, userId);
   if (meeting.endedAt) throw new ConvexError("This meeting has ended");
   if (member.removedAt) throw new ConvexError("The host removed you from this meeting");
   const open = isPublicRoom(meeting);
   if (open) {
-    await requireNotBanned(ctx, meeting.orgId, userId);
+    await requireNotBanned(ctx, meeting.orgId, userId, now);
     const [room, here] = await Promise.all([
       findRoom(ctx, meetingId),
       sessionPeersOfMember(ctx, meetingId, member._id),

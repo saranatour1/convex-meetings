@@ -50,7 +50,9 @@ const orgMember = customCtxAndArgs({
 const meetingCaller = customCtxAndArgs({
   args: { guest: v.optional(v.string()) },
   input: async (ctx: QueryCtx, { guest }) => ({
-    ctx: { userId: guest ? await guestUserId(ctx, guest) : await requireVerifiedUserId(ctx) },
+    ctx: {
+      userId: guest ? await guestUserId(ctx, guest, Date.now()) : await requireVerifiedUserId(ctx),
+    },
     args: {},
   }),
 });
@@ -59,7 +61,9 @@ const meetingViewer = customCtxAndArgs({
   args: { guest: v.optional(v.string()) },
   input: async (ctx: QueryCtx, { guest }) => ({
     ctx: {
-      userId: guest ? await findGuestUserId(ctx, guest) : await requireVerifiedUserId(ctx),
+      userId: guest
+        ? await findGuestUserId(ctx, guest, Date.now())
+        : await requireVerifiedUserId(ctx),
     },
     args: {},
   }),
@@ -72,7 +76,7 @@ const meetingCallerAction = customCtxAndArgs({
     { guest },
   ): Promise<{ ctx: { userId: Id<"users"> }; args: Record<string, never> }> => {
     const userId: Id<"users"> = guest
-      ? await ctx.runQuery(internal.internal.guests.userId, { secret: guest })
+      ? await ctx.runQuery(internal.internal.guests.userId, { secret: guest, now: Date.now() })
       : await verifiedUserIdInAction(ctx);
     return { ctx: { userId }, args: {} };
   },

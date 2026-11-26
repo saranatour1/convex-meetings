@@ -37,13 +37,13 @@ export const issueToken = async (
   return { secret, tokenId };
 };
 
-export const findLiveToken = async (ctx: QueryCtx, secret: string) => {
+export const findLiveToken = async (ctx: QueryCtx, secret: string, now: number) => {
   const value = await hashSecret(secret);
   const token = await ctx.db
     .query("tokens")
     .withIndex("by_value", (q) => q.eq("value", value))
     .unique();
-  return token && token.expiresAt > Date.now() ? token : null;
+  return token && token.expiresAt > now ? token : null;
 };
 
 const enqueueSend = async (ctx: MutationCtx, inviteId: Id<"invites">, secret: string) => {
@@ -142,7 +142,7 @@ export const revokeInvite = async (
 };
 
 const findLiveInvite = async (ctx: QueryCtx, secret: string) => {
-  const live = await findLiveToken(ctx, secret);
+  const live = await findLiveToken(ctx, secret, Date.now());
   if (!live) return null;
   return ctx.db
     .query("invites")

@@ -108,7 +108,7 @@ const openRequest = async (
 
 export const askAsMember = async (ctx: MutationCtx, userId: Id<"users">, code: string) => {
   const meeting = await requireAskable(ctx, await findMeetingByCode(ctx, code));
-  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId);
+  if (isPublicRoom(meeting)) await requireNotBanned(ctx, meeting.orgId, userId, Date.now());
   if (await findMeetingMember(ctx, meeting._id, userId)) return;
   const request = await findJoinRequest(ctx, meeting._id, userId);
   if (request?.status === "waiting") return;
@@ -129,7 +129,7 @@ export const enterOrAskAsGuest = async (
   const askable = await requireAskable(ctx, meeting);
   const room = isPublicRoom(askable);
   if (room && !deviceId) throw new ConvexError("Reload the page to join this room");
-  if (room && deviceId) await requireDeviceNotBanned(ctx, askable.orgId, deviceId);
+  if (room && deviceId) await requireDeviceNotBanned(ctx, askable.orgId, deviceId, Date.now());
   const userId = await insertGuestUser(ctx, { name });
   const { secret, tokenId } = await issueToken(ctx, GUEST_PASS_MS);
   await openRequest(ctx, askable, userId, { tokenId, deviceId: room ? deviceId : undefined });
