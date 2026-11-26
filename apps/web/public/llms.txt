@@ -4,6 +4,8 @@
 
 The landing page and the public rooms pages are public. Everything else needs a signed-in account. Sign-in is Google or GitHub followed by the person's passkey, so an agent acting for someone works inside that person's signed-in browser session. There is no public API.
 
+Any page also comes as markdown: send `Accept: text/markdown`. Signed-in pages render in the browser, so their markdown has only the title and description.
+
 Page state lives in the URL. An agent can open any page below in the exact state it needs by setting its query parameters, without clicking through the UI. Meetings are identified by a code like `abc-defg-hij`. Times are UTC milliseconds and time zones are IANA names. List parameters are JSON arrays, for example `zones=["Europe/Berlin","America/New_York"]`.
 
 ## Public pages
